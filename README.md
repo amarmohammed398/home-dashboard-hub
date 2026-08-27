@@ -2,8 +2,10 @@
 
 A single self-contained page (`index.html`) that shows today's prayer times
 for Cheadle Masjid: live clock, Hijri + Gregorian date, Begins/Iqamah table,
-and a countdown to the next Iqamah. On Fridays it swaps Dhuhr for the
-Jumu'ah row (1st/2nd Khutbah), matching the masjid's own display screen.
+a countdown to the next Iqamah, and an optional adhan (call to prayer) played
+through the tablet's speaker at the start of whichever prayers you enable.
+On Fridays it swaps Dhuhr for the Jumu'ah row (1st/2nd Khutbah), matching
+the masjid's own display screen.
 
 It pulls live data straight from the masjid's own website
 (`https://cheadlemasjid.org/wp-json/dpt/v1/prayertime?filter=today`) every
@@ -13,6 +15,28 @@ that accurate, you just keep the page's look/behaviour maintained.
 Written in plain ES5 JavaScript (no `fetch`, no arrow functions, no CSS
 variables) on purpose — the Galaxy Tab 3's browser engine is from ~2013
 and doesn't support modern JS/CSS.
+
+## Adhan (call to prayer)
+
+Tap the gear icon (top-right) to open Settings. Under **Adhan** there's a
+toggle for each of Fajr, Dhuhr/Jumu'ah, Asr, Maghrib and Isha — turn on
+whichever ones you want played out loud, and a small speaker icon appears
+next to that prayer's name on the main display as a reminder it's armed.
+Each row also has a ▶ button to preview the sound immediately, without
+waiting for the real prayer time.
+
+- The audio file is `adhan.mp3` in this folder — swap it for any recording
+  you like (same filename), or ask me to wire up a separate file for Fajr
+  if you later want its distinct "as-salatu khayrun minan nawm" version.
+- It plays once, right when a prayer's **Begins** time arrives (not
+  Iqamah), and won't repeat again that day even if the page reloads.
+- **Autoplay**: browsers normally block audio from playing on its own,
+  without you having tapped the screen first. Fully Kiosk Browser has a
+  setting for exactly this — in its settings look for **Autoplay Audio**
+  (under the web/media settings) and enable it. Without that, the display
+  will still work, it'll just silently skip a scheduled adhan until
+  someone next taps the screen (which "unlocks" audio for the rest of that
+  session).
 
 ## How the "push and it updates on the tablet" workflow works
 

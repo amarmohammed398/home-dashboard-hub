@@ -190,7 +190,9 @@
     position: fixed;
     top: 6.4vh;
     right: 2vh;
-    width: 230px;
+    width: 270px;
+    max-height: 80vh;
+    overflow-y: auto;
     border-radius: 16px;
     padding: 16px;
     box-shadow: 0 8px 28px 0 rgba(20, 30, 25, 0.18);
@@ -205,6 +207,7 @@
     letter-spacing: 0.08em;
     margin-bottom: 12px;
   }
+  #settingsPanel .panelTitle.withGap { margin-top: 18px; }
   #settingsPanel .panelRow {
     display: -webkit-box;
     display: -webkit-flex;
@@ -215,16 +218,44 @@
     -webkit-box-align: center;
     -webkit-align-items: center;
     align-items: center;
+    padding: 6px 0;
   }
   #settingsPanel .panelLabel { font-size: 15px; font-weight: 600; }
-  #themeToggle {
+  #settingsPanel .panelRowRight {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+  }
+  .testBtn {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-box-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    margin-right: 10px;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .toggleSwitch {
     position: relative;
     width: 46px;
     height: 26px;
     border-radius: 999px;
     cursor: pointer;
+    -webkit-flex: 0 0 auto;
+    flex: 0 0 auto;
   }
-  #themeToggle .knob {
+  .toggleSwitch .knob {
     position: absolute;
     top: 3px;
     left: 3px;
@@ -236,7 +267,12 @@
     transition: left 0.18s ease;
     box-shadow: 0 1px 3px rgba(0,0,0,0.3);
   }
-  #themeToggle.on .knob { left: 23px; }
+  .toggleSwitch.on .knob { left: 23px; }
+  #adhanStatus {
+    font-size: 12px;
+    margin-top: 10px;
+    min-height: 14px;
+  }
 
   /* ================= LIGHT THEME (default) ================= */
   body.theme-light { background-color: #f2f4f7; color: #1f2937; }
@@ -259,8 +295,11 @@
   body.theme-light #settingsBtn { background-color: #ffffff; color: #6b7280; }
   body.theme-light #settingsPanel { background-color: #ffffff; color: #1f2937; }
   body.theme-light #settingsPanel .panelTitle { color: #9aa1ac; }
-  body.theme-light #themeToggle { background-color: #e5e7eb; }
-  body.theme-light #themeToggle.on { background-color: #0e8f6b; }
+  body.theme-light .toggleSwitch { background-color: #e5e7eb; }
+  body.theme-light .toggleSwitch.on { background-color: #0e8f6b; }
+  body.theme-light .testBtn { background-color: #f2f4f7; color: #6b7280; }
+  body.theme-light #adhanStatus { color: #6b7280; }
+  body.theme-light #adhanStatus.error { color: #d97706; }
 
   /* ================= DARK THEME ================= */
   body.theme-dark { background-color: #10131a; color: #f3f4f6; }
@@ -283,8 +322,11 @@
   body.theme-dark #settingsBtn { background-color: #1a1e27; color: #9aa1ac; box-shadow: 0 2px 10px 0 rgba(0,0,0,0.35); }
   body.theme-dark #settingsPanel { background-color: #1a1e27; color: #f3f4f6; box-shadow: 0 8px 28px 0 rgba(0,0,0,0.45); }
   body.theme-dark #settingsPanel .panelTitle { color: #6b7280; }
-  body.theme-dark #themeToggle { background-color: #30353f; }
-  body.theme-dark #themeToggle.on { background-color: #2fd39a; }
+  body.theme-dark .toggleSwitch { background-color: #30353f; }
+  body.theme-dark .toggleSwitch.on { background-color: #2fd39a; }
+  body.theme-dark .testBtn { background-color: #262b36; color: #9aa1ac; }
+  body.theme-dark #adhanStatus { color: #9aa1ac; }
+  body.theme-dark #adhanStatus.error { color: #f2b84b; }
 </style>
 </head>
 <body class="theme-light">
@@ -327,9 +369,49 @@
   <div class="panelTitle">Appearance</div>
   <div class="panelRow">
     <span class="panelLabel">Dark mode</span>
-    <div id="themeToggle"><div class="knob"></div></div>
+    <div class="toggleSwitch" id="themeToggle"><div class="knob"></div></div>
   </div>
+
+  <div class="panelTitle withGap">Adhan</div>
+  <div class="panelRow" data-prayer="fajr">
+    <span class="panelLabel">Fajr</span>
+    <div class="panelRowRight">
+      <div class="testBtn" data-test="fajr">&#9654;</div>
+      <div class="toggleSwitch" data-toggle="fajr"><div class="knob"></div></div>
+    </div>
+  </div>
+  <div class="panelRow" data-prayer="dhuhr">
+    <span class="panelLabel">Dhuhr / Jumu&rsquo;ah</span>
+    <div class="panelRowRight">
+      <div class="testBtn" data-test="dhuhr">&#9654;</div>
+      <div class="toggleSwitch" data-toggle="dhuhr"><div class="knob"></div></div>
+    </div>
+  </div>
+  <div class="panelRow" data-prayer="asr">
+    <span class="panelLabel">Asr</span>
+    <div class="panelRowRight">
+      <div class="testBtn" data-test="asr">&#9654;</div>
+      <div class="toggleSwitch" data-toggle="asr"><div class="knob"></div></div>
+    </div>
+  </div>
+  <div class="panelRow" data-prayer="maghrib">
+    <span class="panelLabel">Maghrib</span>
+    <div class="panelRowRight">
+      <div class="testBtn" data-test="maghrib">&#9654;</div>
+      <div class="toggleSwitch" data-toggle="maghrib"><div class="knob"></div></div>
+    </div>
+  </div>
+  <div class="panelRow" data-prayer="isha">
+    <span class="panelLabel">Isha</span>
+    <div class="panelRowRight">
+      <div class="testBtn" data-test="isha">&#9654;</div>
+      <div class="toggleSwitch" data-toggle="isha"><div class="knob"></div></div>
+    </div>
+  </div>
+  <div id="adhanStatus"></div>
 </div>
+
+<audio id="adhanAudio" src="adhan.mp3" preload="none"></audio>
 
 <script>
 (function () {
@@ -339,6 +421,11 @@
   var REFRESH_MS = 5 * 60 * 1000;      // re-fetch data every 5 minutes
   var STORAGE_KEY = "cheadleMasjidLastData";
   var THEME_KEY = "cheadleMasjidTheme";
+  var ADHAN_SETTINGS_KEY = "cheadleMasjidAdhanSettings";
+  var ADHAN_LASTPLAYED_KEY = "cheadleMasjidAdhanLastPlayed";
+  var ADHAN_FILE = "adhan.mp3";
+  var ADHAN_PRAYERS = ["fajr", "dhuhr", "asr", "maghrib", "isha"];
+  var ADHAN_LABELS = { fajr: "Fajr", dhuhr: "Dhuhr", asr: "Asr", maghrib: "Maghrib", isha: "Isha" };
 
   var DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   var MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -411,6 +498,180 @@
         panel.className = "";
       }
     });
+  }
+
+  /* ---------------- adhan (call to prayer) handling ---------------- */
+
+  var audioUnlocked = false;
+
+  function getAdhanSettings() {
+    var defaults = { fajr: false, dhuhr: false, asr: false, maghrib: false, isha: false };
+    try {
+      var raw = localStorage.getItem(ADHAN_SETTINGS_KEY);
+      if (!raw) { return defaults; }
+      var saved = JSON.parse(raw);
+      var i, key;
+      for (i = 0; i < ADHAN_PRAYERS.length; i++) {
+        key = ADHAN_PRAYERS[i];
+        if (typeof saved[key] === "boolean") { defaults[key] = saved[key]; }
+      }
+      return defaults;
+    } catch (e) {
+      return defaults;
+    }
+  }
+
+  function saveAdhanSettings(settings) {
+    try {
+      localStorage.setItem(ADHAN_SETTINGS_KEY, JSON.stringify(settings));
+    } catch (e) { /* ignore storage errors */ }
+  }
+
+  function todayDateString(now) {
+    return now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate());
+  }
+
+  function getLastPlayed(now) {
+    var empty = { date: todayDateString(now), played: [] };
+    try {
+      var raw = localStorage.getItem(ADHAN_LASTPLAYED_KEY);
+      if (!raw) { return empty; }
+      var saved = JSON.parse(raw);
+      if (saved.date !== empty.date) { return empty; }
+      return saved;
+    } catch (e) {
+      return empty;
+    }
+  }
+
+  function markPlayed(now, key) {
+    var rec = getLastPlayed(now);
+    if (rec.played.indexOf(key) === -1) { rec.played.push(key); }
+    try {
+      localStorage.setItem(ADHAN_LASTPLAYED_KEY, JSON.stringify(rec));
+    } catch (e) { /* ignore storage errors */ }
+  }
+
+  function setAdhanStatus(text, isError) {
+    var s = document.getElementById("adhanStatus");
+    s.textContent = text;
+    s.className = isError ? "error" : "";
+  }
+
+  function unlockAudioOnce() {
+    if (audioUnlocked) { return; }
+    audioUnlocked = true;
+    var audio = document.getElementById("adhanAudio");
+    var p = audio.play();
+    if (p && p.then) {
+      p.then(function () { audio.pause(); audio.currentTime = 0; }).catch(function () { /* still locked; will retry on next real interaction */ audioUnlocked = false; });
+    } else {
+      audio.pause();
+    }
+  }
+
+  function playAdhanFile(label, onStatus) {
+    var audio = document.getElementById("adhanAudio");
+    audio.src = ADHAN_FILE;
+    audio.currentTime = 0;
+    var p = audio.play();
+    if (p && p.then) {
+      p.then(function () {
+        if (onStatus) { onStatus("Playing" + (label ? " (" + label + ")" : "") + "…", false); }
+      }).catch(function (err) {
+        if (onStatus) { onStatus("Blocked by browser — tap the screen once, then try again", true); }
+      });
+    }
+    audio.onerror = function () {
+      if (onStatus) { onStatus("Couldn’t find " + ADHAN_FILE + " — add it next to index.html", true); }
+    };
+  }
+
+  function testAdhan(key) {
+    playAdhanFile(ADHAN_LABELS[key] || key, setAdhanStatus);
+  }
+
+  function getAdhanTriggerMinutes(key) {
+    if (!data) { return null; }
+    switch (key) {
+      case "fajr": return parseMinutes(data.fajr_begins);
+      case "dhuhr": return parseMinutes(data.zuhr_begins);
+      case "asr": return parseMinutes(data.asr_mithl_1);
+      case "maghrib": return parseMinutes(data.maghrib_begins);
+      case "isha": return parseMinutes(data.isha_begins);
+    }
+    return null;
+  }
+
+  function checkAdhanSchedule(now) {
+    if (!data) { return; }
+    var settings = getAdhanSettings();
+    var nowMinutes = now.getHours() * 60 + now.getMinutes();
+    var lastPlayed = getLastPlayed(now);
+    var i, key, target;
+    for (i = 0; i < ADHAN_PRAYERS.length; i++) {
+      key = ADHAN_PRAYERS[i];
+      if (!settings[key]) { continue; }
+      if (lastPlayed.played.indexOf(key) !== -1) { continue; }
+      target = getAdhanTriggerMinutes(key);
+      if (target !== null && target === nowMinutes) {
+        markPlayed(now, key);
+        playAdhanFile(ADHAN_LABELS[key], null);
+      }
+    }
+  }
+
+  function applyAdhanToggleUI(settings) {
+    var i, key, el;
+    for (i = 0; i < ADHAN_PRAYERS.length; i++) {
+      key = ADHAN_PRAYERS[i];
+      el = document.querySelector('[data-toggle="' + key + '"]');
+      if (el) { el.className = settings[key] ? "toggleSwitch on" : "toggleSwitch"; }
+    }
+  }
+
+  function initAdhanUI() {
+    var settings = getAdhanSettings();
+    applyAdhanToggleUI(settings);
+
+    var toggles = document.querySelectorAll("[data-toggle]");
+    var i;
+    for (i = 0; i < toggles.length; i++) {
+      (function (toggleEl) {
+        toggleEl.onclick = function (e) {
+          e.stopPropagation();
+          var key = toggleEl.getAttribute("data-toggle");
+          var s = getAdhanSettings();
+          s[key] = !s[key];
+          saveAdhanSettings(s);
+          applyAdhanToggleUI(s);
+          render();
+        };
+      })(toggles[i]);
+    }
+
+    var testBtns = document.querySelectorAll("[data-test]");
+    for (i = 0; i < testBtns.length; i++) {
+      (function (btnEl) {
+        btnEl.onclick = function (e) {
+          e.stopPropagation();
+          testAdhan(btnEl.getAttribute("data-test"));
+        };
+      })(testBtns[i]);
+    }
+
+    // Try to unlock autoplay on the very first tap/click anywhere on the
+    // kiosk screen, so later scheduled adhans aren't blocked by the
+    // browser's "no audio without a user gesture" policy. Written with
+    // plain boolean listener args (no options object) for old-WebView
+    // compatibility, removing itself manually instead of using `once`.
+    function unlockOnceHandler() {
+      unlockAudioOnce();
+      document.removeEventListener("touchstart", unlockOnceHandler, false);
+      document.removeEventListener("click", unlockOnceHandler, false);
+    }
+    document.addEventListener("touchstart", unlockOnceHandler, false);
+    document.addEventListener("click", unlockOnceHandler, false);
   }
 
   /* ---------------- time helpers ---------------- */
@@ -565,12 +826,19 @@
   function renderRows(rows, activeKey) {
     var container = document.getElementById("rows");
     container.innerHTML = "";
-    var i, r, rowEl, nameCell, beginsCell, iqamahCell;
+    var adhanSettings = getAdhanSettings();
+    var i, r, rowEl, nameCell, beginsCell, iqamahCell, adhanKey, nameHtml;
     for (i = 0; i < rows.length; i++) {
       r = rows[i];
       rowEl = el("div", "row" + (r.key === activeKey ? " active" : ""));
 
-      nameCell = el("div", "cell name", r.name);
+      // Both "dhuhr" and Friday's "jumuah" row reflect the same Zuhr adhan toggle.
+      adhanKey = r.key === "jumuah" ? "dhuhr" : r.key;
+      nameHtml = r.name;
+      if (adhanSettings[adhanKey]) {
+        nameHtml += ' <span title="Adhan will be played" style="font-size:0.6em;vertical-align:middle;">&#128266;</span>';
+      }
+      nameCell = el("div", "cell name", nameHtml);
       rowEl.appendChild(nameCell);
 
       beginsCell = el("div", "cell time", formatHms(r.begins) + (r.beginsSub ? "<span class=\"sub\">" + r.beginsSub + "</span>" : ""));
@@ -636,6 +904,7 @@
       if (activeRowsNeedRebuild) {
         renderRows(rows, target ? target.key : null);
       }
+      checkAdhanSchedule(now);
     }
     // Full reload just after midnight so the page picks up new deployed
     // code and cleanly rolls over to a new day.
@@ -647,6 +916,7 @@
   // Boot
   initTheme();
   initSettingsUI();
+  initAdhanUI();
 
   var cached = loadLocal();
   if (cached && cached.d) {
