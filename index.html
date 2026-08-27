@@ -5,17 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Cheadle Masjid - Prayer Times</title>
 <style>
+  /* ---------- structural / layout (theme-independent) ---------- */
   html, body {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
-    background-color: #0b2b1e;
-    color: #f5efe0;
-    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+    font-family: "Segoe UI", Arial, "Helvetica Neue", Helvetica, sans-serif;
     overflow: hidden;
     -webkit-user-select: none;
     user-select: none;
+    -webkit-transition: background-color 0.25s ease, color 0.25s ease;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
   #app {
     display: -webkit-box;
@@ -28,6 +29,7 @@
     height: 100%;
     box-sizing: border-box;
     padding: 3vh 3vw;
+    padding-right: calc(3vw + 60px);
   }
   #header {
     display: -webkit-box;
@@ -39,48 +41,43 @@
     -webkit-box-align: center;
     -webkit-align-items: center;
     align-items: center;
-    border-bottom: 2px solid #c9a24b;
-    padding-bottom: 1.5vh;
-    margin-bottom: 2vh;
+    padding-bottom: 1.6vh;
+    margin-bottom: 1.6vh;
   }
   #masjidName {
-    font-size: 4vw;
-    font-weight: bold;
-    letter-spacing: 0.05em;
-    color: #c9a24b;
-    text-transform: uppercase;
+    font-size: 3.6vw;
+    font-weight: 700;
+    letter-spacing: 0.02em;
   }
   #masjidSub {
-    font-size: 2vw;
-    color: #d8d0b8;
+    font-size: 1.7vw;
     margin-top: 0.3vh;
+    font-weight: 500;
   }
   #clockBlock {
     text-align: right;
   }
   #clock {
-    font-size: 7vw;
-    font-weight: bold;
+    font-size: 6.4vw;
+    font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
   }
   #dateLine {
-    font-size: 2vw;
-    color: #d8d0b8;
-    margin-top: 0.5vh;
+    font-size: 1.7vw;
+    margin-top: 0.6vh;
+    font-weight: 500;
   }
   #countdownBar {
     text-align: center;
-    font-size: 3vw;
-    color: #f5efe0;
-    background-color: rgba(201, 162, 75, 0.15);
-    border: 1px solid #c9a24b;
-    border-radius: 12px;
-    padding: 1.2vh 0;
-    margin-bottom: 2vh;
+    font-size: 2.6vw;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 1.4vh 0;
+    margin-bottom: 2.2vh;
+    box-shadow: 0 2px 10px 0 rgba(20, 30, 25, 0.06);
   }
-  #countdownBar b { color: #c9a24b; }
-  #table {
+  #card {
     -webkit-box-flex: 1;
     -webkit-flex: 1;
     flex: 1;
@@ -90,6 +87,9 @@
     -webkit-box-orient: vertical;
     -webkit-flex-direction: column;
     flex-direction: column;
+    border-radius: 20px;
+    padding: 0.5vh 1.5vw;
+    box-shadow: 0 4px 24px 0 rgba(20, 30, 25, 0.07);
   }
   .row {
     display: -webkit-box;
@@ -101,23 +101,34 @@
     -webkit-box-flex: 1;
     -webkit-flex: 1;
     flex: 1;
-    border-bottom: 1px solid rgba(216, 208, 184, 0.25);
-    padding: 0 1vw;
+    padding: 0 0.6vw;
+    position: relative;
   }
   .row.head {
     -webkit-box-flex: 0;
     -webkit-flex: 0 0 auto;
     flex: 0 0 auto;
-    padding: 0.8vh 1vw;
-    color: #d8d0b8;
-    font-size: 1.6vw;
+    padding: 1.4vh 0.6vw;
+    font-size: 1.35vw;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    border-bottom: 2px solid #c9a24b;
+    letter-spacing: 0.09em;
+    font-weight: 700;
+  }
+  .row + .row {
+    border-top-width: 1px;
+    border-top-style: solid;
   }
   .row.active {
-    background-color: rgba(201, 162, 75, 0.22);
-    border-radius: 10px;
+    border-radius: 14px;
+  }
+  .row.active .cell.name:before {
+    content: "";
+    position: absolute;
+    left: -0.2vw;
+    top: 22%;
+    bottom: 22%;
+    width: 5px;
+    border-radius: 4px;
   }
   .cell {
     -webkit-box-flex: 1;
@@ -128,31 +139,155 @@
     -webkit-box-flex: 1.1;
     -webkit-flex: 1.1;
     flex: 1.1;
-    font-size: 3vw;
-    font-weight: bold;
+    font-size: 2.7vw;
+    font-weight: 700;
+    position: relative;
+    padding-left: 0.6vw;
   }
   .cell.time {
-    font-size: 3vw;
+    font-size: 2.7vw;
+    font-weight: 600;
     text-align: center;
     font-variant-numeric: tabular-nums;
   }
   .sub {
     display: block;
-    font-size: 1.4vw;
-    color: #c9a24b;
-    font-weight: normal;
+    font-size: 1.2vw;
+    font-weight: 600;
     text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
   #footer {
     text-align: center;
-    font-size: 1.3vw;
-    color: rgba(216, 208, 184, 0.6);
-    margin-top: 1.5vh;
+    font-size: 1.2vw;
+    margin-top: 1.6vh;
+    font-weight: 500;
   }
-  #footer.offline { color: #d98c4a; }
+
+  /* ---------- settings button + panel ---------- */
+  #settingsBtn {
+    position: fixed;
+    top: 2vh;
+    right: 2vh;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-box-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 10px 0 rgba(20, 30, 25, 0.12);
+    z-index: 20;
+  }
+  #settingsBtn svg { width: 22px; height: 22px; }
+  #settingsPanel {
+    position: fixed;
+    top: 6.4vh;
+    right: 2vh;
+    width: 230px;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 8px 28px 0 rgba(20, 30, 25, 0.18);
+    z-index: 20;
+    display: none;
+  }
+  #settingsPanel.open { display: block; }
+  #settingsPanel .panelTitle {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+  }
+  #settingsPanel .panelRow {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-pack: justify;
+    -webkit-justify-content: space-between;
+    justify-content: space-between;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+  }
+  #settingsPanel .panelLabel { font-size: 15px; font-weight: 600; }
+  #themeToggle {
+    position: relative;
+    width: 46px;
+    height: 26px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  #themeToggle .knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ffffff;
+    -webkit-transition: left 0.18s ease;
+    transition: left 0.18s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  #themeToggle.on .knob { left: 23px; }
+
+  /* ================= LIGHT THEME (default) ================= */
+  body.theme-light { background-color: #f2f4f7; color: #1f2937; }
+  body.theme-light #masjidName { color: #0e8f6b; }
+  body.theme-light #masjidSub { color: #6b7280; }
+  body.theme-light #clock { color: #1f2937; }
+  body.theme-light #dateLine { color: #6b7280; }
+  body.theme-light #countdownBar { background-color: #ffffff; color: #0e8f6b; }
+  body.theme-light #countdownBar b { color: #0b7357; }
+  body.theme-light #card { background-color: #ffffff; }
+  body.theme-light .row.head { color: #9aa1ac; border-bottom: 2px solid #eef0f3; }
+  body.theme-light .row + .row { border-top-color: #eef0f3; }
+  body.theme-light .row.active { background-color: rgba(14, 143, 107, 0.08); }
+  body.theme-light .row.active .cell.name:before { background-color: #0e8f6b; }
+  body.theme-light .cell.name { color: #1f2937; }
+  body.theme-light .cell.time { color: #1f2937; }
+  body.theme-light .sub { color: #d97706; }
+  body.theme-light #footer { color: #9aa1ac; }
+  body.theme-light #footer.offline { color: #d97706; }
+  body.theme-light #settingsBtn { background-color: #ffffff; color: #6b7280; }
+  body.theme-light #settingsPanel { background-color: #ffffff; color: #1f2937; }
+  body.theme-light #settingsPanel .panelTitle { color: #9aa1ac; }
+  body.theme-light #themeToggle { background-color: #e5e7eb; }
+  body.theme-light #themeToggle.on { background-color: #0e8f6b; }
+
+  /* ================= DARK THEME ================= */
+  body.theme-dark { background-color: #10131a; color: #f3f4f6; }
+  body.theme-dark #masjidName { color: #2fd39a; }
+  body.theme-dark #masjidSub { color: #9aa1ac; }
+  body.theme-dark #clock { color: #f3f4f6; }
+  body.theme-dark #dateLine { color: #9aa1ac; }
+  body.theme-dark #countdownBar { background-color: #1a1e27; color: #2fd39a; box-shadow: 0 2px 10px 0 rgba(0,0,0,0.3); }
+  body.theme-dark #countdownBar b { color: #4de3ac; }
+  body.theme-dark #card { background-color: #1a1e27; box-shadow: 0 4px 24px 0 rgba(0,0,0,0.35); }
+  body.theme-dark .row.head { color: #6b7280; border-bottom: 2px solid #262b36; }
+  body.theme-dark .row + .row { border-top-color: #262b36; }
+  body.theme-dark .row.active { background-color: rgba(47, 211, 154, 0.12); }
+  body.theme-dark .row.active .cell.name:before { background-color: #2fd39a; }
+  body.theme-dark .cell.name { color: #f3f4f6; }
+  body.theme-dark .cell.time { color: #f3f4f6; }
+  body.theme-dark .sub { color: #f2b84b; }
+  body.theme-dark #footer { color: #6b7280; }
+  body.theme-dark #footer.offline { color: #f2b84b; }
+  body.theme-dark #settingsBtn { background-color: #1a1e27; color: #9aa1ac; box-shadow: 0 2px 10px 0 rgba(0,0,0,0.35); }
+  body.theme-dark #settingsPanel { background-color: #1a1e27; color: #f3f4f6; box-shadow: 0 8px 28px 0 rgba(0,0,0,0.45); }
+  body.theme-dark #settingsPanel .panelTitle { color: #6b7280; }
+  body.theme-dark #themeToggle { background-color: #30353f; }
+  body.theme-dark #themeToggle.on { background-color: #2fd39a; }
 </style>
 </head>
-<body>
+<body class="theme-light">
 <div id="app">
 
   <div id="header">
@@ -168,7 +303,7 @@
 
   <div id="countdownBar">Loading prayer times&hellip;</div>
 
-  <div id="table">
+  <div id="card">
     <div class="row head">
       <div class="cell name">Prayer</div>
       <div class="cell time">Begins</div>
@@ -181,6 +316,21 @@
 
 </div>
 
+<div id="settingsBtn" aria-label="Settings">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"></circle>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+  </svg>
+</div>
+
+<div id="settingsPanel">
+  <div class="panelTitle">Appearance</div>
+  <div class="panelRow">
+    <span class="panelLabel">Dark mode</span>
+    <div id="themeToggle"><div class="knob"></div></div>
+  </div>
+</div>
+
 <script>
 (function () {
   "use strict";
@@ -188,6 +338,7 @@
   var API_URL = "https://cheadlemasjid.org/wp-json/dpt/v1/prayertime?filter=today";
   var REFRESH_MS = 5 * 60 * 1000;      // re-fetch data every 5 minutes
   var STORAGE_KEY = "cheadleMasjidLastData";
+  var THEME_KEY = "cheadleMasjidTheme";
 
   var DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   var MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -195,6 +346,74 @@
   var data = null;
   var lastFetchOk = false;
   var lastUpdatedLabel = "--:--";
+
+  /* ---------------- theme handling ---------------- */
+
+  function getSavedTheme() {
+    try {
+      return localStorage.getItem(THEME_KEY);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveTheme(theme) {
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch (e) { /* ignore storage errors */ }
+  }
+
+  function applyTheme(theme) {
+    document.body.className = theme === "dark" ? "theme-dark" : "theme-light";
+    var toggle = document.getElementById("themeToggle");
+    if (theme === "dark") {
+      toggle.className = "on";
+    } else {
+      toggle.className = "";
+    }
+  }
+
+  function initTheme() {
+    var saved = getSavedTheme();
+    applyTheme(saved === "dark" ? "dark" : "light");
+  }
+
+  function toggleTheme() {
+    var isDark = document.body.className.indexOf("theme-dark") !== -1;
+    var next = isDark ? "light" : "dark";
+    applyTheme(next);
+    saveTheme(next);
+  }
+
+  function initSettingsUI() {
+    var btn = document.getElementById("settingsBtn");
+    var panel = document.getElementById("settingsPanel");
+    var toggle = document.getElementById("themeToggle");
+
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      if (panel.className.indexOf("open") !== -1) {
+        panel.className = "";
+      } else {
+        panel.className = "open";
+      }
+    };
+
+    toggle.onclick = function (e) {
+      e.stopPropagation();
+      toggleTheme();
+    };
+
+    document.addEventListener("click", function (e) {
+      if (panel.className.indexOf("open") !== -1 &&
+          e.target !== panel && !panel.contains(e.target) &&
+          e.target !== btn && !btn.contains(e.target)) {
+        panel.className = "";
+      }
+    });
+  }
+
+  /* ---------------- time helpers ---------------- */
 
   function pad(n) {
     return (n < 10 ? "0" : "") + n;
@@ -232,6 +451,7 @@
   function setFooter(text, offline) {
     var f = document.getElementById("footer");
     f.innerHTML = text;
+    f.id = "footer";
     f.className = offline ? "offline" : "";
   }
 
@@ -424,7 +644,10 @@
     }
   }
 
-  // Boot: show cached data immediately (if any) while the first live fetch runs.
+  // Boot
+  initTheme();
+  initSettingsUI();
+
   var cached = loadLocal();
   if (cached && cached.d) {
     data = cached.d;
