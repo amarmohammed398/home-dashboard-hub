@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Cheadle Masjid - Prayer Times</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #0b2b1e;
+    color: #f5efe0;
+    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  #app {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 3vh 3vw;
+  }
+  #header {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-pack: justify;
+    -webkit-justify-content: space-between;
+    justify-content: space-between;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    border-bottom: 2px solid #c9a24b;
+    padding-bottom: 1.5vh;
+    margin-bottom: 2vh;
+  }
+  #masjidName {
+    font-size: 4vw;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    color: #c9a24b;
+    text-transform: uppercase;
+  }
+  #masjidSub {
+    font-size: 2vw;
+    color: #d8d0b8;
+    margin-top: 0.3vh;
+  }
+  #clockBlock {
+    text-align: right;
+  }
+  #clock {
+    font-size: 7vw;
+    font-weight: bold;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  #dateLine {
+    font-size: 2vw;
+    color: #d8d0b8;
+    margin-top: 0.5vh;
+  }
+  #countdownBar {
+    text-align: center;
+    font-size: 3vw;
+    color: #f5efe0;
+    background-color: rgba(201, 162, 75, 0.15);
+    border: 1px solid #c9a24b;
+    border-radius: 12px;
+    padding: 1.2vh 0;
+    margin-bottom: 2vh;
+  }
+  #countdownBar b { color: #c9a24b; }
+  #table {
+    -webkit-box-flex: 1;
+    -webkit-flex: 1;
+    flex: 1;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+  }
+  .row {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-box-flex: 1;
+    -webkit-flex: 1;
+    flex: 1;
+    border-bottom: 1px solid rgba(216, 208, 184, 0.25);
+    padding: 0 1vw;
+  }
+  .row.head {
+    -webkit-box-flex: 0;
+    -webkit-flex: 0 0 auto;
+    flex: 0 0 auto;
+    padding: 0.8vh 1vw;
+    color: #d8d0b8;
+    font-size: 1.6vw;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 2px solid #c9a24b;
+  }
+  .row.active {
+    background-color: rgba(201, 162, 75, 0.22);
+    border-radius: 10px;
+  }
+  .cell {
+    -webkit-box-flex: 1;
+    -webkit-flex: 1;
+    flex: 1;
+  }
+  .cell.name {
+    -webkit-box-flex: 1.1;
+    -webkit-flex: 1.1;
+    flex: 1.1;
+    font-size: 3vw;
+    font-weight: bold;
+  }
+  .cell.time {
+    font-size: 3vw;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .sub {
+    display: block;
+    font-size: 1.4vw;
+    color: #c9a24b;
+    font-weight: normal;
+    text-transform: uppercase;
+  }
+  #footer {
+    text-align: center;
+    font-size: 1.3vw;
+    color: rgba(216, 208, 184, 0.6);
+    margin-top: 1.5vh;
+  }
+  #footer.offline { color: #d98c4a; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="header">
+    <div>
+      <div id="masjidName">Cheadle Masjid</div>
+      <div id="masjidSub">Prayer Times</div>
+    </div>
+    <div id="clockBlock">
+      <div id="clock">--:--:--</div>
+      <div id="dateLine">-</div>
+    </div>
+  </div>
+
+  <div id="countdownBar">Loading prayer times&hellip;</div>
+
+  <div id="table">
+    <div class="row head">
+      <div class="cell name">Prayer</div>
+      <div class="cell time">Begins</div>
+      <div class="cell time">Iqamah</div>
+    </div>
+    <div id="rows"></div>
+  </div>
+
+  <div id="footer">Cheadlemasjid.org &middot; last updated --:--</div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var API_URL = "https://cheadlemasjid.org/wp-json/dpt/v1/prayertime?filter=today";
+  var REFRESH_MS = 5 * 60 * 1000;      // re-fetch data every 5 minutes
+  var STORAGE_KEY = "cheadleMasjidLastData";
+
+  var DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  var MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  var data = null;
+  var lastFetchOk = false;
+  var lastUpdatedLabel = "--:--";
+
+  function pad(n) {
+    return (n < 10 ? "0" : "") + n;
+  }
+
+  function parseMinutes(hms) {
+    // "HH:MM:SS" -> minutes since midnight
+    if (!hms) { return null; }
+    var parts = hms.split(":");
+    return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+  }
+
+  function formatMinutes(mins) {
+    if (mins === null || mins === undefined) { return "--:--"; }
+    mins = ((mins % 1440) + 1440) % 1440;
+    var h = Math.floor(mins / 60);
+    var m = mins % 60;
+    var suffix = h >= 12 ? "pm" : "am";
+    var h12 = h % 12;
+    if (h12 === 0) { h12 = 12; }
+    return h12 + ":" + pad(m) + " " + suffix;
+  }
+
+  function formatHms(hms) {
+    return formatMinutes(parseMinutes(hms));
+  }
+
+  function el(tag, className, html) {
+    var e = document.createElement("div");
+    if (className) { e.className = className; }
+    if (html !== undefined) { e.innerHTML = html; }
+    return e;
+  }
+
+  function setFooter(text, offline) {
+    var f = document.getElementById("footer");
+    f.innerHTML = text;
+    f.className = offline ? "offline" : "";
+  }
+
+  function saveLocal(d) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ d: d, savedAt: new Date().getTime() }));
+    } catch (e) { /* ignore storage errors */ }
+  }
+
+  function loadLocal() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) { return null; }
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function fetchData() {
+    var xhr = new XMLHttpRequest();
+    var url = API_URL + "&_=" + new Date().getTime();
+    xhr.open("GET", url, true);
+    xhr.timeout = 15000;
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          try {
+            var parsed = JSON.parse(xhr.responseText);
+            var today = parsed && parsed[0];
+            if (today) {
+              data = today;
+              lastFetchOk = true;
+              var now = new Date();
+              lastUpdatedLabel = pad(now.getHours()) + ":" + pad(now.getMinutes());
+              saveLocal(today);
+              render();
+              return;
+            }
+          } catch (e) { /* fall through to failure handling */ }
+        }
+        handleFetchFailure();
+      }
+    };
+    xhr.onerror = handleFetchFailure;
+    xhr.ontimeout = handleFetchFailure;
+    xhr.send();
+  }
+
+  function handleFetchFailure() {
+    lastFetchOk = false;
+    if (!data) {
+      var cached = loadLocal();
+      if (cached && cached.d) {
+        data = cached.d;
+      }
+    }
+    render();
+  }
+
+  function isFriday(d) {
+    return d.getDay() === 5;
+  }
+
+  function buildRowsModel(now) {
+    if (!data) { return []; }
+    var friday = isFriday(now);
+    var rows = [];
+
+    rows.push({ key: "fajr", name: "Fajr", begins: data.fajr_begins, iqamah: data.fajr_jamah, target: true });
+    rows.push({ key: "sunrise", name: "Sunrise", begins: data.sunrise, iqamah: null, target: false });
+
+    if (friday) {
+      var fri = data.friday || {};
+      rows.push({
+        key: "jumuah",
+        name: "Jumu’ah",
+        begins: fri.zuhr_jamah,
+        beginsSub: "1st Khutbah",
+        iqamah: fri.asr_mithl_1,
+        iqamahSub: "2nd Khutbah",
+        target: true
+      });
+    } else {
+      rows.push({ key: "dhuhr", name: "Dhuhr", begins: data.zuhr_begins, iqamah: data.zuhr_jamah, target: true });
+    }
+
+    rows.push({ key: "asr", name: "Asr", begins: data.asr_mithl_1, iqamah: data.asr_jamah, target: true });
+    rows.push({ key: "maghrib", name: "Maghrib", begins: data.maghrib_begins, iqamah: data.maghrib_jamah, target: true });
+    rows.push({ key: "isha", name: "Isha", begins: data.isha_begins, iqamah: data.isha_jamah, target: true });
+
+    return rows;
+  }
+
+  function findNextTarget(rows, nowMinutes) {
+    var i, mins;
+    for (i = 0; i < rows.length; i++) {
+      if (!rows[i].target) { continue; }
+      mins = parseMinutes(rows[i].iqamah);
+      if (mins !== null && mins > nowMinutes) {
+        return { key: rows[i].key, label: rows[i].name, minutes: mins };
+      }
+    }
+    // Nothing left today -> tomorrow's Fajr
+    if (data && data.tomorrow && data.tomorrow.fajr_jamah) {
+      return { key: "fajr-tomorrow", label: "Fajr", minutes: parseMinutes(data.tomorrow.fajr_jamah) + 1440 };
+    }
+    return null;
+  }
+
+  function renderRows(rows, activeKey) {
+    var container = document.getElementById("rows");
+    container.innerHTML = "";
+    var i, r, rowEl, nameCell, beginsCell, iqamahCell;
+    for (i = 0; i < rows.length; i++) {
+      r = rows[i];
+      rowEl = el("div", "row" + (r.key === activeKey ? " active" : ""));
+
+      nameCell = el("div", "cell name", r.name);
+      rowEl.appendChild(nameCell);
+
+      beginsCell = el("div", "cell time", formatHms(r.begins) + (r.beginsSub ? "<span class=\"sub\">" + r.beginsSub + "</span>" : ""));
+      rowEl.appendChild(beginsCell);
+
+      iqamahCell = el("div", "cell time", r.iqamah ? (formatHms(r.iqamah) + (r.iqamahSub ? "<span class=\"sub\">" + r.iqamahSub + "</span>" : "")) : "&mdash;");
+      rowEl.appendChild(iqamahCell);
+
+      container.appendChild(rowEl);
+    }
+  }
+
+  function renderCountdown(target, nowMinutes) {
+    var bar = document.getElementById("countdownBar");
+    if (!target) {
+      bar.innerHTML = "Prayer times unavailable";
+      return;
+    }
+    var diff = target.minutes - nowMinutes;
+    if (diff < 0) { diff = 0; }
+    var h = Math.floor(diff / 60);
+    var m = diff % 60;
+    var timeStr = h > 0 ? (h + "h " + m + "m") : (m + "m");
+    bar.innerHTML = "<b>" + target.label + "</b> Iqamah in " + timeStr;
+  }
+
+  function updateClock() {
+    var now = new Date();
+    document.getElementById("clock").textContent =
+      pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
+    document.getElementById("dateLine").textContent =
+      DAY_NAMES[now.getDay()] + ", " + now.getDate() + " " + MONTH_NAMES[now.getMonth()] + " " + now.getFullYear() +
+      (data && data.hijri_date_convert ? " · " + data.hijri_date_convert : "");
+    return now;
+  }
+
+  function render() {
+    var now = updateClock();
+    var nowMinutes = now.getHours() * 60 + now.getMinutes();
+    var rows = buildRowsModel(now);
+    var target = findNextTarget(rows, nowMinutes);
+    renderRows(rows, target ? target.key : null);
+    renderCountdown(target, nowMinutes);
+
+    if (!data) {
+      setFooter("Waiting for connection&hellip;", true);
+    } else if (!lastFetchOk) {
+      setFooter("Offline &middot; showing last update " + lastUpdatedLabel, true);
+    } else {
+      setFooter("Cheadlemasjid.org &middot; last updated " + lastUpdatedLabel, false);
+    }
+  }
+
+  function tick() {
+    var now = updateClock();
+    var nowMinutes = now.getHours() * 60 + now.getMinutes();
+    if (data) {
+      var rows = buildRowsModel(now);
+      var target = findNextTarget(rows, nowMinutes);
+      renderCountdown(target, nowMinutes);
+      // keep active-row highlight in sync without a full row rebuild each second
+      var activeRowsNeedRebuild = document.querySelectorAll(".row.active").length === 0 && target;
+      if (activeRowsNeedRebuild) {
+        renderRows(rows, target ? target.key : null);
+      }
+    }
+    // Full reload just after midnight so the page picks up new deployed
+    // code and cleanly rolls over to a new day.
+    if (now.getHours() === 0 && now.getMinutes() === 5 && now.getSeconds() < 2) {
+      window.location.reload(true);
+    }
+  }
+
+  // Boot: show cached data immediately (if any) while the first live fetch runs.
+  var cached = loadLocal();
+  if (cached && cached.d) {
+    data = cached.d;
+  }
+  render();
+  fetchData();
+
+  setInterval(tick, 1000);
+  setInterval(fetchData, REFRESH_MS);
+})();
+</script>
+</body>
+</html>
