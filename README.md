@@ -152,6 +152,21 @@ Live on the server within a second. The iPad won't see it until the app
 is next manually reopened though — see the note on removing the
 automatic reload, below.
 
+### GitHub (backup / portfolio, not needed for the display to work)
+
+This repo is also public at
+[github.com/amarmohammed398/cheadle-masjid-display](https://github.com/amarmohammed398/cheadle-masjid-display),
+pushed over SSH (a dedicated key at `~/.ssh/id_ed25519_github`, configured
+in `~/.ssh/config` for `github.com`). It's a second, independent remote —
+pushing there doesn't affect the live display at all, and vice versa:
+```bash
+git push origin main   # GitHub (backup/portfolio)
+git push home main     # Linux server (the actual live display)
+```
+`adhan.mp3` is deliberately **not** in this public repo (see CHANGELOG.md)
+— it's a copyrighted recitation kept out of git entirely via
+`.gitignore`, present only as a plain file locally and on the server.
+
 ## Setting up the iPad Pro as the display
 
 1. On the iPad, open **Safari** and go to your server's address

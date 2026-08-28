@@ -216,3 +216,29 @@ directory afterward (filter-branch's final checkout removed it) and
 added `.gitignore` so it can't be accidentally re-tracked. The live
 deployment on the server is unaffected — it's just a file sitting in
 `/var/www/cheadle-masjid-display`, not something git manages there.
+
+### 2026-08-28 — Published to GitHub
+Repo is now public at github.com/amarmohammed398/cheadle-masjid-display
+(13 commits, `adhan.mp3` confirmed absent). HTTPS push failed twice with
+GitHub's "password authentication is not supported" error — not a 2FA
+issue, GitHub simply requires a Personal Access Token in place of the
+account password for any git operation over HTTPS, full stop, and the
+account password kept getting typed instead. Switched to SSH instead:
+generated a dedicated `~/.ssh/id_ed25519_github` key, added a
+`Host github.com` entry to `~/.ssh/config` pointing at it, loaded it
+into the macOS keychain via `ssh-add --apple-use-keychain`, added the
+public key to the GitHub account, and pointed `origin` at
+`git@github.com:amarmohammed398/cheadle-masjid-display.git`. Worked on
+the first attempt. Two remotes now: `origin` (GitHub, public, for
+backup/portfolio/collaboration) and `home` (the Linux server, private,
+for the actual live deployment) — `git push` needs to name one
+explicitly since neither is the sole upstream in the usual sense for
+both directions (`-u` was only set for `origin`).
+
+**Known follow-up**: because the history rewrite above changed every
+commit hash, `home`'s stored copy of `main` now shares no common
+ancestor with the local rewritten history. The *next* `git push home
+main` will be rejected as non-fast-forward and needs
+`git push home main --force` once to resync — safe, since it only
+rewrites git's bookkeeping on the bare repo, not the already-deployed
+files. After that one-time force-push, normal pushes resume as usual.
