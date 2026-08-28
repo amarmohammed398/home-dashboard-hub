@@ -96,12 +96,24 @@
     text-anchor: middle;
     dominant-baseline: middle;
   }
+  #hourHand, #minuteHand, #secondHand {
+    /* Every hand-move is animated smoothly over ~1s so the whole clock
+       glides continuously as it ticks down, rather than snapping each
+       second — this is what gives it a "modern, clean" feel rather than
+       a mechanical jump. Matches the 1000ms tick() interval in JS. */
+    -webkit-transition: -webkit-transform 0.95s linear;
+    transition: transform 0.95s linear;
+  }
   #hourHand {
     stroke-width: 6;
     stroke-linecap: round;
   }
   #minuteHand {
     stroke-width: 3.5;
+    stroke-linecap: round;
+  }
+  #secondHand {
+    stroke-width: 2;
     stroke-linecap: round;
   }
   #countdownLabel {
@@ -414,6 +426,7 @@
   body.theme-light .clockCenter { fill: #0e8f6b; }
   body.theme-light #hourHand { stroke: #0e8f6b; }
   body.theme-light #minuteHand { stroke: #0e8f6b; }
+  body.theme-light #secondHand { stroke: #d97706; }
   body.theme-light #countdownLabel { color: #1f2937; }
   body.theme-light #countdownSub { color: #0e8f6b; }
   body.theme-light #card { background-color: #ffffff; }
@@ -447,6 +460,7 @@
   body.theme-dark .clockCenter { fill: #2fd39a; }
   body.theme-dark #hourHand { stroke: #2fd39a; }
   body.theme-dark #minuteHand { stroke: #2fd39a; }
+  body.theme-dark #secondHand { stroke: #f2b84b; }
   body.theme-dark #countdownLabel { color: #f3f4f6; }
   body.theme-dark #countdownSub { color: #2fd39a; }
   body.theme-dark #card { background-color: #1a1e27; box-shadow: 0 4px 24px 0 rgba(0,0,0,0.35); }
@@ -489,6 +503,7 @@
       <g id="clockNumerals"></g>
       <line id="hourHand" x1="100" y1="100" x2="100" y2="58"></line>
       <line id="minuteHand" x1="100" y1="100" x2="100" y2="34"></line>
+      <line id="secondHand" x1="100" y1="100" x2="100" y2="26"></line>
       <circle class="clockCenter" cx="100" cy="100" r="6"></circle>
     </svg>
     <div id="countdownLabel">Loading&hellip;</div>
@@ -1093,11 +1108,12 @@
     handEl.setAttribute("transform", "rotate(" + angleDeg + " 100 100)");
   }
 
-  function renderCountdown(target, nowMinutes) {
+  function renderCountdown(target, now) {
     var label = document.getElementById("countdownLabel");
     var sub = document.getElementById("countdownSub");
     var hourHand = document.getElementById("hourHand");
     var minuteHand = document.getElementById("minuteHand");
+    var secondHand = document.getElementById("secondHand");
 
     if (!target) {
       label.textContent = "Prayer times unavailable";
@@ -1105,16 +1121,30 @@
       return;
     }
 
-    var diff = target.minutes - nowMinutes;
-    if (diff < 0) { diff = 0; }
-    var hoursPart = Math.floor(diff / 60) % 12;
-    var minutesPart = diff % 60;
+    // Work in seconds (not just minutes) so the hands can move every
+    // single second, not just jump once a minute.
+    var nowTotalSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    var targetTotalSeconds = target.minutes * 60;
+    var diffSeconds = targetTotalSeconds - nowTotalSeconds;
+    if (diffSeconds < 0) { diffSeconds = 0; }
 
-    // Hands show the countdown duration itself (as if "hours/minutes
-    // remaining" were the time on the dial) — deliberately no digital
-    // "Xh Ym" readout alongside it, per the analogue-not-digital brief.
-    setHandAngle(hourHand, hoursPart * 30 + minutesPart * 0.5);
-    setHandAngle(minuteHand, minutesPart * 6);
+    // Hands show the countdown duration itself, all draining toward 12
+    // together as Iqamah approaches — deliberately no digital "Xh Ym"
+    // readout alongside it, per the analogue-not-digital brief.
+    //
+    // Deliberately NOT using `% 60` / `% 12` here: since diffSeconds only
+    // ever decreases, feeding the raw (unwrapped) value straight into
+    // each angle means the angle also only ever decreases — no minute/
+    // hour boundary ever resets it back up to a big number. A CSS
+    // transition animates whatever the previous->new angle gap is, so an
+    // artificial reset would make the hand visibly spin almost a full
+    // circle the wrong way once a minute. rotate() renders any angle
+    // beyond 360° identically to its mod-360 equivalent anyway, so this
+    // looks exactly like a normal clock face while animating perfectly
+    // smoothly.
+    setHandAngle(hourHand, diffSeconds * (30 / 3600));
+    setHandAngle(minuteHand, diffSeconds * (6 / 60));
+    setHandAngle(secondHand, diffSeconds * 6);
 
     label.textContent = target.label;
     sub.textContent = "Iqamah";
@@ -1134,7 +1164,7 @@
     var rows = buildRowsModel(now);
     var target = findNextTarget(rows, nowMinutes);
     renderRows(rows, target ? target.key : null);
-    renderCountdown(target, nowMinutes);
+    renderCountdown(target, now);
 
     if (!data) {
       setFooter("Waiting for connection&hellip;", true);
@@ -1151,7 +1181,7 @@
     if (data) {
       var rows = buildRowsModel(now);
       var target = findNextTarget(rows, nowMinutes);
-      renderCountdown(target, nowMinutes);
+      renderCountdown(target, now);
       // keep active-row highlight in sync without a full row rebuild each second
       var activeRowsNeedRebuild = document.querySelectorAll(".row.active").length === 0 && target;
       if (activeRowsNeedRebuild) {
