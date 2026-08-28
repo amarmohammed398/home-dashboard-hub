@@ -1,0 +1,6 @@
+# The adhan recording is a copyrighted recitation supplied by the user,
+# not something with confirmed rights to redistribute publicly. It's
+# deployed directly on the server (and can live here locally too) but is
+# deliberately kept out of git history so the public GitHub repo doesn't
+# distribute it. See CHANGELOG.md for the full story.
+adhan.mp3
