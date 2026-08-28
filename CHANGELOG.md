@@ -103,25 +103,32 @@ overriding — the baseline exists precisely to catch that kind of thing.
   Styling is fixed/theme-independent, sits above all other UI (z-index).
 
 ### Deployment (current, live)
-- **Self-hosted**, not GitHub Pages: a bare git repo
-  (`~/git/cheadle-masjid-display.git`) on the user's Linux home server
-  (`gsuaha-home-server`, `192.168.0.180`), with a `post-receive` hook
-  that runs `GIT_WORK_TREE=/var/www/cheadle-masjid-display git checkout
-  -f main` on every push.
+- **Primary path — automated**: push to `main` on GitHub → a
+  self-hosted GitHub Actions runner installed on the Linux home server
+  (`gsuaha-home-server`, `192.168.0.180`) picks up the job → checks out
+  the commit → `rsync`s it into `/var/www/cheadle-masjid-display`
+  (excluding `.git`, `.github`, `adhan.mp3`). Runs as a systemd service
+  under the `gsuaha` user. See `.github/workflows/deploy.yml`.
+- **Fallback path — manual**: the original bare git repo
+  (`~/git/cheadle-masjid-display.git`) + `post-receive` hook
+  (`GIT_WORK_TREE=/var/www/cheadle-masjid-display git checkout -f main`)
+  still exists and still works — `git push home main` from the Mac, run
+  in a real terminal (SSH auth needs the user's own password entry, not
+  something done through Claude directly). Useful if the runner service
+  is ever down.
 - Served by **Apache** (not nginx — nginx was the original plan, but the
   server already runs Apache on port 80 for other sites, notably
   `cloud.silkhomesltd.co.uk`; switching to nginx would have taken that
   offline, so a dedicated Apache vhost bound to `192.168.0.180:80` was
   used instead — nginx was never actually put into service on this box).
-- `git remote add home ssh://gsuaha@192.168.0.180/home/gsuaha/git/cheadle-masjid-display.git`,
-  then `git push home main` to deploy — must be run in a real terminal on
-  the Mac (not through Claude directly — SSH auth needs the user's own
-  password entry).
+  Which deploy path is used doesn't matter to Apache — both write to the
+  same folder.
 - Displayed on an **iPad Pro 11" (iOS 26.6.1)**: Safari → Add to Home
   Screen → tap once to unlock audio → Auto-Lock set to Never → locked
   into the app via Guided Access (Settings → Accessibility → Guided
   Access, triple-click side button).
-- **Confirmed working live on the iPad as of 2026-08-28.**
+- **Confirmed working live on the iPad as of 2026-08-28; automated
+  deploy pipeline confirmed working as of 2026-08-29.**
 - Old Samsung Galaxy Tab 3 (Android 4.4) + GitHub Pages + Fully Kiosk
   Browser (legacy v2.9.3 build 360) setup is documented in the README as
   a fallback/alternative, not deleted, in case it's ever used again.
@@ -260,3 +267,43 @@ history rewrite, the CSS animation angle-wrapping bug, GitHub's password
 auth removal) as case studies rather than just bug fixes. Workflow
 updated (see top of this file) to keep it current when a change is
 architecturally significant, not for every commit.
+
+### 2026-08-29 — Automated deployment with GitHub Actions
+Added `.github/workflows/deploy.yml`: pushing to `main` now automatically
+deploys to the live display, removing the manual `git push home main`
+step (which stays available as a fallback — nothing about it changed).
+
+Deliberately used a **self-hosted runner** rather than GitHub's default
+cloud runners: the home server has no public address, so a cloud runner
+would have no way to reach it. Installing GitHub's runner agent directly
+on the server flips the direction of the connection — the runner polls
+GitHub outbound, nothing needs to accept inbound traffic — which fits
+the "everything stays on the home LAN" principle the whole deployment
+was already built around, and avoids opening a port on a box that also
+serves another site.
+
+The deploy step is `rsync -av --delete` from the runner's checkout into
+`/var/www/cheadle-masjid-display`, excluding `.git`, `.github`, and
+**`adhan.mp3`** — the last one is load-bearing, not cosmetic: since
+`adhan.mp3` isn't tracked in git at all, `--delete` would otherwise see
+it as "not in the source" on the very first automated run and delete it
+from the live server.
+
+Runner registered via GitHub's one-time setup token, installed as a
+systemd service (`svc.sh install` / `start`) running as the `gsuaha`
+user — the same user that owns the served folder, so no permission
+issues syncing into it. First automated run (triggered by the commit
+that added this very workflow) completed in 19 seconds; verified the
+served folder afterward and confirmed exactly the expected files, with
+`adhan.mp3`'s original timestamp untouched.
+
+Two real copy-paste snags hit while setting this up, both about
+interactive terminal input rather than the runner itself: (1) GitHub's
+runner-setup page renders `$` prompts and inline comments for
+readability that aren't meant to be pasted literally, and a multi-line
+selection from that page dropped a newline, merging a comment onto the
+following command; (2) `./config.sh`'s first run had a second copy of
+the same command sitting in the terminal's input queue, which got
+consumed as the answer to its first interactive prompt instead of
+waiting for real input — fixed by re-running it alone and answering each
+prompt one at a time.

@@ -150,26 +150,38 @@ that's the URL you'll open on the iPad.
 ```bash
 git add -A
 git commit -m "describe your change"
-git push home main
+git push origin main
 ```
-Live on the server within a second. The iPad won't see it until the app
-is next manually reopened though — see the note on removing the
-automatic reload, below.
+That's it — pushing to GitHub is now the primary deploy trigger (see
+"Automated deployment" below). The iPad won't see it until the app is
+next manually reopened though — see the note on removing the automatic
+reload, below.
 
-### GitHub (backup / portfolio, not needed for the display to work)
+### GitHub + automated deployment
 
-This repo is also public at
+This repo is public at
 [github.com/amarmohammed398/cheadle-masjid-display](https://github.com/amarmohammed398/cheadle-masjid-display),
 pushed over SSH (a dedicated key at `~/.ssh/id_ed25519_github`, configured
-in `~/.ssh/config` for `github.com`). It's a second, independent remote —
-pushing there doesn't affect the live display at all, and vice versa:
+in `~/.ssh/config` for `github.com`).
+
+A push to `main` there triggers `.github/workflows/deploy.yml`, which
+runs on a **self-hosted GitHub Actions runner** installed directly on
+the Linux home server (as a systemd service, under the `gsuaha` user).
+The runner checks out the pushed commit and `rsync`s it straight into
+`/var/www/cheadle-masjid-display` — no cloud runner involved, since a
+GitHub-hosted one has no way to reach a server with no public IP. See
+[ARCHITECTURE.md](ARCHITECTURE.md) for the full diagram and reasoning.
+
+The original manual path still works as a fallback if the runner
+service is ever down:
 ```bash
-git push origin main   # GitHub (backup/portfolio)
-git push home main     # Linux server (the actual live display)
+git push home main     # manual fallback — bare repo + post-receive hook
 ```
-`adhan.mp3` is deliberately **not** in this public repo (see CHANGELOG.md)
-— it's a copyrighted recitation kept out of git entirely via
-`.gitignore`, present only as a plain file locally and on the server.
+`adhan.mp3` is deliberately **not** in this public repo (see
+CHANGELOG.md) — it's a copyrighted recitation kept out of git entirely
+via `.gitignore`. The deploy workflow excludes it from `rsync` too, so
+it's never touched by either deploy path — present only as a plain file
+locally and on the server.
 
 ## Setting up the iPad Pro as the display
 

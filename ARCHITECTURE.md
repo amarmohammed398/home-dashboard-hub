@@ -27,18 +27,22 @@ flowchart LR
         JS["index.html<br/>(vanilla JS, no framework/build step)"]
     end
 
-    subgraph Deploy pipeline
-        Mac["Developer's Mac<br/>git commit"]
-        Home["Linux home server<br/>bare repo + post-receive hook"]
+    Mac["Developer's Mac<br/>git commit"]
+    GitHub["GitHub<br/>public repo"]
+
+    subgraph Home [Linux home server]
+        Runner["Self-hosted GitHub<br/>Actions runner"]
+        BareRepo["Bare repo +<br/>post-receive hook<br/>(fallback path)"]
         Apache["Apache<br/>serves /var/www/cheadle-masjid-display"]
-        GitHub["GitHub<br/>(public backup, no live effect)"]
     end
 
     API -- "fetched client-side<br/>every 5 min, cross-origin" --> JS
-    Mac -- "git push home main" --> Home
-    Home -- "post-receive hook: git checkout -f" --> Apache
+    Mac -- "git push origin main<br/>(primary path)" --> GitHub
+    GitHub -- "triggers workflow<br/>(runner polls outbound)" --> Runner
+    Runner -- "rsync" --> Apache
+    Mac -. "git push home main<br/>(manual fallback)" .-> BareRepo
+    BareRepo -. "post-receive hook:<br/>git checkout -f" .-> Apache
     Apache -- "HTTP, home WiFi" --> JS
-    Mac -. "git push origin main<br/>(independent, cosmetic)" .-> GitHub
 ```
 
 There is **no backend written for this project at all**. The "server" is
@@ -86,24 +90,45 @@ ever needing to run anything more than a browser."**
 ```mermaid
 sequenceDiagram
     participant Dev as Developer (Mac)
-    participant Bare as Bare git repo (server)
-    participant Hook as post-receive hook
+    participant GH as GitHub
+    participant Runner as Self-hosted runner<br/>(on the home server)
     participant Web as Apache webroot
     participant Tab as iPad Safari
 
-    Dev->>Bare: git push home main
-    Bare->>Hook: triggers on every push
-    Hook->>Web: git checkout -f main<br/>(into /var/www/...)
+    Dev->>GH: git push origin main
+    GH->>Runner: workflow job<br/>(runner polls GitHub outbound)
+    Runner->>Runner: actions/checkout@v4
+    Runner->>Web: rsync -av --delete<br/>(into /var/www/...)
     Note over Tab: Already has the page open,<br/>on Home Screen, Guided Access locked
     Tab->>Web: next 5-min data poll / manual reopen
     Web-->>Tab: latest deployed files
 ```
 
-`git push` as a deploy mechanism is a well-worn pattern (this is
-essentially a hand-rolled Heroku/Vercel), chosen over GitHub Pages once
-a home server became available, because it removes any dependency on a
-third party and any need for the tablet or server to have public
-internet exposure at all — everything happens over the home LAN.
+The deploy target is a home server with **no public IP address** — a
+GitHub-hosted cloud runner has no route to it at all. The fix is a
+**self-hosted runner**: GitHub's own runner agent, installed as a
+systemd service directly on the home server, which continuously polls
+GitHub asking "any jobs for me?" over a normal outbound connection —
+the same direction as a browser making a request. Nothing on the home
+network has to accept an inbound connection from the internet, which
+matters because this server also hosts another, unrelated production
+site. The alternative (a cloud runner + SSH into a port forwarded on
+the home router) would have worked too, but would have meant exposing
+SSH on that box to the entire internet just to run this project's
+deploys.
+
+A manual fallback still exists underneath this: the original bare git
+repo + `post-receive` hook (`git push home main`), kept specifically so
+there's a way to deploy if the runner service is ever down. Both paths
+write to the exact same folder, so neither knows or cares that the
+other exists.
+
+`git push`-triggered deployment is a well-worn pattern regardless of
+which of the two mechanisms above executes it (this is essentially a
+hand-rolled Heroku/Vercel) — chosen over any third-party PaaS because it
+removes any dependency on one, and any need for the tablet or server to
+have public internet exposure at all: everything happens over the home
+LAN, whether triggered manually or automatically.
 
 ## Key engineering problems solved (not just "features built")
 
@@ -149,6 +174,13 @@ the *process* of finding and fixing them is the actual engineering:
   2021 (unrelated to 2FA), which isn't obvious from the error message
   alone. Fixed by switching to SSH key auth rather than fighting with
   Personal Access Tokens.
+- **Reaching a private server from a cloud CI system.** GitHub Actions'
+  default runners execute in GitHub's cloud, which has no route to a
+  server behind a home router with no public IP. Rather than solving
+  this by exposing the server to the internet (port-forwarding SSH,
+  dynamic DNS), a self-hosted runner flips who initiates the connection:
+  the server polls GitHub outbound instead of GitHub reaching in. Same
+  outcome, opposite — and safer — direction of trust.
 
 ## Frontend implementation notes
 
@@ -184,9 +216,10 @@ someone other than yourself, which this file is itself an example of.
 
 ## Where this could go next (learning-oriented ideas, not commitments)
 
-- Replace the manual `git push home main` with a GitHub Actions workflow
-  that deploys automatically on push to `main` — introduces CI/CD
-  concepts (webhooks, secrets management for SSH keys in CI).
+- Have the workflow run a quick check (e.g. that `index.html` is valid
+  and the JS parses) *before* the rsync step, so a broken push never
+  reaches the live display — introduces the "CI" half of CI/CD, not just
+  the "CD" half already built.
 - Add a minimal backend (even a 20-line one) to move the prayer-time
   fetch server-side, removing the cross-origin dependency at request
   time and opening the door to caching, rate-limit protection, or
