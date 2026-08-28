@@ -1,5 +1,10 @@
 # Cheadle Masjid — Living Room Prayer Display
 
+> **See [CHANGELOG.md](CHANGELOG.md) for the full feature baseline and
+> change history** — it's the source of truth for what currently works
+> and why things are built the way they are. Check it before making
+> changes, and update it after.
+
 A single self-contained page (`index.html`) that shows today's prayer times
 for Cheadle Masjid: live clock, Hijri + Gregorian date, Begins/Iqamah table,
 a countdown to the next Iqamah, and an optional adhan (call to prayer) played
