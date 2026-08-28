@@ -67,14 +67,31 @@ overriding — the baseline exists precisely to catch that kind of thing.
   without being asked.)
 
 ### Appearance
-- Light theme by default: white cards, soft shadows, emerald (`#0e8f6b`)
-  accent, on a light grey (`#f2f4f7`) background.
+- **"Liquid Glass" look** (matching iOS 26's own material design): every
+  floating panel (`#header`, `#countdownClock`, `#card`, `#settingsPanel`,
+  `#settingsBtn`) is translucent with `backdrop-filter: blur(28px)
+  saturate(180%)`, a bright hairline border, and an inset top highlight,
+  sitting over a fixed multi-blob radial-gradient background (not an
+  image — cheap to render continuously). The blur only reads as "glass"
+  because the background behind it is colourful/varied; a flat single
+  colour wouldn't show any visible effect.
+- Light theme by default: soft pastel mesh gradient (mint/blue/cream/
+  lavender) behind frosted white-ish glass panels, emerald (`#0e8f6b`)
+  accent.
 - Dark mode available via the gear icon (top-right) → Settings panel →
   Dark mode toggle. Choice persists in `localStorage`
-  (`cheadleMasjidTheme`) across reloads.
+  (`cheadleMasjidTheme`) across reloads. Dark mode uses the same glass
+  treatment over a deep jewel-toned gradient instead.
 - Both themes are plain CSS classes (`body.theme-light` /
   `body.theme-dark`), not CSS custom properties — kept for compatibility
-  with the old Galaxy Tab 3 fallback path (see Deployment).
+  with the old Galaxy Tab 3 fallback path (see Deployment). Note this
+  means `backdrop-filter` itself is *not* available on that old path
+  (Android 4.4's WebView predates it) — the glass look is iPad-only by
+  necessity; the old Tab 3 fallback would just show solid-ish flat
+  panels instead, which is fine/expected, not a bug to fix.
+- The flip-clock tiles stay their own fixed dark colour regardless of
+  theme (unchanged) — deliberately opaque against the glass panels for
+  contrast/legibility, real flip clocks aren't glass either.
 - iOS "Add to Home Screen" meta tags (`apple-mobile-web-app-capable`
   etc.) so the Home Screen icon launches full-screen, no Safari chrome.
 
@@ -347,3 +364,28 @@ every ~2 seconds in that tool, always by a clean, consistent delta
 category of "local test harness ≠ production" issue as the earlier
 WEBrick flakiness. Real iPad Safari, always foregrounded, doesn't have
 this problem.
+
+### 2026-08-29 — "Liquid Glass" redesign
+User asked for the UI to look like iOS glass (Apple's current "Liquid
+Glass" material, matching the iPad's own iOS 26). Replaced every flat
+panel background with `backdrop-filter: blur(28px) saturate(180%)` +
+translucent fill + bright hairline border + an inset top highlight
+(`inset 0 1px 0 rgba(255,255,255,...)`, a cheap fake specular highlight
+— real glass reflects more light near the top edge). Replaced the flat
+single-colour page background with a fixed multi-blob radial-gradient
+per theme — necessary, not decorative: a blur effect over a single flat
+colour behind it produces no visible difference, so glass panels need
+something colourful/varied behind them to actually read as "glass" at
+all. Corner radii bumped up throughout (16-20px → 24-28px) to match
+iOS's more pronounced continuous-corner style.
+
+Deliberately left alone: the flip-clock tiles (stay solid/dark — real
+flip clocks aren't glass, and it gives useful contrast against the now
+much busier background) and the full-screen adhan alert (already had
+its own independent design language, unrelated to this).
+
+Noted in the baseline: `backdrop-filter` doesn't exist on the old
+Galaxy Tab 3's Android 4.4 WebView (this CSS property postdates it
+entirely), so that fallback path would show flat-ish translucent panels
+without the blur — a graceful, expected degradation, not a bug, since
+it's just an unsupported-property no-op rather than breaking anything.

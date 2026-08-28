@@ -36,6 +36,20 @@
     padding: 3vh 3vw;
     padding-right: calc(3vw + 60px);
   }
+  /* ---------- "Liquid Glass" surfaces ----------
+     The shared look for every floating panel: a blurred, translucent
+     background (so whatever colourful gradient is behind it shows
+     through, softened), a hairline border that's brighter than the
+     fill (mimics light catching a glass edge), and an inset highlight
+     along the top edge (a soft fake specular highlight — real glass
+     reflects more light near the top). Exact fill colour/opacity is
+     theme-dependent, set below in the light/dark sections; the
+     properties here are the same regardless of theme. */
+  #header, #countdownClock, #card, #settingsPanel, #settingsBtn {
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid transparent;
+  }
   #header {
     display: -webkit-box;
     display: -webkit-flex;
@@ -46,8 +60,9 @@
     -webkit-box-align: center;
     -webkit-align-items: center;
     align-items: center;
-    padding-bottom: 1.6vh;
+    padding: 1.4vh 1.6vw;
     margin-bottom: 1.6vh;
+    border-radius: 24px;
   }
   #masjidName {
     font-size: 3.6vw;
@@ -78,10 +93,9 @@
     -webkit-box-align: center;
     -webkit-align-items: center;
     align-items: center;
-    border-radius: 20px;
+    border-radius: 28px;
     padding: 1.6vh 0;
     margin-bottom: 2vh;
-    box-shadow: 0 2px 10px 0 rgba(20, 30, 25, 0.06);
   }
   #countdownLabel {
     font-size: 2vw;
@@ -237,9 +251,8 @@
     -webkit-box-orient: vertical;
     -webkit-flex-direction: column;
     flex-direction: column;
-    border-radius: 20px;
+    border-radius: 28px;
     padding: 0.5vh 1.5vw;
-    box-shadow: 0 4px 24px 0 rgba(20, 30, 25, 0.07);
   }
   .row {
     display: -webkit-box;
@@ -332,7 +345,6 @@
     -webkit-justify-content: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 2px 10px 0 rgba(20, 30, 25, 0.12);
     z-index: 20;
   }
   #settingsBtn svg { width: 22px; height: 22px; }
@@ -343,9 +355,8 @@
     width: 270px;
     max-height: 80vh;
     overflow-y: auto;
-    border-radius: 16px;
+    border-radius: 24px;
     padding: 16px;
-    box-shadow: 0 8px 28px 0 rgba(20, 30, 25, 0.18);
     z-index: 20;
     display: none;
   }
@@ -513,56 +524,90 @@
     50% { opacity: 1; }
   }
 
-  /* ================= LIGHT THEME (default) ================= */
-  body.theme-light { background-color: #f2f4f7; color: #1f2937; }
-  body.theme-light #masjidName { color: #0e8f6b; }
-  body.theme-light #masjidSub { color: #6b7280; }
-  body.theme-light #dateLine { color: #6b7280; }
-  body.theme-light #countdownClock { background-color: #ffffff; }
-  body.theme-light #countdownLabel { color: #9aa1ac; }
-  body.theme-light #card { background-color: #ffffff; }
-  body.theme-light .row.head { color: #9aa1ac; border-bottom: 2px solid #eef0f3; }
-  body.theme-light .row + .row { border-top-color: #eef0f3; }
-  body.theme-light .row.active { background-color: rgba(14, 143, 107, 0.08); }
+  /* ================= LIGHT THEME (default) =================
+     A colourful, softly-blobbed gradient behind everything — plain
+     glass over a flat colour barely reads as "glass" at all, since
+     there's nothing varied for the blur to soften. Fixed radial blobs
+     (not an image) keep this cheap to render continuously on the iPad. */
+  body.theme-light {
+    background:
+      radial-gradient(at 15% 15%, rgba(52, 211, 153, 0.45) 0px, transparent 55%),
+      radial-gradient(at 85% 10%, rgba(96, 165, 250, 0.40) 0px, transparent 55%),
+      radial-gradient(at 20% 85%, rgba(251, 191, 36, 0.30) 0px, transparent 55%),
+      radial-gradient(at 90% 80%, rgba(232, 121, 249, 0.28) 0px, transparent 55%),
+      #eef2f5;
+    color: #1f2937;
+  }
+  body.theme-light #masjidName { color: #0b7a5c; text-shadow: 0 1px 2px rgba(255,255,255,0.5); }
+  body.theme-light #masjidSub { color: #374151; }
+  body.theme-light #dateLine { color: #374151; }
+  body.theme-light #header,
+  body.theme-light #countdownClock,
+  body.theme-light #card,
+  body.theme-light #settingsPanel,
+  body.theme-light #settingsBtn {
+    background-color: rgba(255, 255, 255, 0.55);
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 8px 32px 0 rgba(31, 41, 55, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+  body.theme-light #countdownLabel { color: #4b5563; }
+  body.theme-light .row.head { color: #4b5563; border-bottom: 2px solid rgba(255,255,255,0.6); }
+  body.theme-light .row + .row { border-top-color: rgba(31,41,55,0.08); }
+  body.theme-light .row.active { background-color: rgba(255, 255, 255, 0.55); }
   body.theme-light .row.active .cell.name:before { background-color: #0e8f6b; }
   body.theme-light .cell.name { color: #1f2937; }
   body.theme-light .cell.time { color: #1f2937; }
-  body.theme-light .sub { color: #d97706; }
-  body.theme-light #footer { color: #9aa1ac; }
-  body.theme-light #footer.offline { color: #d97706; }
-  body.theme-light #settingsBtn { background-color: #ffffff; color: #6b7280; }
-  body.theme-light #settingsPanel { background-color: #ffffff; color: #1f2937; }
-  body.theme-light #settingsPanel .panelTitle { color: #9aa1ac; }
-  body.theme-light .toggleSwitch { background-color: #e5e7eb; }
+  body.theme-light .sub { color: #b45309; }
+  body.theme-light #footer { color: #4b5563; }
+  body.theme-light #footer.offline { color: #b45309; }
+  body.theme-light #settingsBtn { color: #374151; }
+  body.theme-light #settingsPanel { color: #1f2937; }
+  body.theme-light #settingsPanel .panelTitle { color: #4b5563; }
+  body.theme-light .toggleSwitch { background-color: rgba(31, 41, 55, 0.12); }
   body.theme-light .toggleSwitch.on { background-color: #0e8f6b; }
-  body.theme-light .testBtn { background-color: #f2f4f7; color: #6b7280; }
-  body.theme-light #adhanStatus { color: #6b7280; }
-  body.theme-light #adhanStatus.error { color: #d97706; }
+  body.theme-light .testBtn { background-color: rgba(31, 41, 55, 0.08); color: #374151; }
+  body.theme-light #adhanStatus { color: #4b5563; }
+  body.theme-light #adhanStatus.error { color: #b45309; }
 
   /* ================= DARK THEME ================= */
-  body.theme-dark { background-color: #10131a; color: #f3f4f6; }
-  body.theme-dark #masjidName { color: #2fd39a; }
-  body.theme-dark #masjidSub { color: #9aa1ac; }
-  body.theme-dark #dateLine { color: #9aa1ac; }
-  body.theme-dark #countdownClock { background-color: #1a1e27; box-shadow: 0 2px 10px 0 rgba(0,0,0,0.3); }
-  body.theme-dark #countdownLabel { color: #6b7280; }
-  body.theme-dark #card { background-color: #1a1e27; box-shadow: 0 4px 24px 0 rgba(0,0,0,0.35); }
-  body.theme-dark .row.head { color: #6b7280; border-bottom: 2px solid #262b36; }
-  body.theme-dark .row + .row { border-top-color: #262b36; }
-  body.theme-dark .row.active { background-color: rgba(47, 211, 154, 0.12); }
+  body.theme-dark {
+    background:
+      radial-gradient(at 15% 15%, rgba(16, 185, 129, 0.35) 0px, transparent 55%),
+      radial-gradient(at 85% 10%, rgba(59, 130, 246, 0.32) 0px, transparent 55%),
+      radial-gradient(at 20% 90%, rgba(217, 119, 6, 0.20) 0px, transparent 55%),
+      radial-gradient(at 90% 85%, rgba(139, 92, 246, 0.28) 0px, transparent 55%),
+      #0a0e14;
+    color: #f3f4f6;
+  }
+  body.theme-dark #masjidName { color: #4de3ac; }
+  body.theme-dark #masjidSub { color: #cbd2dc; }
+  body.theme-dark #dateLine { color: #cbd2dc; }
+  body.theme-dark #header,
+  body.theme-dark #countdownClock,
+  body.theme-dark #card,
+  body.theme-dark #settingsPanel,
+  body.theme-dark #settingsBtn {
+    background-color: rgba(22, 26, 34, 0.55);
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+  body.theme-dark #countdownLabel { color: #9aa1ac; }
+  body.theme-dark .row.head { color: #9aa1ac; border-bottom: 2px solid rgba(255,255,255,0.1); }
+  body.theme-dark .row + .row { border-top-color: rgba(255,255,255,0.08); }
+  body.theme-dark .row.active { background-color: rgba(255, 255, 255, 0.08); }
   body.theme-dark .row.active .cell.name:before { background-color: #2fd39a; }
   body.theme-dark .cell.name { color: #f3f4f6; }
   body.theme-dark .cell.time { color: #f3f4f6; }
   body.theme-dark .sub { color: #f2b84b; }
-  body.theme-dark #footer { color: #6b7280; }
+  body.theme-dark #footer { color: #9aa1ac; }
   body.theme-dark #footer.offline { color: #f2b84b; }
-  body.theme-dark #settingsBtn { background-color: #1a1e27; color: #9aa1ac; box-shadow: 0 2px 10px 0 rgba(0,0,0,0.35); }
-  body.theme-dark #settingsPanel { background-color: #1a1e27; color: #f3f4f6; box-shadow: 0 8px 28px 0 rgba(0,0,0,0.45); }
-  body.theme-dark #settingsPanel .panelTitle { color: #6b7280; }
-  body.theme-dark .toggleSwitch { background-color: #30353f; }
+  body.theme-dark #settingsBtn { color: #cbd2dc; }
+  body.theme-dark #settingsPanel { color: #f3f4f6; }
+  body.theme-dark #settingsPanel .panelTitle { color: #9aa1ac; }
+  body.theme-dark .toggleSwitch { background-color: rgba(255, 255, 255, 0.14); }
   body.theme-dark .toggleSwitch.on { background-color: #2fd39a; }
-  body.theme-dark .testBtn { background-color: #262b36; color: #9aa1ac; }
-  body.theme-dark #adhanStatus { color: #9aa1ac; }
+  body.theme-dark .testBtn { background-color: rgba(255, 255, 255, 0.1); color: #cbd2dc; }
+  body.theme-dark #adhanStatus { color: #cbd2dc; }
   body.theme-dark #adhanStatus.error { color: #f2b84b; }
 </style>
 </head>
