@@ -36,6 +36,10 @@ waiting for the real prayer time.
 - The audio file is `adhan.mp3` in this folder — swap it for any recording
   you like (same filename), or ask me to wire up a separate file for Fajr
   if you later want its distinct "as-salatu khayrun minan nawm" version.
+  **It's `.gitignore`'d and not part of git history** (it's a copyrighted
+  recitation, kept out of the now-public GitHub repo) — it still lives as
+  a plain file locally and on the server, but if you ever clone this repo
+  fresh, you'll need to copy it in by hand before adhan playback works.
 - It plays once, right when a prayer's **Begins** time arrives (not
   Iqamah), and won't repeat again that day even if the page reloads.
 - **Autoplay on iOS**: Safari blocks audio from playing on its own until

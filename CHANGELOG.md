@@ -72,10 +72,17 @@ overriding — the baseline exists precisely to catch that kind of thing.
 - Settings panel → Adhan section: an on/off toggle for each of Fajr,
   Dhuhr/Jumu'ah, Asr, Maghrib, Isha, each with a ▶ Test button to
   preview immediately.
-- Plays `adhan.mp3` (bundled in the repo — "Azan Madina" by Muhammad
-  Marwan Qassas, supplied by the user) once, at the enabled prayer's
-  **Begins** time (not Iqamah). Tracked per-day in `localStorage`
-  (`cheadleMasjidAdhanLastPlayed`) so it won't repeat if the page
+- Plays `adhan.mp3` ("Azan Madina" by Muhammad Marwan Qassas, supplied by
+  the user) once, at the enabled prayer's **Begins** time (not Iqamah).
+  **Not tracked in git** (see `.gitignore`) — it's a copyrighted
+  recitation without confirmed redistribution rights, so it's purged
+  from git history entirely and lives only as a plain file, locally and
+  on the deploy server. If this repo is ever re-cloned fresh, `adhan.mp3`
+  needs to be copied in by hand before adhan playback will work; the
+  Test buttons in Settings will report "Couldn't find adhan.mp3" until
+  then, which is the intended, self-explanatory failure mode. Tracked
+  per-day in `localStorage` (`cheadleMasjidAdhanLastPlayed`) so it won't
+  repeat if the page
   reloads later the same day.
 - A small speaker icon (🔊) appears next to any prayer row whose adhan
   is currently armed.
@@ -192,3 +199,20 @@ deployment to the iPad happened this day.**
 ### 2026-08-28 — Added this file
 Created `CHANGELOG.md` as the baseline/regression-tracking file per user
 request, compiled from the full git history above.
+
+### 2026-08-28 — Purged adhan.mp3 from git history ahead of going public
+User decided to make the GitHub repo public but wanted `adhan.mp3`
+excluded, since it's a copyrighted recitation without confirmed
+redistribution rights. A plain `git rm` wouldn't have been enough — the
+file would still be retrievable from every earlier commit on a public
+repo — so ran `git filter-branch --index-filter 'git rm --cached
+--ignore-unmatch adhan.mp3' --prune-empty -- --all` across all 11
+commits at the time, then expired the reflog and ran `git gc
+--prune=now --aggressive` to actually purge the blob (`.git` shrank from
+carrying a 9MB file across several commits down to 136K). This rewrote
+every commit hash. Took a full backup of the repo before starting since
+this is a destructive rewrite. Restored `adhan.mp3` to the working
+directory afterward (filter-branch's final checkout removed it) and
+added `.gitignore` so it can't be accidentally re-tracked. The live
+deployment on the server is unaffected — it's just a file sitting in
+`/var/www/cheadle-masjid-display`, not something git manages there.
