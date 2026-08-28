@@ -37,6 +37,11 @@ waiting for the real prayer time.
   will still work, it'll just silently skip a scheduled adhan until
   someone next taps the screen (which "unlocks" audio for the rest of that
   session).
+- **Full-screen alert while it plays**: when an adhan starts (scheduled or
+  via a Test button), a green full-screen alert shows which prayer it is,
+  with a "Tap anywhere to stop" hint. Tapping it stops the adhan
+  immediately and dismisses the alert; if you don't tap, it dismisses
+  itself automatically once the adhan finishes playing on its own.
 
 ## How the "push and it updates on the tablet" workflow works
 

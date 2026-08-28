@@ -274,6 +274,95 @@
     min-height: 14px;
   }
 
+  /* ---------- full-screen adhan alert ---------- */
+  #adhanAlert {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: -webkit-linear-gradient(-70deg, #10b981 0%, #047857 55%, #023f2c 100%);
+    background: linear-gradient(-70deg, #10b981 0%, #047857 55%, #023f2c 100%);
+    display: none;
+    -webkit-box-orient: vertical;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-box-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    z-index: 100;
+    cursor: pointer;
+    text-align: center;
+    color: #ffffff;
+  }
+  #adhanAlert.open {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+  }
+  #adhanAlert .ring {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-box-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    margin-bottom: 30px;
+    -webkit-animation: adhanPulse 1.7s ease-out infinite;
+    animation: adhanPulse 1.7s ease-out infinite;
+  }
+  #adhanAlert .ring svg { width: 58px; height: 58px; }
+  #adhanAlert .prayerLabel {
+    font-size: 1.6vw;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    opacity: 0.75;
+    font-weight: 700;
+  }
+  #adhanAlert .prayerName {
+    font-size: 6vw;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    margin-top: 6px;
+  }
+  #adhanAlert .hint {
+    position: absolute;
+    bottom: 7vh;
+    left: 50%;
+    -webkit-transform: translateX(-50%);
+    transform: translateX(-50%);
+    font-size: 1.6vw;
+    font-weight: 600;
+    padding: 12px 26px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    -webkit-animation: adhanHintPulse 1.8s ease-in-out infinite;
+    animation: adhanHintPulse 1.8s ease-in-out infinite;
+  }
+  @-webkit-keyframes adhanPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.35); }
+    100% { box-shadow: 0 0 0 44px rgba(255, 255, 255, 0); }
+  }
+  @keyframes adhanPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.35); }
+    100% { box-shadow: 0 0 0 44px rgba(255, 255, 255, 0); }
+  }
+  @-webkit-keyframes adhanHintPulse {
+    0%, 100% { opacity: 0.65; }
+    50% { opacity: 1; }
+  }
+  @keyframes adhanHintPulse {
+    0%, 100% { opacity: 0.65; }
+    50% { opacity: 1; }
+  }
+
   /* ================= LIGHT THEME (default) ================= */
   body.theme-light { background-color: #f2f4f7; color: #1f2937; }
   body.theme-light #masjidName { color: #0e8f6b; }
@@ -412,6 +501,19 @@
 </div>
 
 <audio id="adhanAudio" src="adhan.mp3" preload="none"></audio>
+
+<div id="adhanAlert">
+  <div class="ring">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+    </svg>
+  </div>
+  <div class="prayerLabel">It is time for</div>
+  <div class="prayerName" id="adhanAlertName">&nbsp;</div>
+  <div class="hint">Tap anywhere to stop</div>
+</div>
 
 <script>
 (function () {
@@ -570,6 +672,22 @@
     }
   }
 
+  function showAdhanAlert(label) {
+    document.getElementById("adhanAlertName").textContent = label || "";
+    document.getElementById("adhanAlert").className = "open";
+  }
+
+  function hideAdhanAlert() {
+    document.getElementById("adhanAlert").className = "";
+  }
+
+  function stopAdhanAndHideAlert() {
+    var audio = document.getElementById("adhanAudio");
+    audio.pause();
+    audio.currentTime = 0;
+    hideAdhanAlert();
+  }
+
   function playAdhanFile(label, onStatus) {
     var audio = document.getElementById("adhanAudio");
     audio.src = ADHAN_FILE;
@@ -578,6 +696,7 @@
     if (p && p.then) {
       p.then(function () {
         if (onStatus) { onStatus("Playing" + (label ? " (" + label + ")" : "") + "…", false); }
+        showAdhanAlert(label);
       }).catch(function (err) {
         if (onStatus) { onStatus("Blocked by browser — tap the screen once, then try again", true); }
       });
@@ -588,7 +707,12 @@
   }
 
   function testAdhan(key) {
-    playAdhanFile(ADHAN_LABELS[key] || key, setAdhanStatus);
+    playAdhanFile(getAdhanDisplayLabel(key, new Date()), setAdhanStatus);
+  }
+
+  function getAdhanDisplayLabel(key, now) {
+    if (key === "dhuhr" && isFriday(now)) { return "Jumu’ah"; }
+    return ADHAN_LABELS[key] || key;
   }
 
   function getAdhanTriggerMinutes(key) {
@@ -616,7 +740,7 @@
       target = getAdhanTriggerMinutes(key);
       if (target !== null && target === nowMinutes) {
         markPlayed(now, key);
-        playAdhanFile(ADHAN_LABELS[key], null);
+        playAdhanFile(getAdhanDisplayLabel(key, now), null);
       }
     }
   }
@@ -672,6 +796,18 @@
     }
     document.addEventListener("touchstart", unlockOnceHandler, false);
     document.addEventListener("click", unlockOnceHandler, false);
+
+    // Tapping anywhere on the full-screen adhan alert stops the adhan and
+    // dismisses the alert. If the adhan just finishes playing on its own,
+    // the alert dismisses itself too (nothing left to stop).
+    var alertEl = document.getElementById("adhanAlert");
+    alertEl.onclick = function (e) {
+      e.stopPropagation();
+      stopAdhanAndHideAlert();
+    };
+    document.getElementById("adhanAudio").addEventListener("ended", function () {
+      hideAdhanAlert();
+    }, false);
   }
 
   /* ---------------- time helpers ---------------- */
