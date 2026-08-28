@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Cheadle Masjid - Prayer Times</title>
+<!-- iOS: makes "Add to Home Screen" launch full-screen with no Safari
+     chrome (address bar / toolbar), so it behaves like a kiosk app. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cheadle Masjid">
 <style>
   /* ---------- structural / layout (theme-independent) ---------- */
   html, body {
@@ -1042,11 +1047,13 @@
       }
       checkAdhanSchedule(now);
     }
-    // Full reload just after midnight so the page picks up new deployed
-    // code and cleanly rolls over to a new day.
-    if (now.getHours() === 0 && now.getMinutes() === 5 && now.getSeconds() < 2) {
-      window.location.reload(true);
-    }
+    // No automatic page reload: on iOS, reloading would re-lock audio
+    // autoplay until someone next taps the screen, which would silently
+    // stop the adhan from sounding. The day already rolls over reactively
+    // (buildRowsModel/getLastPlayed key off the live clock and the data
+    // refetched every REFRESH_MS), so a reload was never load-bearing for
+    // that — it only mattered for picking up newly pushed code, which now
+    // just takes effect next time someone manually reopens the app.
   }
 
   // Boot

@@ -13,8 +13,11 @@ It pulls live data straight from the masjid's own website
 that accurate, you just keep the page's look/behaviour maintained.
 
 Written in plain ES5 JavaScript (no `fetch`, no arrow functions, no CSS
-variables) on purpose — the Galaxy Tab 3's browser engine is from ~2013
-and doesn't support modern JS/CSS.
+variables) — that was originally to support a 2013 Galaxy Tab 3's ancient
+browser engine. The current deployment target is an iPad Pro 11" (iOS
+26), which is modern enough that none of that was necessary any more —
+but the ES5 code runs identically well there, so it's been left as-is
+rather than rewritten for no functional gain.
 
 ## Adhan (call to prayer)
 
@@ -30,80 +33,159 @@ waiting for the real prayer time.
   if you later want its distinct "as-salatu khayrun minan nawm" version.
 - It plays once, right when a prayer's **Begins** time arrives (not
   Iqamah), and won't repeat again that day even if the page reloads.
-- **Autoplay**: browsers normally block audio from playing on its own,
-  without you having tapped the screen first. Fully Kiosk Browser has a
-  setting for exactly this — in its settings look for **Autoplay Audio**
-  (under the web/media settings) and enable it. Without that, the display
-  will still work, it'll just silently skip a scheduled adhan until
-  someone next taps the screen (which "unlocks" audio for the rest of that
-  session).
+- **Autoplay on iOS**: Safari blocks audio from playing on its own until
+  someone has tapped the screen at least once. The page "unlocks" itself
+  permanently on the first tap after each launch — after that, every
+  scheduled adhan plays with zero interaction. This is exactly why the
+  page no longer force-reloads itself (see below): a reload would throw
+  that unlock away and need another tap before audio worked again.
+  Practically: after mounting the iPad, tap the screen once yourself, and
+  you're done — leave it running indefinitely.
 - **Full-screen alert while it plays**: when an adhan starts (scheduled or
   via a Test button), a green full-screen alert shows which prayer it is,
   with a "Tap anywhere to stop" hint. Tapping it stops the adhan
   immediately and dismisses the alert; if you don't tap, it dismisses
   itself automatically once the adhan finishes playing on its own.
 
-## How the "push and it updates on the tablet" workflow works
+## Deployment: self-hosted on your Linux server, displayed on the iPad
 
-1. You edit `index.html` on your computer and push to GitHub.
-2. GitHub Pages rebuilds the site automatically (usually live within ~1 minute).
-3. The tablet's kiosk browser is just pointed at that URL and reloads itself
-   periodically (see kiosk setup below) — so it always shows your latest
-   pushed version. You never touch the tablet again after the first setup.
+No GitHub account needed. Your Linux box serves the page over your home
+WiFi; `git push` to it deploys instantly; the iPad just points its
+browser at that local address, added to the Home Screen so it opens
+full-screen with no Safari chrome.
 
-### One-time setup (do this once)
+```
+ [your Mac]  --git push-->  [Linux server: bare repo + post-receive hook]
+                                        |
+                                        v
+                              [nginx serves /var/www/cheadle-masjid-display]
+                                        |
+                                        v (home WiFi, plain HTTP is fine)
+                              [iPad Safari, added to Home Screen]
+```
 
-1. Create a free GitHub account if you don't have one: https://github.com/signup
-2. Create a new **public** repository, e.g. `cheadle-masjid-display`
-   (public is required for free GitHub Pages on a free personal account).
-3. In this folder, run:
+### One-time setup on the Linux server
+
+1. If you don't already have a web server, install nginx:
    ```bash
-   git remote add origin https://github.com/<your-username>/cheadle-masjid-display.git
-   git add -A
-   git commit -m "Initial prayer times display"
-   git push -u origin main
+   sudo apt update && sudo apt install nginx    # Debian/Ubuntu
    ```
-4. On GitHub: go to the repo → **Settings → Pages** → under "Build and
-   deployment", set **Source: Deploy from a branch**, branch **main**,
-   folder **/(root)** → Save.
-5. After ~1 minute your page is live at:
-   `https://<your-username>.github.io/cheadle-masjid-display/`
-   That's the URL you'll point the tablet at.
+2. Create the folder nginx will serve, and a bare git repo to push to:
+   ```bash
+   sudo mkdir -p /var/www/cheadle-masjid-display
+   sudo chown $USER:$USER /var/www/cheadle-masjid-display
+   mkdir -p ~/git/cheadle-masjid-display.git
+   cd ~/git/cheadle-masjid-display.git
+   git init --bare
+   ```
+3. Add a deploy hook that checks out whatever gets pushed straight into
+   the served folder:
+   ```bash
+   cat > hooks/post-receive <<'EOF'
+   #!/bin/bash
+   GIT_WORK_TREE=/var/www/cheadle-masjid-display git checkout -f main
+   EOF
+   chmod +x hooks/post-receive
+   ```
+4. Point nginx at that folder — create `/etc/nginx/sites-available/cheadle-display`:
+   ```nginx
+   server {
+       listen 80;
+       server_name _;
+       root /var/www/cheadle-masjid-display;
+       index index.html;
+   }
+   ```
+   Then enable it:
+   ```bash
+   sudo ln -s /etc/nginx/sites-available/cheadle-display /etc/nginx/sites-enabled/
+   sudo nginx -t && sudo systemctl reload nginx
+   ```
+5. **Give the server a stable address** so you're not hunting for its IP
+   later. Easiest: make sure `avahi-daemon` is running (usually already is
+   on Debian/Ubuntu) — that gives you `http://<hostname>.local` for free.
+   Otherwise, set a static DHCP reservation for it in your router.
+
+### One-time setup on your Mac (this project)
+
+```bash
+git remote add home ssh://<user>@<server-host>/home/<user>/git/cheadle-masjid-display.git
+git push home main
+```
+Your site is now live at `http://<server-host>.local/` (or the IP) —
+that's the URL you'll open on the iPad.
 
 ### Every future update
 
 ```bash
 git add -A
 git commit -m "describe your change"
-git push
+git push home main
 ```
-GitHub Pages redeploys automatically. The tablet picks it up on its next
-reload (see below) — nothing else to do.
+Live on the server within a second. The iPad won't see it until the app
+is next manually reopened though — see the note on removing the
+automatic reload, below.
 
-## Setting up the Samsung Galaxy Tab 3 as a kiosk display
+## Setting up the iPad Pro as the display
 
-The Tab 3 (2013, Android 4.4) is too old for the Play Store version of most
-kiosk apps, so you'll sideload an older APK. This is safe and free.
+1. On the iPad, open **Safari** and go to your server's address
+   (`http://<server-host>.local/`).
+2. Tap the **Share** icon → **Add to Home Screen** → name it "Cheadle
+   Masjid" → **Add**. Thanks to the meta tags in `index.html`, opening it
+   from that new icon runs full-screen with no address bar or toolbar.
+3. Open the new Home Screen icon, and **tap the screen once** — this
+   one-time tap unlocks audio autoplay for as long as the page stays open
+   (see the Autoplay note above). Nothing else to do after that.
+4. **Settings → Display & Brightness → Auto-Lock → Never** (otherwise the
+   screen will lock itself and the display goes dark).
+5. **Lock it into this one app with Guided Access** (free, built into
+   iOS, no extra apps needed):
+   - **Settings → Accessibility → Guided Access** → turn it on, and set a
+     passcode (you'll need this to exit later).
+   - With the Cheadle Masjid app open, **triple-click the side button** to
+     start Guided Access — this disables leaving the app, the Home
+     indicator, and multitasking gestures, so the iPad can't wander off
+     to another app.
+   - To make changes later (e.g. after a `git push`), triple-click the
+     side button again and enter the passcode to exit Guided Access, then
+     re-open the app to pick up the change and re-enable Guided Access.
+6. Mount the iPad, keep it on permanent power, and leave it running.
 
-1. **Enable installing unknown apps**: Settings → Security → turn on
-   "Unknown sources".
-2. **Install Fully Kiosk Browser (legacy build)** — the last version that
-   supports Android 4.4 is **v2.9.3 (build 360)**. Download the APK from
-   the official site's download page: https://www.fully-kiosk.com/en/
-   (look for the "old version for Android 4.4/5" link on their FAQ/download
-   page) and open the downloaded file on the tablet to install it.
-3. Open Fully Kiosk Browser → in its settings set:
-   - **Start URL**: your GitHub Pages URL from above
-   - **Web Content Settings → Enable JavaScript**: on
-   - **Reload page after (seconds)**: e.g. `1800` (30 min) — belt-and-braces
-     reload on top of the page's own 5-minute data refresh, so it also
-     picks up any code you've pushed
-   - **Kiosk Mode**: enable "Start on boot", "Keep screen on", disable
-     status bar / navigation bar, enable "Screensaver: disabled"
-4. Prop the tablet up (a cheap stand or photo frame stand works), plug it
-   into permanent power, and leave it running.
+### Why the page no longer auto-reloads
 
-If Fully Kiosk Browser won't install/run on this specific device, the
-fallback is: stock browser → bookmark the URL → manually reopen it after
-each reboot, and use Settings → Display → "Stay awake while charging" +
-max screen timeout. Less robust, but zero extra installs.
+Older versions of this page force-reloaded once a night to roll over the
+day and pick up pushed updates. That's been removed: on iOS a reload
+would throw away the one-time audio unlock from step 3 above, silently
+breaking the adhan until someone tapped the screen again. The day still
+rolls over correctly without any reload — the countdown, active-row
+highlight and adhan scheduling all key off the live clock, and prayer
+data is refetched from the masjid's site every 5 minutes regardless.
+The only trade-off: a pushed code change needs someone to manually
+reopen the app (exit Guided Access, tap the icon again) to take effect,
+rather than appearing on its own overnight.
+
+## Alternative: the old Samsung Galaxy Tab 3 setup
+
+Kept here in case you ever want to run the display on the Tab 3 again
+(e.g. as a second screen) instead of, or alongside, the iPad.
+
+The Tab 3 (2013, Android 4.4) is too old for the Play Store version of
+most kiosk apps, so you'd sideload an older APK — and you'd want GitHub
+Pages rather than the Linux server for hosting, since that setup assumed
+a public HTTPS URL:
+
+1. Create a free GitHub account, a public repo, push this project, and
+   enable **Settings → Pages** (deploy from `main`, root) to get a
+   `https://<user>.github.io/...` URL.
+2. **Enable installing unknown apps**: Settings → Security → "Unknown
+   sources".
+3. **Install Fully Kiosk Browser (legacy build)** — the last version
+   supporting Android 4.4 is **v2.9.3 (build 360)**, from
+   https://www.fully-kiosk.com/en/ (see their FAQ for the old-Android
+   download link).
+4. In Fully Kiosk Browser's settings: **Start URL** = your GitHub Pages
+   URL, enable JavaScript, set **Reload page after** ~1800 seconds,
+   enable **Autoplay Audio**, and turn on Kiosk Mode (start on boot, keep
+   screen on, screensaver disabled). Unlike the iPad, Fully Kiosk Browser
+   can force autoplay on for every user, so the nightly-reload trade-off
+   above doesn't apply to this setup — a periodic reload is fine here.
