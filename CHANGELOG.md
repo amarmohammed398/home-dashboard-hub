@@ -16,9 +16,14 @@ against:
    the baseline entry should reflect what's *actually true now*, the
    same way git commits here have documented replacing, not just
    adding, earlier decisions).
-5. Commit with a descriptive message. Commit each logical change
+5. If the change alters the *system-level* story — a new architectural
+   piece, a data flow change, a new deployment target, a non-obvious
+   problem solved — also update [ARCHITECTURE.md](ARCHITECTURE.md).
+   Not every change needs this (a colour tweak doesn't); a new
+   engineering decision or a bug worth explaining does.
+6. Commit with a descriptive message. Commit each logical change
    separately rather than batching unrelated things together.
-6. Push to whichever remotes are relevant (`home` for the live display,
+7. Push to whichever remotes are relevant (`home` for the live display,
    `origin` for GitHub) once a change is confirmed working.
 
 If a requested change conflicts with something in the baseline (e.g.
@@ -242,3 +247,16 @@ main` will be rejected as non-fast-forward and needs
 `git push home main --force` once to resync — safe, since it only
 rewrites git's bookkeeping on the bare repo, not the already-deployed
 files. After that one-time force-push, normal pushes resume as usual.
+
+### 2026-08-28 — Added ARCHITECTURE.md
+User is treating this project as a learning exercise for software/AI
+engineering more broadly, and wanted a high-level, employer-readable
+explanation of how the system works, kept up to date going forward —
+distinct from this file, which is the granular/dated history. Added
+`ARCHITECTURE.md`: system diagram, data flow, deployment pipeline, and
+a "key engineering problems solved" section framing the real issues hit
+during deployment (the Apache/nginx conflict, iOS autoplay, the git
+history rewrite, the CSS animation angle-wrapping bug, GitHub's password
+auth removal) as case studies rather than just bug fixes. Workflow
+updated (see top of this file) to keep it current when a change is
+architecturally significant, not for every commit.

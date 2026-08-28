@@ -1,9 +1,13 @@
 # Cheadle Masjid — Living Room Prayer Display
 
-> **See [CHANGELOG.md](CHANGELOG.md) for the full feature baseline and
-> change history** — it's the source of truth for what currently works
-> and why things are built the way they are. Check it before making
-> changes, and update it after.
+> **[ARCHITECTURE.md](ARCHITECTURE.md)** explains how this works at a
+> system level — data flow, deployment pipeline, and the real
+> engineering problems solved along the way (start there if you want the
+> "how/why" rather than the "how do I run this").
+>
+> **[CHANGELOG.md](CHANGELOG.md)** is the full feature baseline and
+> dated change history — the source of truth for what currently works.
+> Check it before making changes, and update it after.
 
 A single self-contained page (`index.html`) that shows today's prayer times
 for Cheadle Masjid: live clock, Hijri + Gregorian date, Begins/Iqamah table,
