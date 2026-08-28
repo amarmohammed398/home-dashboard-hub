@@ -1,0 +1,34 @@
+name: Deploy to home server
+
+# Runs every time main is updated (a normal push, or a merged PR).
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    # This does NOT run on GitHub's cloud machines — "self-hosted" means
+    # it runs on whichever machine has our runner agent installed and
+    # listening, which is the home server itself. That's what lets this
+    # reach /var/www/cheadle-masjid-display at all: the job is already
+    # running locally on that box, no network hop from GitHub's cloud
+    # into the home LAN required.
+    runs-on: self-hosted
+
+    steps:
+      - name: Check out the pushed commit
+        uses: actions/checkout@v4
+
+      - name: Sync into the served folder
+        run: |
+          rsync -av --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='adhan.mp3' \
+            ./ /var/www/cheadle-masjid-display/
+        # --delete removes files from the served folder that no longer
+        # exist in the repo, keeping it exactly in sync with what was
+        # pushed. adhan.mp3 is excluded on purpose — it isn't tracked in
+        # git at all (see .gitignore), so without this exclude, --delete
+        # would see it as "not in the source" and remove it from the
+        # live server on the very first run.
