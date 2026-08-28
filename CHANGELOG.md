@@ -55,11 +55,16 @@ overriding — the baseline exists precisely to catch that kind of thing.
   scheduling all work reactively off the live clock instead.
 
 ### Countdown display
-- A digital `HH:MM:SS` countdown (`#countdownDigital`) to the next
-  Iqamah, ticking down every second, with a caption above it reading
-  "`<Prayer>` Iqamah in". (Was an animated analogue clock face with
-  hour/minute/second hands earlier the same day — replaced per explicit
-  request; don't reintroduce analogue without being asked.)
+- A **flip-clock** countdown (`#flipClock`) to the next Iqamah: 6 tiles
+  (HH:MM:SS) that each play a 3D flip animation (CSS `rotateX`, two
+  static halves + two animated flap layers per tile) when their digit
+  changes, once a second. Tiles are a fixed dark colour scheme regardless
+  of light/dark app theme (deliberately — that's what makes it read as
+  "flip clock" rather than plain text with a border). Caption above it
+  still reads "`<Prayer>` Iqamah in". (History: was a plain digital
+  `HH:MM:SS` string before this, and an animated analogue clock face
+  before that — see dated entries below. Don't reintroduce analogue
+  without being asked.)
 
 ### Appearance
 - Light theme by default: white cards, soft shadows, emerald (`#0e8f6b`)
@@ -307,3 +312,38 @@ the same command sitting in the terminal's input queue, which got
 consumed as the answer to its first interactive prompt instead of
 waiting for real input — fixed by re-running it alone and answering each
 prompt one at a time.
+
+### 2026-08-29 — Digital countdown became a flip clock
+Replaced the plain `HH:MM:SS` text countdown with a proper flip-clock
+animation: 6 tiles, each with 4 layers (two static halves showing the
+current digit, two animated "flap" layers that do the actual 3D
+rotation via CSS `rotateX`). When a digit changes: the old digit's top
+flap folds down (`rotateX(0deg)` → `rotateX(-90deg)`, revealing the
+static top underneath, which was already updated to the new digit),
+then the new digit's bottom flap unfolds in (`rotateX(90deg)` →
+`rotateX(0deg)`) starting exactly when the first half finishes, via a
+CSS `animation-delay` rather than any JS timing chain.
+
+Two implementation details worth remembering if this needs touching
+again: (1) restarting a CSS animation on an element that's already
+played it needs the class removed, a forced reflow
+(`void el.offsetHeight`), and the class re-added — without the forced
+reflow the browser can no-op the re-add since "nothing changed"; (2) the
+flap layers need the exact same half-height/overflow-clip span
+positioning as the static layers underneath them, which was originally
+only written for `.half` and silently didn't apply to `.flap` — an easy
+copy-paste gap to reintroduce if these are ever restyled separately.
+
+Verified the flip animation actually runs (not just the CSS existing)
+by checking a mid-animation screenshot showed a visibly distorted
+digit, and confirmed the underlying countdown value itself decrements
+correctly. That second check surfaced a **test-environment artifact**
+worth remembering: this project's automated browser-testing tool never
+reports a tab as `document.visibilityState: "visible"`, even when
+freshly created or explicitly fronted — Chrome throttles timers in
+backgrounded tabs, so `setInterval(tick, 1000)` was only observed firing
+every ~2 seconds in that tool, always by a clean, consistent delta
+(never irregular) confirming it wasn't a logic bug, just the same
+category of "local test harness ≠ production" issue as the earlier
+WEBrick flakiness. Real iPad Safari, always foregrounded, doesn't have
+this problem.
