@@ -97,20 +97,27 @@ full-screen with no Safari chrome.
    The last line should print `-rwxr-xr-x ... hooks/post-receive` followed
    by the two-line script above — if it doesn't, something in the paste
    got cut off; re-run the whole block rather than just the missing line.
-3. Point nginx at that folder — create `/etc/nginx/sites-available/cheadle-display`:
-   ```nginx
+3. Point nginx at that folder. This needs `sudo` because `/etc/nginx` is
+   root-owned — note the `sudo tee ... > /dev/null` trick below rather
+   than `sudo cat > file`: with a plain `>` redirect, the *shell* opens
+   the file before `sudo` ever runs, so it still fails with "permission
+   denied" even though the command itself has `sudo` in front of it.
+   `tee` is a normal program that `sudo` can actually elevate.
+   ```bash
+   sudo tee /etc/nginx/sites-available/cheadle-display > /dev/null <<'EOF'
    server {
        listen 80;
        server_name _;
        root /var/www/cheadle-masjid-display;
        index index.html;
    }
-   ```
-   Then enable it:
-   ```bash
+   EOF
    sudo ln -s /etc/nginx/sites-available/cheadle-display /etc/nginx/sites-enabled/
    sudo nginx -t && sudo systemctl reload nginx
    ```
+   `nginx -t` checks the config is valid before reloading — it should
+   print `syntax is ok` / `test is successful`. If it errors instead,
+   paste the error back and we'll fix it before reloading.
 4. **Give the server a stable address** so you're not hunting for its IP
    later. Easiest: make sure `avahi-daemon` is running (usually already is
    on Debian/Ubuntu) — that gives you `http://<hostname>.local` for free.
