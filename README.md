@@ -66,28 +66,38 @@ full-screen with no Safari chrome.
 
 ### One-time setup on the Linux server
 
+> **Run each numbered step below as one single paste**, not line-by-line
+> across separate terminal sessions. If you're pasting into a "Run
+> this block" button (like in this chat), each block spawns a fresh
+> shell — so a `cd` in one block does **not** carry over to the next
+> one. Steps 2 and 3 below are combined into one block for exactly this
+> reason: splitting them is what caused `hooks/post-receive` to end up
+> missing/misnamed the first time round.
+
 1. If you don't already have a web server, install nginx:
    ```bash
    sudo apt update && sudo apt install nginx    # Debian/Ubuntu
    ```
-2. Create the folder nginx will serve, and a bare git repo to push to:
+2. Create the folder nginx will serve, the bare git repo, and the deploy
+   hook — all in one go, so the `cd` below stays in effect the whole way
+   through:
    ```bash
    sudo mkdir -p /var/www/cheadle-masjid-display
    sudo chown $USER:$USER /var/www/cheadle-masjid-display
    mkdir -p ~/git/cheadle-masjid-display.git
    cd ~/git/cheadle-masjid-display.git
    git init --bare
-   ```
-3. Add a deploy hook that checks out whatever gets pushed straight into
-   the served folder:
-   ```bash
    cat > hooks/post-receive <<'EOF'
    #!/bin/bash
    GIT_WORK_TREE=/var/www/cheadle-masjid-display git checkout -f main
    EOF
    chmod +x hooks/post-receive
+   ls -la hooks/post-receive && cat hooks/post-receive
    ```
-4. Point nginx at that folder — create `/etc/nginx/sites-available/cheadle-display`:
+   The last line should print `-rwxr-xr-x ... hooks/post-receive` followed
+   by the two-line script above — if it doesn't, something in the paste
+   got cut off; re-run the whole block rather than just the missing line.
+3. Point nginx at that folder — create `/etc/nginx/sites-available/cheadle-display`:
    ```nginx
    server {
        listen 80;
@@ -101,7 +111,7 @@ full-screen with no Safari chrome.
    sudo ln -s /etc/nginx/sites-available/cheadle-display /etc/nginx/sites-enabled/
    sudo nginx -t && sudo systemctl reload nginx
    ```
-5. **Give the server a stable address** so you're not hunting for its IP
+4. **Give the server a stable address** so you're not hunting for its IP
    later. Easiest: make sure `avahi-daemon` is running (usually already is
    on Debian/Ubuntu) — that gives you `http://<hostname>.local` for free.
    Otherwise, set a static DHCP reservation for it in your router.
