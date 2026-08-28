@@ -62,25 +62,59 @@
   #clockBlock {
     text-align: right;
   }
-  #clock {
-    font-size: 6.4vw;
-    font-weight: 700;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-  }
   #dateLine {
-    font-size: 1.7vw;
-    margin-top: 0.6vh;
+    font-size: 1.9vw;
     font-weight: 500;
   }
-  #countdownBar {
-    text-align: center;
-    font-size: 2.6vw;
+
+  /* ---------- analogue countdown-to-Iqamah clock ---------- */
+  #countdownClock {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    margin-bottom: 2vh;
+  }
+  #clockFace {
+    width: 21vh;
+    height: 21vh;
+  }
+  .clockTick {
+    stroke-width: 1.5;
+  }
+  .clockTick.major {
+    stroke-width: 3;
+  }
+  .clockNumeral {
+    font-size: 13px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+  #hourHand {
+    stroke-width: 6;
+    stroke-linecap: round;
+  }
+  #minuteHand {
+    stroke-width: 3.5;
+    stroke-linecap: round;
+  }
+  #countdownLabel {
+    margin-top: 1.2vh;
+    font-size: 2.4vw;
+    font-weight: 700;
+  }
+  #countdownSub {
+    font-size: 1.4vw;
     font-weight: 600;
-    border-radius: 999px;
-    padding: 1.4vh 0;
-    margin-bottom: 2.2vh;
-    box-shadow: 0 2px 10px 0 rgba(20, 30, 25, 0.06);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 0.2vh;
   }
   #card {
     -webkit-box-flex: 1;
@@ -372,10 +406,16 @@
   body.theme-light { background-color: #f2f4f7; color: #1f2937; }
   body.theme-light #masjidName { color: #0e8f6b; }
   body.theme-light #masjidSub { color: #6b7280; }
-  body.theme-light #clock { color: #1f2937; }
   body.theme-light #dateLine { color: #6b7280; }
-  body.theme-light #countdownBar { background-color: #ffffff; color: #0e8f6b; }
-  body.theme-light #countdownBar b { color: #0b7357; }
+  body.theme-light .clockFaceCircle { fill: #ffffff; stroke: #e5e7eb; stroke-width: 2; }
+  body.theme-light .clockTick { stroke: #c7ccd3; }
+  body.theme-light .clockTick.major { stroke: #9aa1ac; }
+  body.theme-light .clockNumeral { fill: #9aa1ac; }
+  body.theme-light .clockCenter { fill: #0e8f6b; }
+  body.theme-light #hourHand { stroke: #0e8f6b; }
+  body.theme-light #minuteHand { stroke: #0e8f6b; }
+  body.theme-light #countdownLabel { color: #1f2937; }
+  body.theme-light #countdownSub { color: #0e8f6b; }
   body.theme-light #card { background-color: #ffffff; }
   body.theme-light .row.head { color: #9aa1ac; border-bottom: 2px solid #eef0f3; }
   body.theme-light .row + .row { border-top-color: #eef0f3; }
@@ -399,10 +439,16 @@
   body.theme-dark { background-color: #10131a; color: #f3f4f6; }
   body.theme-dark #masjidName { color: #2fd39a; }
   body.theme-dark #masjidSub { color: #9aa1ac; }
-  body.theme-dark #clock { color: #f3f4f6; }
   body.theme-dark #dateLine { color: #9aa1ac; }
-  body.theme-dark #countdownBar { background-color: #1a1e27; color: #2fd39a; box-shadow: 0 2px 10px 0 rgba(0,0,0,0.3); }
-  body.theme-dark #countdownBar b { color: #4de3ac; }
+  body.theme-dark .clockFaceCircle { fill: #1a1e27; stroke: #262b36; stroke-width: 2; }
+  body.theme-dark .clockTick { stroke: #3a4150; }
+  body.theme-dark .clockTick.major { stroke: #6b7280; }
+  body.theme-dark .clockNumeral { fill: #6b7280; }
+  body.theme-dark .clockCenter { fill: #2fd39a; }
+  body.theme-dark #hourHand { stroke: #2fd39a; }
+  body.theme-dark #minuteHand { stroke: #2fd39a; }
+  body.theme-dark #countdownLabel { color: #f3f4f6; }
+  body.theme-dark #countdownSub { color: #2fd39a; }
   body.theme-dark #card { background-color: #1a1e27; box-shadow: 0 4px 24px 0 rgba(0,0,0,0.35); }
   body.theme-dark .row.head { color: #6b7280; border-bottom: 2px solid #262b36; }
   body.theme-dark .row + .row { border-top-color: #262b36; }
@@ -432,12 +478,22 @@
       <div id="masjidSub">Prayer Times</div>
     </div>
     <div id="clockBlock">
-      <div id="clock">--:--:--</div>
       <div id="dateLine">-</div>
     </div>
   </div>
 
-  <div id="countdownBar">Loading prayer times&hellip;</div>
+  <div id="countdownClock">
+    <svg id="clockFace" viewBox="0 0 200 200">
+      <circle class="clockFaceCircle" cx="100" cy="100" r="94"></circle>
+      <g id="clockTicks"></g>
+      <g id="clockNumerals"></g>
+      <line id="hourHand" x1="100" y1="100" x2="100" y2="58"></line>
+      <line id="minuteHand" x1="100" y1="100" x2="100" y2="34"></line>
+      <circle class="clockCenter" cx="100" cy="100" r="6"></circle>
+    </svg>
+    <div id="countdownLabel">Loading&hellip;</div>
+    <div id="countdownSub"></div>
+  </div>
 
   <div id="card">
     <div class="row head">
@@ -560,11 +616,11 @@
   function applyTheme(theme) {
     document.body.className = theme === "dark" ? "theme-dark" : "theme-light";
     var toggle = document.getElementById("themeToggle");
-    if (theme === "dark") {
-      toggle.className = "on";
-    } else {
-      toggle.className = "";
-    }
+    // Must keep the base "toggleSwitch" class (it carries the switch's
+    // size/shape/position) and only add/remove "on" — a bug here used to
+    // overwrite className to just "on"/"", which stripped that base class
+    // and made the switch collapse to an invisible, untappable sliver.
+    toggle.className = theme === "dark" ? "toggleSwitch on" : "toggleSwitch";
   }
 
   function initTheme() {
@@ -992,24 +1048,80 @@
     }
   }
 
+  // Builds the 12 tick marks + 12/3/6/9 numerals on the analogue clock
+  // face once at boot (cheap to generate in JS rather than hand-writing
+  // 12 near-identical SVG elements).
+  function buildClockFace() {
+    var ticksGroup = document.getElementById("clockTicks");
+    var numeralsGroup = document.getElementById("clockNumerals");
+    var cx = 100, cy = 100;
+    var i, angleDeg, angleRad, isMajor, r1, r2, x1, y1, x2, y2, tick;
+    var numerals = { 0: "12", 3: "3", 6: "6", 9: "9" };
+    for (i = 0; i < 12; i++) {
+      angleDeg = i * 30;
+      angleRad = (angleDeg - 90) * (Math.PI / 180);
+      isMajor = (i % 3 === 0);
+      r1 = isMajor ? 78 : 84;
+      r2 = 92;
+      x1 = cx + r1 * Math.cos(angleRad);
+      y1 = cy + r1 * Math.sin(angleRad);
+      x2 = cx + r2 * Math.cos(angleRad);
+      y2 = cy + r2 * Math.sin(angleRad);
+      tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      tick.setAttribute("x1", x1);
+      tick.setAttribute("y1", y1);
+      tick.setAttribute("x2", x2);
+      tick.setAttribute("y2", y2);
+      tick.setAttribute("class", isMajor ? "clockTick major" : "clockTick");
+      ticksGroup.appendChild(tick);
+
+      if (numerals[i]) {
+        var nr = 64;
+        var nx = cx + nr * Math.cos(angleRad);
+        var ny = cy + nr * Math.sin(angleRad);
+        var text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", nx);
+        text.setAttribute("y", ny);
+        text.setAttribute("class", "clockNumeral");
+        text.textContent = numerals[i];
+        numeralsGroup.appendChild(text);
+      }
+    }
+  }
+
+  function setHandAngle(handEl, angleDeg) {
+    handEl.setAttribute("transform", "rotate(" + angleDeg + " 100 100)");
+  }
+
   function renderCountdown(target, nowMinutes) {
-    var bar = document.getElementById("countdownBar");
+    var label = document.getElementById("countdownLabel");
+    var sub = document.getElementById("countdownSub");
+    var hourHand = document.getElementById("hourHand");
+    var minuteHand = document.getElementById("minuteHand");
+
     if (!target) {
-      bar.innerHTML = "Prayer times unavailable";
+      label.textContent = "Prayer times unavailable";
+      sub.textContent = "";
       return;
     }
+
     var diff = target.minutes - nowMinutes;
     if (diff < 0) { diff = 0; }
-    var h = Math.floor(diff / 60);
-    var m = diff % 60;
-    var timeStr = h > 0 ? (h + "h " + m + "m") : (m + "m");
-    bar.innerHTML = "<b>" + target.label + "</b> Iqamah in " + timeStr;
+    var hoursPart = Math.floor(diff / 60) % 12;
+    var minutesPart = diff % 60;
+
+    // Hands show the countdown duration itself (as if "hours/minutes
+    // remaining" were the time on the dial) — deliberately no digital
+    // "Xh Ym" readout alongside it, per the analogue-not-digital brief.
+    setHandAngle(hourHand, hoursPart * 30 + minutesPart * 0.5);
+    setHandAngle(minuteHand, minutesPart * 6);
+
+    label.textContent = target.label;
+    sub.textContent = "Iqamah";
   }
 
   function updateClock() {
     var now = new Date();
-    document.getElementById("clock").textContent =
-      pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
     document.getElementById("dateLine").textContent =
       DAY_NAMES[now.getDay()] + ", " + now.getDate() + " " + MONTH_NAMES[now.getMonth()] + " " + now.getFullYear() +
       (data && data.hijri_date_convert ? " · " + data.hijri_date_convert : "");
@@ -1060,6 +1172,7 @@
   initTheme();
   initSettingsUI();
   initAdhanUI();
+  buildClockFace();
 
   var cached = loadLocal();
   if (cached && cached.d) {
