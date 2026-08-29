@@ -95,8 +95,9 @@ overriding — the baseline exists precisely to catch that kind of thing.
 
 ### Adhan (call to prayer)
 - Settings panel → Adhan section: an on/off toggle for each of Fajr,
-  Dhuhr/Jumu'ah, Asr, Maghrib, Isha, each with a ▶ Test button to
-  preview immediately.
+  Dhuhr/Jumu'ah, Asr, Maghrib, Isha, each with a Test button (a solid
+  SVG play triangle, `.testBtn svg`, iOS SF Symbols "play.fill" style)
+  to preview immediately.
 - Plays `adhan.mp3` ("Azan Madina" by Muhammad Marwan Qassas, supplied by
   the user) once, at the enabled prayer's **Begins** time (not Iqamah).
   **Not tracked in git** (see `.gitignore`) — it's a copyrighted
@@ -109,8 +110,11 @@ overriding — the baseline exists precisely to catch that kind of thing.
   per-day in `localStorage` (`cheadleMasjidAdhanLastPlayed`) so it won't
   repeat if the page
   reloads later the same day.
-- A small speaker icon (🔊) appears next to any prayer row whose adhan
-  is currently armed.
+- A small speaker icon (`.adhanArmedIcon`, an SVG outline icon — the
+  same "volume-2" style already used in the full-screen adhan alert, not
+  an emoji) appears next to any prayer row whose adhan is currently
+  armed, coloured with the app's accent green so it visually matches an
+  "on" toggle switch.
 - **iOS autoplay**: Safari blocks audio until a user gesture. The page
   "unlocks" itself permanently on the very first tap/click after each
   page load (`unlockAudioOnce()`), so every adhan after that plays with
@@ -486,3 +490,29 @@ Plain Safari + Add to Home Screen (can't hide the status bar, but needs
 zero third-party apps) is kept in the README as a documented fallback,
 same pattern as the old Galaxy Tab 3 path — not deleted, just no longer
 the default recommendation.
+
+### 2026-08-29 — Replaced emoji/unicode icons with proper SVG icons
+User didn't like the Test button (a unicode "▶" character, U+25B6) or
+the "adhan armed" indicator (an actual emoji, 🔊, U+1F50A) — wanted
+something modern matching the rest of the iOS-styled UI, not emoji.
+
+Test buttons: replaced the unicode glyph with an inline SVG solid
+triangle (`<path d="M8 5v14l11-7z"/>`, `fill="currentColor"`) — a filled
+shape rather than a thin outline, matching iOS's own SF Symbols
+"play.fill" convention, which also reads more clearly at this tiny
+(26px circle) size than a stroke-only outline would.
+
+Adhan-armed indicator: replaced the emoji with the same "volume-2"
+outline SVG icon already used in the full-screen adhan alert (three
+lines: a speaker polygon + two sound-wave arcs), for visual consistency
+between the two places sound is represented in this UI. Coloured with
+the app's accent green (`#0e8f6b` light / `#2fd39a` dark) rather than
+emoji's fixed OS-rendered colours, so it visually matches an "on"
+toggle switch.
+
+Both are plain inline SVG (no icon font/library dependency, consistent
+with how the settings gear and adhan alert icons were already built).
+Verified: play buttons still trigger their test correctly (click
+bubbles up from the SVG child to the button div's handler, same
+pattern already relied on for the settings gear), icons render cleanly
+in both themes.

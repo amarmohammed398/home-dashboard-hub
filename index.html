@@ -184,6 +184,19 @@
     text-align: center;
     font-variant-numeric: tabular-nums;
   }
+  /* Small "adhan armed" indicator next to a prayer's name — a proper
+     icon rather than an emoji, coloured with the app's accent so it
+     reads as "this one's on" (same colour as an active toggle switch). */
+  .adhanArmedIcon {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 0.3vw;
+  }
+  .adhanArmedIcon svg {
+    width: 1.5vw;
+    height: 1.5vw;
+    vertical-align: middle;
+  }
   .sub {
     display: block;
     font-size: 1.2vw;
@@ -276,7 +289,13 @@
     justify-content: center;
     margin-right: 10px;
     cursor: pointer;
-    font-size: 11px;
+  }
+  /* Solid play triangle, iOS SF Symbols "play.fill" style — a filled
+     shape reads far more clearly than a thin outline at this size. */
+  .testBtn svg {
+    width: 11px;
+    height: 11px;
+    margin-left: 2px;
   }
   .toggleSwitch {
     position: relative;
@@ -432,6 +451,7 @@
   body.theme-light #settingsPanel .panelTitle { color: #4b5563; }
   body.theme-light .toggleSwitch { background-color: rgba(31, 41, 55, 0.12); }
   body.theme-light .toggleSwitch.on { background-color: #0e8f6b; }
+  body.theme-light .adhanArmedIcon { color: #0e8f6b; }
   body.theme-light .testBtn { background-color: rgba(31, 41, 55, 0.08); color: #374151; }
   body.theme-light #adhanStatus { color: #4b5563; }
   body.theme-light #adhanStatus.error { color: #b45309; }
@@ -469,6 +489,7 @@
   body.theme-dark #settingsPanel .panelTitle { color: #9aa1ac; }
   body.theme-dark .toggleSwitch { background-color: rgba(255, 255, 255, 0.14); }
   body.theme-dark .toggleSwitch.on { background-color: #2fd39a; }
+  body.theme-dark .adhanArmedIcon { color: #2fd39a; }
   body.theme-dark .testBtn { background-color: rgba(255, 255, 255, 0.1); color: #cbd2dc; }
   body.theme-dark #adhanStatus { color: #cbd2dc; }
   body.theme-dark #adhanStatus.error { color: #f2b84b; }
@@ -523,35 +544,35 @@
   <div class="panelRow" data-prayer="fajr">
     <span class="panelLabel">Fajr</span>
     <div class="panelRowRight">
-      <div class="testBtn" data-test="fajr">&#9654;</div>
+      <div class="testBtn" data-test="fajr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
       <div class="toggleSwitch" data-toggle="fajr"><div class="knob"></div></div>
     </div>
   </div>
   <div class="panelRow" data-prayer="dhuhr">
     <span class="panelLabel">Dhuhr / Jumu&rsquo;ah</span>
     <div class="panelRowRight">
-      <div class="testBtn" data-test="dhuhr">&#9654;</div>
+      <div class="testBtn" data-test="dhuhr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
       <div class="toggleSwitch" data-toggle="dhuhr"><div class="knob"></div></div>
     </div>
   </div>
   <div class="panelRow" data-prayer="asr">
     <span class="panelLabel">Asr</span>
     <div class="panelRowRight">
-      <div class="testBtn" data-test="asr">&#9654;</div>
+      <div class="testBtn" data-test="asr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
       <div class="toggleSwitch" data-toggle="asr"><div class="knob"></div></div>
     </div>
   </div>
   <div class="panelRow" data-prayer="maghrib">
     <span class="panelLabel">Maghrib</span>
     <div class="panelRowRight">
-      <div class="testBtn" data-test="maghrib">&#9654;</div>
+      <div class="testBtn" data-test="maghrib"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
       <div class="toggleSwitch" data-toggle="maghrib"><div class="knob"></div></div>
     </div>
   </div>
   <div class="panelRow" data-prayer="isha">
     <span class="panelLabel">Isha</span>
     <div class="panelRowRight">
-      <div class="testBtn" data-test="isha">&#9654;</div>
+      <div class="testBtn" data-test="isha"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
       <div class="toggleSwitch" data-toggle="isha"><div class="knob"></div></div>
     </div>
   </div>
@@ -1030,7 +1051,12 @@
       adhanKey = r.key === "jumuah" ? "dhuhr" : r.key;
       nameHtml = r.name;
       if (adhanSettings[adhanKey]) {
-        nameHtml += ' <span title="Adhan will be played" style="font-size:0.6em;vertical-align:middle;">&#128266;</span>';
+        nameHtml += ' <span class="adhanArmedIcon" title="Adhan will be played">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
+          '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>' +
+          '<path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>' +
+          '<path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>' +
+          '</svg></span>';
       }
       nameCell = el("div", "cell name", nameHtml);
       rowEl.appendChild(nameCell);
