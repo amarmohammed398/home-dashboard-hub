@@ -377,7 +377,11 @@ Server Health's purple, same "each display gets its own colour" rule.
   dated entry below for why.
 - **Confirmed working live on the iPad as of 2026-08-28; automated
   deploy pipeline confirmed working as of 2026-08-29; dotKiosk switch
-  confirmed working as of 2026-08-29.**
+  confirmed working as of 2026-08-29; all three displays (Prayer Times,
+  Server Health, Bin Day) plus adhan playback re-confirmed working on
+  the real device as of 2026-08-30**, after the `adhan.mp3` fix above —
+  the user tested all three tiles and the adhan directly on the iPad,
+  not just via server-side checks.
 - Old Samsung Galaxy Tab 3 (Android 4.4) + GitHub Pages + Fully Kiosk
   Browser (legacy v2.9.3 build 360) setup is documented in the README as
   a fallback/alternative, not deleted, in case it's ever used again.
@@ -1778,3 +1782,13 @@ files would have caught this — anything untracked needs its own
 explicit "did this specific file survive" check, not just "did the
 directory move." Worth adding a one-line reminder to the README's
 rename/migration notes if this project is ever restructured again.
+
+**Confirmed fixed on the real device, not just server-side**: the user
+retried the Adhan Test button on the actual iPad after the `scp` fix —
+it played correctly. While they had the device in hand, they also
+re-checked all three home-screen tiles (Prayer Times, Server Health,
+Bin Day), which all opened and worked as expected. This is the first
+full on-device confirmation since the Bin Day display was added and
+since the rename — everything up to this point had only been verified
+individually (local preview, server-side `curl`/SSH checks), not as a
+single end-to-end pass on the physical hardware.
