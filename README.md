@@ -47,11 +47,13 @@ page navigation would silently break the Prayer Times adhan — see
 
 ## Prayer Times display
 
-The first, currently only, display: today's prayer times for Cheadle
-Masjid — live clock, Hijri + Gregorian date, Begins/Iqamah table, a
-countdown to the next Iqamah, and an optional adhan (call to prayer)
-played through the tablet's speaker at the start of whichever prayers
-you enable. On Fridays it swaps Dhuhr for the Jumu'ah row (1st/2nd
+The first display built (Server Health is the second — see its own
+section below): today's prayer times for Cheadle Masjid — live clock,
+Hijri + Gregorian date, Begins/Iqamah table, a countdown to the next
+prayer's **Begins** time (matches when the adhan itself fires — see
+Adhan below, not Iqamah), and an optional adhan (call to prayer) played
+through the tablet's speaker at the start of whichever prayers you
+enable. On Fridays it swaps Dhuhr for the Jumu'ah row (1st/2nd
 Khutbah), matching the masjid's own display screen.
 
 It pulls live data straight from the masjid's own website

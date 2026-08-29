@@ -2092,17 +2092,24 @@
   }
 
   function findNextTarget(rows, nowMinutes) {
+    // Counts down to each prayer's own Begins time — matching exactly
+    // what the adhan itself triggers on (see getAdhanTriggerMinutes) —
+    // not Iqamah. Changed 29 Aug 2026 on request; previously used
+    // rows[i].iqamah here, which meant the on-screen countdown and the
+    // adhan could be tracking two different, unrelated moments (the
+    // adhan already fires at Begins regardless of what this counts
+    // down to).
     var i, mins;
     for (i = 0; i < rows.length; i++) {
       if (!rows[i].target) { continue; }
-      mins = parseMinutes(rows[i].iqamah);
+      mins = parseMinutes(rows[i].begins);
       if (mins !== null && mins > nowMinutes) {
         return { key: rows[i].key, label: rows[i].name, minutes: mins };
       }
     }
     // Nothing left today -> tomorrow's Fajr
-    if (data && data.tomorrow && data.tomorrow.fajr_jamah) {
-      return { key: "fajr-tomorrow", label: "Fajr", minutes: parseMinutes(data.tomorrow.fajr_jamah) + 1440 };
+    if (data && data.tomorrow && data.tomorrow.fajr_begins) {
+      return { key: "fajr-tomorrow", label: "Fajr", minutes: parseMinutes(data.tomorrow.fajr_begins) + 1440 };
     }
     return null;
   }
@@ -2166,7 +2173,7 @@
     var minutes = Math.floor((diffSeconds % 3600) / 60);
     var seconds = diffSeconds % 60;
 
-    label.textContent = target.label + " Iqamah in";
+    label.textContent = target.label + " Begins in";
     digital.textContent = pad(hours) + ":" + pad(minutes) + ":" + pad(seconds);
   }
 

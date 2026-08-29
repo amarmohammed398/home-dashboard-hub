@@ -56,8 +56,15 @@ overriding — the baseline exists precisely to catch that kind of thing.
 
 ### Countdown display
 - A plain **digital `HH:MM:SS`** countdown (`#countdownDigital`) to the
-  next Iqamah, ticking down every second, with a caption above it
-  reading "`<Prayer>` Iqamah in". (Full history: digital current-time
+  next prayer's **Begins** time — not Iqamah (changed 29 Aug 2026, see
+  the dated entry below) — ticking down every second, with a caption
+  above it reading "`<Prayer>` Begins in". This deliberately matches
+  what the adhan itself triggers on (`getAdhanTriggerMinutes` in
+  `index.html`, also Begins-based) — the countdown and the adhan now
+  always agree on what "next prayer" means; they used to be able to
+  disagree (countdown tracking Iqamah, adhan firing at Begins), which
+  looked odd if you noticed the adhan play well before the countdown
+  hit zero. (Full history of the display itself: digital current-time
   clock → analogue clock → animated analogue → plain digital → flip
   clock → **back to plain digital**, all in the space of one day — see
   dated entries below. This is the current, settled form; don't
@@ -1305,3 +1312,49 @@ re-tested live (simulating an exact-minute trigger is impractical) —
 it reuses the exact `playAdhanFile()` + `setAdhanStatus` path the Test
 buttons already exercise successfully, so no new behaviour needed
 proving, just the wiring change itself (confirmed by reading the diff).
+
+### 2026-08-29 — Countdown now tracks Begins, not Iqamah
+Follow-up to the adhan investigation above: once it was confirmed the
+adhan fires at each prayer's **Begins** time (by design, kept as-is),
+user asked for the on-screen countdown to match that, rather than
+continuing to count down to Iqamah. Previously the two could
+legitimately disagree — the adhan already firing at, say, Dhuhr's
+Begins (1:11pm) while the countdown still read "Dhuhr Iqamah in 24:00"
+— which is exactly the kind of mismatch that made the adhan look like
+it fired "early" or "wrong" even when it was working correctly.
+
+- `findNextTarget()`: now reads `rows[i].begins` instead of
+  `rows[i].iqamah` when picking which prayer is "next" and how many
+  minutes away it is. The tomorrow-Fajr fallback (nothing left today)
+  switched from `data.tomorrow.fajr_jamah` to `data.tomorrow.fajr_begins`
+  — confirmed this field actually exists in the real API response
+  (fetched it live) before relying on it, same parallel Begins/Jamah
+  structure as every other field.
+- Caption text changed from "`<Prayer>` Iqamah in" to "`<Prayer>`
+  Begins in" (`renderCountdown()`).
+- **Real behavioural change worth being explicit about**: once a
+  prayer's Begins time passes, the countdown now immediately moves on
+  to the *next* prayer's Begins — it no longer lingers on the current
+  prayer counting down to its Iqamah. E.g. between Dhuhr's Begins
+  (1:11pm) and its Iqamah (1:35pm), the display now reads "Asr Begins
+  in" rather than "Dhuhr Iqamah in ~10 min" — the Iqamah times are
+  still shown as their own column in the table, just no longer drive
+  the big countdown or the "next prayer" row highlight.
+- Friday's Jumu'ah row is unaffected in how it's special-cased
+  (`begins` still maps to `fri.zuhr_jamah`/"1st Khutbah",
+  `iqamah` to `fri.asr_mithl_1`/"2nd Khutbah") — the countdown will
+  count down to the "1st Khutbah" time for that row now, consistent
+  with treating `begins` as the generic "this is what counts down"
+  field regardless of what it's labelled per-row.
+
+**Verified against real data, not just logic review**: fetched the
+masjid's live API directly to confirm `data.tomorrow.fajr_begins`
+exists before relying on it; confirmed the countdown correctly reads
+"Maghrib Begins in" matching real current time against the real
+Maghrib Begins field; then verified the actual behavioural change (not
+just the label) by patching `Date` to a fixed simulated time
+(1:20pm — after Dhuhr's Begins, before its Iqamah) and confirming the
+countdown correctly skipped ahead to "Asr Begins in 01:15:00" rather
+than continuing to show Dhuhr — the exact scenario that couldn't be
+exercised just by waiting for real time to pass during testing. No
+console errors; dark theme re-checked too.
