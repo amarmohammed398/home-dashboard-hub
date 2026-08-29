@@ -93,13 +93,13 @@ sequenceDiagram
     participant GH as GitHub
     participant Runner as Self-hosted runner<br/>(on the home server)
     participant Web as Apache webroot
-    participant Tab as iPad Safari
+    participant Tab as iPad (dotKiosk)
 
     Dev->>GH: git push origin main
     GH->>Runner: workflow job<br/>(runner polls GitHub outbound)
     Runner->>Runner: actions/checkout@v4
     Runner->>Web: rsync -av --delete<br/>(into /var/www/...)
-    Note over Tab: Already has the page open,<br/>on Home Screen, Guided Access locked
+    Note over Tab: Already has the page open,<br/>fullscreen, Guided Access locked
     Tab->>Web: next 5-min data poll / manual reopen
     Web-->>Tab: latest deployed files
 ```
@@ -181,6 +181,17 @@ the *process* of finding and fixing them is the actual engineering:
   dynamic DNS), a self-hosted runner flips who initiates the connection:
   the server polls GitHub outbound instead of GitHub reaching in. Same
   outcome, opposite — and safer — direction of trust.
+- **A limitation no amount of CSS could fix.** Hiding iOS's system
+  status bar (clock/battery/WiFi icons) turned out to be impossible from
+  a web page at all — `apple-mobile-web-app-status-bar-style` only
+  changes how content flows *around* the status bar, it can't remove it,
+  because only native apps are permitted to request that via
+  `prefersStatusBarHidden`. Building a native wrapper was one option
+  (blocked here on only having Xcode's Command Line Tools installed, not
+  full Xcode); the pragmatic fix was a small, genuinely free, purpose-
+  built native app (dotKiosk) that does exactly that one thing. Knowing
+  when a problem is a platform boundary rather than a bug to keep
+  debugging is its own skill.
 
 ## Frontend implementation notes
 

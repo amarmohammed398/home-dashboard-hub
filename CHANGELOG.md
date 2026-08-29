@@ -143,12 +143,16 @@ overriding — the baseline exists precisely to catch that kind of thing.
   used instead — nginx was never actually put into service on this box).
   Which deploy path is used doesn't matter to Apache — both write to the
   same folder.
-- Displayed on an **iPad Pro 11" (iOS 26.6.1)**: Safari → Add to Home
-  Screen → tap once to unlock audio → Auto-Lock set to Never → locked
-  into the app via Guided Access (Settings → Accessibility → Guided
-  Access, triple-click side button).
+- Displayed on an **iPad Pro 11" (iOS 26.6.1)** via **dotKiosk Full
+  Screen Browser** (free App Store app) → tap once to unlock audio →
+  Auto-Lock set to Never → locked into dotKiosk via Guided Access
+  (Settings → Accessibility → Guided Access, triple-click side button).
+  Plain Safari + "Add to Home Screen" still works and is documented in
+  the README as a fallback, but is no longer the primary method — see
+  dated entry below for why.
 - **Confirmed working live on the iPad as of 2026-08-28; automated
-  deploy pipeline confirmed working as of 2026-08-29.**
+  deploy pipeline confirmed working as of 2026-08-29; dotKiosk switch
+  confirmed working as of 2026-08-29.**
 - Old Samsung Galaxy Tab 3 (Android 4.4) + GitHub Pages + Fully Kiosk
   Browser (legacy v2.9.3 build 360) setup is documented in the README as
   a fallback/alternative, not deleted, in case it's ever used again.
@@ -450,3 +454,35 @@ handling), not a real rendering bug. Same category as the earlier
 WEBrick and hidden-tab-timer-throttling artifacts: verify via computed
 styles when a screenshot looks suspicious, don't assume the screenshot
 is ground truth.
+
+### 2026-08-29 — Switched iPad display method to hide the status bar
+User wanted iOS's own status bar (clock/date/wifi/battery) gone
+entirely. This isn't fixable from the page itself: the status bar is
+OS-level UI, and — unlike native apps, which can request it hidden via
+`prefersStatusBarHidden` — Safari-based standalone web apps have no API
+to suppress it; `apple-mobile-web-app-status-bar-style: black-translucent`
+(already in use) only makes content flow *underneath* it, the icons
+stay visible. Genuinely fixing this needs a native app wrapping a
+WebView, which only Apple-signed apps (not web pages) are allowed to do.
+
+Three options were on the table: build a custom native wrapper (only
+Command Line Tools are installed here, not full Xcode, so this would've
+meant a real iOS-dev side-quest — free-tier Apple ID needs reinstalling
+via USB every 7 days, or $99/year for a permanent install), use an
+existing App Store kiosk app, or leave the status bar visible. User
+chose to trial an existing app first, with the explicit option to
+revert if it didn't work out.
+
+Picked **dotKiosk Full Screen Browser** (free, by Free Tomorrow) after
+checking actual App Store pricing rather than trusting search-result
+summaries — the first candidate found (UPDT d.o.o.'s "Kiosk - fullscreen
+browser") turned out to be $0.99 despite a search summary calling it
+free; dotKiosk is genuinely free with no IAP, explicitly built for this
+"repurpose an old device as a kiosk display" use case, and explicitly
+designed to be paired with Guided Access (which was already set up).
+
+**Confirmed working — this is now the primary iPad setup method.**
+Plain Safari + Add to Home Screen (can't hide the status bar, but needs
+zero third-party apps) is kept in the README as a documented fallback,
+same pattern as the old Galaxy Tab 3 path — not deleted, just no longer
+the default recommendation.

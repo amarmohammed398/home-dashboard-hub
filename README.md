@@ -185,35 +185,57 @@ locally and on the server.
 
 ## Setting up the iPad Pro as the display
 
-1. On the iPad, open **Safari** and go to your server's address
-   (`http://<server-host>.local/`).
-2. Tap the **Share** icon → **Add to Home Screen** → name it "Cheadle
-   Masjid" → **Add**. Thanks to the meta tags in `index.html`, opening it
-   from that new icon runs full-screen with no address bar or toolbar.
-3. Open the new Home Screen icon, and **tap the screen once** — this
-   one-time tap unlocks audio autoplay for as long as the page stays open
-   (see the Autoplay note above). Nothing else to do after that.
-4. **Settings → Display & Brightness → Auto-Lock → Never** (otherwise the
+**Current method: [dotKiosk Full Screen Browser](https://apps.apple.com/us/app/dotkiosk-full-screen-browser/id6756888727)**
+(free, App Store, by Free Tomorrow). Safari's "Add to Home Screen" mode
+(documented further below as a fallback) can't hide iOS's own status
+bar — that's a genuine platform limitation, not something fixable with
+CSS/meta tags, since only native apps can request the status bar be
+hidden. dotKiosk is a tiny native wrapper built exactly for this: it
+loads one URL in true fullscreen, no status bar, no address bar.
+
+1. Install **dotKiosk Full Screen Browser** from the App Store (free, no
+   account or payment needed).
+2. Open it, set a PIN when asked (protects the app's own settings —
+   shake the device later to get back into them).
+3. Enter your server's address (`http://<server-host>.local/` or the IP)
+   as the URL. It loads fullscreen immediately, no status bar visible.
+4. **Tap the screen once** — this unlocks audio autoplay for as long as
+   the app keeps running (see the Autoplay note above). Nothing else to
+   do after that.
+5. **Settings → Display & Brightness → Auto-Lock → Never** (otherwise the
    screen will lock itself and the display goes dark).
-5. **Lock it into this one app with Guided Access** (free, built into
-   iOS, no extra apps needed):
-   - **Settings → Accessibility → Guided Access** → turn it on, and set a
-     passcode (you'll need this to exit later).
-   - With the Cheadle Masjid app open, **triple-click the side button** to
-     start Guided Access — this disables leaving the app, the Home
-     indicator, and multitasking gestures, so the iPad can't wander off
-     to another app.
-   - To make changes later (e.g. after a `git push`), triple-click the
-     side button again and enter the passcode to exit Guided Access, then
-     re-open the app to pick up the change and re-enable Guided Access.
-6. Mount the iPad, keep it on permanent power, and leave it running.
+6. **Lock it into this one app with Guided Access** (free, built into
+   iOS): **Settings → Accessibility → Guided Access** → turn it on, set a
+   passcode, then with dotKiosk open, **triple-click the side button** to
+   start a session. To make changes later (e.g. after a `git push`),
+   triple-click again + passcode to exit, then re-open dotKiosk.
+7. Mount the iPad, keep it on permanent power, and leave it running.
+
+dotKiosk also has a **remote admin** page (visit the iPad's IP on port
+`8742` from another device on the same WiFi) for changing its settings
+without touching the iPad directly — convenient, though it does mean
+that port is open on the home network (fine on a private home LAN, just
+worth knowing it's there).
+
+### Fallback: plain Safari (status bar visible)
+
+If dotKiosk is ever removed or you want zero third-party apps involved:
+
+1. Open **Safari**, go to your server's address, tap **Share → Add to
+   Home Screen**. Thanks to the meta tags in `index.html`, opening it
+   from that icon still runs full-screen with no Safari address bar or
+   toolbar — just with iOS's own status bar visible at the top, which
+   this method can't remove.
+2. Follow the same tap-once / Auto-Lock / Guided Access steps as above,
+   just locking into that Home Screen icon instead of dotKiosk.
 
 ### Why the page no longer auto-reloads
 
 Older versions of this page force-reloaded once a night to roll over the
 day and pick up pushed updates. That's been removed: on iOS a reload
-would throw away the one-time audio unlock from step 3 above, silently
-breaking the adhan until someone tapped the screen again. The day still
+would throw away the one-time audio unlock from the "tap the screen
+once" step above, silently breaking the adhan until someone tapped the
+screen again. The day still
 rolls over correctly without any reload — the countdown, active-row
 highlight and adhan scheduling all key off the live clock, and prayer
 data is refetched from the masjid's site every 5 minutes regardless.
