@@ -581,6 +581,7 @@
     padding: 6px 0;
   }
   #settingsPanel .panelLabel { font-size: 15px; font-weight: 600; }
+  #audioUnlockStatus { font-size: 14px; font-weight: 700; }
   #settingsPanel .panelRowRight {
     display: -webkit-box;
     display: -webkit-flex;
@@ -798,6 +799,9 @@
   body.theme-light .toggleSwitch { background-color: rgba(31, 41, 55, 0.12); }
   body.theme-light .toggleSwitch.on { background-color: #0e8f6b; }
   body.theme-light .adhanArmedIcon { color: #0e8f6b; }
+  body.theme-light .adhanArmedIcon.notReady { color: #b45309; }
+  body.theme-light #audioUnlockStatus { color: #0e8f6b; }
+  body.theme-light #audioUnlockStatus.notReady { color: #b45309; }
   body.theme-light .testBtn { background-color: rgba(31, 41, 55, 0.08); color: #374151; }
   body.theme-light #adhanStatus { color: #4b5563; }
   body.theme-light #adhanStatus.error { color: #b45309; }
@@ -868,6 +872,9 @@
   body.theme-dark .toggleSwitch { background-color: rgba(255, 255, 255, 0.14); }
   body.theme-dark .toggleSwitch.on { background-color: #2fd39a; }
   body.theme-dark .adhanArmedIcon { color: #2fd39a; }
+  body.theme-dark .adhanArmedIcon.notReady { color: #f2b84b; }
+  body.theme-dark #audioUnlockStatus { color: #2fd39a; }
+  body.theme-dark #audioUnlockStatus.notReady { color: #f2b84b; }
   body.theme-dark .testBtn { background-color: rgba(255, 255, 255, 0.1); color: #cbd2dc; }
   body.theme-dark #adhanStatus { color: #cbd2dc; }
   body.theme-dark #adhanStatus.error { color: #f2b84b; }
@@ -1034,6 +1041,10 @@
        it. See updateSettingsPanelForScreen() in the script below. -->
   <div id="adhanSettingsSection">
     <div class="panelTitle withGap">Adhan</div>
+    <div class="panelRow">
+      <span class="panelLabel">Audio</span>
+      <span id="audioUnlockStatus">Checking&hellip;</span>
+    </div>
     <div class="panelRow" data-prayer="fajr">
       <span class="panelLabel">Fajr</span>
       <div class="panelRowRight">
@@ -1393,16 +1404,77 @@
     s.className = isError ? "error" : "";
   }
 
+  // Makes "is the adhan actually going to be able to play right now"
+  // checkable at a glance, rather than only discoverable by waiting for
+  // a scheduled prayer time to silently fail. Recolours every armed-
+  // prayer speaker icon on the main table (amber instead of the normal
+  // accent green when audio isn't unlocked yet) and updates the
+  // explicit "Audio: Ready / Not ready" line in Settings' Adhan
+  // section. Called whenever audioUnlocked changes (both directions,
+  // from unlockAudioOnce() below) and every time renderRows() rebuilds
+  // the table's DOM (which recreates the icon elements from scratch,
+  // wiping any class set on the old ones).
+  function updateAdhanReadyIndicators() {
+    var statusEl = document.getElementById("audioUnlockStatus");
+    if (statusEl) {
+      statusEl.textContent = audioUnlocked ? "Ready" : "Not ready — tap the screen once";
+      statusEl.className = audioUnlocked ? "" : "notReady";
+    }
+    var icons = document.querySelectorAll(".adhanArmedIcon");
+    var i;
+    for (i = 0; i < icons.length; i++) {
+      icons[i].className = "adhanArmedIcon" + (audioUnlocked ? "" : " notReady");
+    }
+  }
+
   function unlockAudioOnce() {
     if (audioUnlocked) { return; }
     audioUnlocked = true;
     var audio = document.getElementById("adhanAudio");
     var p = audio.play();
     if (p && p.then) {
-      p.then(function () { audio.pause(); audio.currentTime = 0; }).catch(function () { /* still locked; will retry on next real interaction */ audioUnlocked = false; });
+      p.then(function () {
+        audio.pause();
+        audio.currentTime = 0;
+        // Only stop listening for taps once unlock has *actually*
+        // succeeded (this callback only runs on a resolved promise) —
+        // removing the listeners here, not unconditionally on every
+        // tap, is what lets a failed first attempt below retry on the
+        // next one instead of silently never getting another chance.
+        document.removeEventListener("touchstart", unlockOnceHandler, false);
+        document.removeEventListener("click", unlockOnceHandler, false);
+        updateAdhanReadyIndicators();
+      }).catch(function () {
+        // Still locked — audioUnlocked back to false so the next tap's
+        // unlockOnceHandler() call (see below; its listeners are still
+        // attached, since we only ever remove them on success above)
+        // tries again, rather than this being a one-shot attempt.
+        audioUnlocked = false;
+        updateAdhanReadyIndicators();
+      });
     } else {
       audio.pause();
+      document.removeEventListener("touchstart", unlockOnceHandler, false);
+      document.removeEventListener("click", unlockOnceHandler, false);
     }
+  }
+
+  // Declared at this top level — same scope as unlockAudioOnce() itself
+  // — specifically so unlockAudioOnce() can reference it directly in
+  // its own removeEventListener calls above. It used to be declared
+  // nested inside initAdhanUI() instead, which meant unlockAudioOnce()
+  // (a different, outer-scope function) couldn't actually see it —
+  // calling removeEventListener(..., unlockOnceHandler, ...) from
+  // inside unlockAudioOnce() threw a ReferenceError, which silently
+  // turned every *successful* unlock into a caught failure (the
+  // exception rejected the promise chain into the .catch() branch,
+  // which resets audioUnlocked back to false) — the audio would
+  // therefore never actually report itself as unlocked, no matter how
+  // many times it was tapped. Found by directly exercising the unlock
+  // retry logic with a stubbed audio.play() during testing, not
+  // something that would have been obvious from reading the code alone.
+  function unlockOnceHandler() {
+    unlockAudioOnce();
   }
 
   function showAdhanAlert(label) {
@@ -1489,7 +1561,15 @@
       target = getAdhanTriggerMinutes(key);
       if (target !== null && target === nowMinutes) {
         markPlayed(now, key);
-        playAdhanFile(getAdhanDisplayLabel(key, now), null);
+        // setAdhanStatus, not null — this used to pass no status
+        // callback at all for the real scheduled trigger (only the
+        // Settings "Test" buttons got one), so if playback ever failed
+        // here (blocked autoplay, missing adhan.mp3) it failed
+        // completely silently: no alert, no message anywhere, nothing
+        // to tell anyone it hadn't actually played. Now a scheduled
+        // failure shows up in Settings' Adhan status line exactly like
+        // a Test-button failure would.
+        playAdhanFile(getAdhanDisplayLabel(key, now), setAdhanStatus);
       }
     }
   }
@@ -1534,15 +1614,10 @@
     }
 
     // Try to unlock autoplay on the very first tap/click anywhere on the
-    // kiosk screen, so later scheduled adhans aren't blocked by the
-    // browser's "no audio without a user gesture" policy. Written with
-    // plain boolean listener args (no options object) for old-WebView
-    // compatibility, removing itself manually instead of using `once`.
-    function unlockOnceHandler() {
-      unlockAudioOnce();
-      document.removeEventListener("touchstart", unlockOnceHandler, false);
-      document.removeEventListener("click", unlockOnceHandler, false);
-    }
+    // kiosk screen (unlockOnceHandler is declared at the top level,
+    // alongside unlockAudioOnce() itself — see the comment there for
+    // why, and for why these listeners are deliberately never removed
+    // from here).
     document.addEventListener("touchstart", unlockOnceHandler, false);
     document.addEventListener("click", unlockOnceHandler, false);
 
@@ -2063,6 +2138,11 @@
 
       container.appendChild(rowEl);
     }
+    // Rebuilds .adhanArmedIcon elements fresh every call (innerHTML was
+    // just replaced above), so their "is this actually going to play"
+    // colour needs reapplying every time too — see
+    // updateAdhanReadyIndicators().
+    updateAdhanReadyIndicators();
   }
 
   function renderCountdown(target, now) {

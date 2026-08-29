@@ -244,7 +244,17 @@ reasoning.
   "unlocks" itself permanently on the very first tap/click after each
   page load (`unlockAudioOnce()`), so every adhan after that plays with
   zero interaction — **as long as the page is never reloaded**, which is
-  exactly why the automatic nightly reload was removed.
+  exactly why the automatic nightly reload was removed. If that very
+  first tap ever fails to unlock (for any reason), the listeners stay
+  attached and the *next* tap retries — fixed 29 Aug 2026, see the dated
+  entry below; previously a single failed first attempt broke this for
+  the rest of that page session, silently.
+- **"Is the adhan actually going to play right now" is checkable at a
+  glance** (added 29 Aug 2026), not just something that fails silently
+  at the scheduled moment: the small speaker icon next to any armed
+  prayer turns amber instead of its normal accent-green colour while
+  audio isn't unlocked yet, and Settings' Adhan section has an explicit
+  "Audio: Ready" / "Audio: Not ready — tap the screen once" line.
 - A full-screen green alert appears while the adhan plays (scheduled or
   via Test), naming the prayer, with a pulsing speaker icon and a "Tap
   anywhere to stop" hint. Tapping it stops the audio and dismisses the
@@ -1215,3 +1225,83 @@ server picks up the new script automatically via the existing deploy
 pipeline, no manual re-install needed this time (unlike the original
 Server Health build, this change is pure script content, not new
 packages or systemd units).
+
+### 2026-08-29 — Fixed the adhan silently not playing at Iqamah time
+User reported the adhan not playing even with a prayer's toggle on in
+Settings. Worth stating plainly first, separate from the bugs below:
+**the adhan is designed to play at each prayer's *Begins* time, not
+Iqamah** (matches real masjid practice, and is what the README already
+documented) — if it was actually firing correctly at Begins and just
+being looked for at Iqamah instead, that gap (often 20–40 minutes) could
+easily look like "it didn't play." That said, code review turned up two
+real bugs independent of that distinction, both making a genuine
+failure *invisible* rather than just mistimed:
+
+1. **A failed first audio-unlock permanently broke every future
+   scheduled adhan, silently.** `unlockOnceHandler` (attached to the
+   very first tap/click after each page load) removed its own event
+   listeners unconditionally, regardless of whether
+   `unlockAudioOnce()`'s `audio.play()` actually succeeded.
+   `unlockAudioOnce()` already reset `audioUnlocked` back to `false` on
+   failure specifically so a *later* tap could retry — but with the
+   listeners already gone, nothing was ever left to give it that later
+   tap. One failed first-ever tap (for any reason — a slow load, a
+   wrapper app quirk, anything) meant audio stayed locked for the rest
+   of that page session, with zero indication anywhere.
+2. **The real, scheduled adhan trigger passed no status callback at
+   all.** `checkAdhanSchedule()` called `playAdhanFile(label, null)` —
+   `null`, not `setAdhanStatus`. The Settings "Test" buttons always
+   passed a real callback and so always showed a clear error on
+   failure; the actual scheduled path at prayer time did not, so a
+   blocked-autoplay or missing-file failure there produced literally no
+   evidence anywhere that anything had gone wrong.
+
+**Fix**: `unlockAudioOnce()` now only removes its listeners from inside
+the confirmed-success branch of the promise it's already using — a
+failed attempt leaves them attached so the next tap tries again.
+`checkAdhanSchedule()` now passes `setAdhanStatus`, the same real
+callback the Test buttons use, so a scheduled failure shows up in
+Settings exactly like a Test failure would. Also added a persistent,
+proactive readiness signal so this doesn't have to be diagnosed only
+after a missed prayer: the little speaker icon next to any armed prayer
+row is amber instead of green while audio isn't unlocked yet
+(`updateAdhanReadyIndicators()`, re-applied every time the table
+re-renders and every time the unlock state changes either way), plus an
+explicit "Audio: Ready" / "Not ready — tap the screen once" line in
+Settings' Adhan section.
+
+**A second, more serious bug was introduced by this fix itself, and
+caught only by directly testing the retry path — not by re-reading the
+code.** Moving the listener-removal into `unlockAudioOnce()` meant that
+function needed to reference `unlockOnceHandler` — but `unlockOnceHandler`
+was declared *nested inside* `initAdhanUI()`, a different, inner
+function scope that `unlockAudioOnce()` (declared at the outer,
+top-level scope) cannot see. Calling `removeEventListener(...,
+unlockOnceHandler, ...)` from inside `unlockAudioOnce()` therefore threw
+a `ReferenceError` — which, being thrown inside a `.then()` callback,
+turned into a *rejected* promise and landed in the adjacent `.catch()`,
+which resets `audioUnlocked` back to `false`. Net effect: every
+successful unlock attempt would have been silently converted into an
+apparent failure — worse than the original bug, since now *no* tap
+would ever successfully unlock audio, not just a first failed one.
+Fixed by moving `unlockOnceHandler`'s declaration to the same top-level
+scope as `unlockAudioOnce()`. This is exactly why the verification
+below tests the actual retry *behaviour* end-to-end rather than just
+reading the diff and trusting it looked right.
+
+**Verified by directly exercising the real code paths** (no real
+`adhan.mp3` in this sandbox to test genuine playback): stubbed
+`audio.play()` to reject, dispatched a real `click` event on `document`,
+confirmed the icon/status correctly showed "not ready"; stubbed
+`audio.play()` to then resolve and dispatched a second real click,
+confirming this — the retry — actually reaches the success branch (this
+is the exact test that caught the `ReferenceError` above, via a
+`MutationObserver` on the icon's `class` attribute plus a global
+`unhandledrejection` listener, since the failure was otherwise
+completely silent); confirmed a third click, after unlock is already
+true, doesn't call `audio.play()` again at all. No console errors in
+the final state. `checkAdhanSchedule()`'s fix wasn't separately
+re-tested live (simulating an exact-minute trigger is impractical) —
+it reuses the exact `playAdhanFile()` + `setAdhanStatus` path the Test
+buttons already exercise successfully, so no new behaviour needed
+proving, just the wiring change itself (confirmed by reading the diff).
