@@ -79,15 +79,15 @@ overriding — the baseline exists precisely to catch that kind of thing.
   `backdrop-filter` blur over a plain flat page background shows no
   visible effect at all (nothing varied behind it to soften), so the
   glass has to be self-sufficient to work over a plain background too.
-- Light theme by default: soft pastel mesh gradient (mint/blue/cream/
-  lavender) page background behind the glass panels, emerald (`#0e8f6b`)
-  accent.
+- Light theme by default: **plain flat** page background (`#eef2f5`),
+  emerald (`#0e8f6b`) accent. (Was a soft pastel mesh gradient
+  originally, same as dark mode — both were flattened by request; see
+  dated entries below. The panels still read as glass via their own
+  sheen/border/highlight, not by blurring a colourful backdrop.)
 - Dark mode available via the gear icon (top-right) → Settings panel →
   Dark mode toggle. Choice persists in `localStorage`
-  (`cheadleMasjidTheme`) across reloads. Dark mode uses a **plain flat**
-  page background (`#10131a`) by request rather than light theme's
-  gradient — the panels still read as glass via their own sheen/border/
-  highlight, just without a colourful backdrop behind them.
+  (`cheadleMasjidTheme`) across reloads. Also a plain flat background
+  (`#10131a`).
 - Both themes are plain CSS classes (`body.theme-light` /
   `body.theme-dark`), not CSS custom properties — kept for compatibility
   with the old Galaxy Tab 3 fallback path (see Deployment). Note this
@@ -417,3 +417,16 @@ now a plain `#10131a`; light mode's mesh gradient is untouched (only
 dark mode was asked to change). Verified visually — the panels still
 clearly read as frosted glass over the plain dark background, similar
 to how iOS's own widgets/Control Center look over a plain wallpaper.
+
+### 2026-08-29 — Light mode background also made plain
+Same request as the dark mode change above, applied to light mode:
+flattened the pastel mesh gradient to a plain `#eef2f5`. No CSS
+mechanism changes needed this time — the panel-material-based glass
+look (sheen/border/top-highlight) built for the dark mode fix already
+works identically regardless of what's behind it, so this was just
+swapping one `background` declaration for a `background-color`.
+Verified visually: panels still clearly read as glass over the plain
+light background. Both themes are now plain flat backgrounds; the
+original colourful mesh-gradient version of this design no longer
+exists anywhere in the live app (only in git history, if ever wanted
+back).

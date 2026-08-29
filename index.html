@@ -537,13 +537,11 @@
      glass over a flat colour barely reads as "glass" at all, since
      there's nothing varied for the blur to soften. Fixed radial blobs
      (not an image) keep this cheap to render continuously on the iPad. */
+  /* Plain background by request (matches dark theme below) — the glass
+     panels' own sheen/border/highlight (shared rule above) carry the
+     "glass" look instead of a colourful backdrop. */
   body.theme-light {
-    background:
-      radial-gradient(at 15% 15%, rgba(52, 211, 153, 0.45) 0px, transparent 55%),
-      radial-gradient(at 85% 10%, rgba(96, 165, 250, 0.40) 0px, transparent 55%),
-      radial-gradient(at 20% 85%, rgba(251, 191, 36, 0.30) 0px, transparent 55%),
-      radial-gradient(at 90% 80%, rgba(232, 121, 249, 0.28) 0px, transparent 55%),
-      #eef2f5;
+    background-color: #eef2f5;
     color: #1f2937;
   }
   body.theme-light #masjidName { color: #0b7a5c; text-shadow: 0 1px 2px rgba(255,255,255,0.5); }
