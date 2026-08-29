@@ -12,14 +12,15 @@ the way. For the granular commit-by-commit history, see
 
 An iPad mounted around the house (picture-frame case, permanent power)
 shows one of several full-screen **displays**, picked from a home
-screen. The first display built is Cheadle Masjid's daily prayer times —
-counts down live to the next Iqamah, and optionally sounds the adhan
-through the tablet's speaker at the right moment. More displays are
-planned (home server health, utility usage, and others — see "Where
-this could go next" at the bottom); the app is deliberately structured
-so adding one means adding a new screen and a new home-screen tile, not
-rebuilding anything that already works. All of it runs unattended,
-indefinitely, updated by pushing code from a laptop.
+screen. Two exist today: **Prayer Times**, the first one built —
+Cheadle Masjid's daily prayer times, counting down live to the next
+prayer's Begins time, and optionally sounding the adhan through the
+tablet's speaker at that moment — and **Server Health**, live stats for
+the home server itself. More are planned (utility usage and others —
+see "Where this could go next" at the bottom); the app is deliberately
+structured so adding one means adding a new screen and a new
+home-screen tile, not rebuilding anything that already works. All of it
+runs unattended, indefinitely, updated by pushing code from a laptop.
 
 ### Multi-display navigation
 
@@ -106,6 +107,12 @@ one.
 No prayer time is ever hand-entered or hardcoded — the masjid's own site
 remains the single source of truth, which matters for correctness around
 things like Ramadan, DST changes, and one-off Iqamah adjustments.
+
+**Open question, not a technical one**: this endpoint being technically
+open and unauthenticated doesn't mean fetching and reproducing it here
+is authorized under the masjid's own published terms — see
+CHANGELOG.md's "Known risks" entry for what was actually found and why
+this hasn't been resolved yet.
 
 ## Data flow: Server Health
 
@@ -355,14 +362,19 @@ reasoning about browser security models (CORS, autoplay policy) and
 designing around them instead of fighting them; git internals beyond
 day-to-day commit/push (history rewriting, remote divergence, why
 content-addressing means changing history reshapes everything after it);
-Linux system administration (systemd services, Apache virtual hosting,
-file permissions, SSH key management); making a deliberate
-build-vs-avoid-complexity call (no backend, no framework, no build
-step) and being able to justify it; designing a navigation/state
-structure (the home screen + `showScreen()` pattern) that lets new,
-unrelated features (future displays) get added without touching
-existing ones, while working around a real platform constraint (iOS's
-audio-unlock requirement ruling out page reloads as a navigation
+Linux system administration (systemd services and timers, Apache
+virtual hosting, file permissions, SSH key management); diagnosing a
+live network/DNS fault down to the actual root cause (distinguishing a
+process being "active" from a service actually working, tracing a
+resolution failure through `systemd-resolved`/`NetworkManager`
+interaction rather than stopping at the first plausible-looking fix,
+and verifying a config change survives a real reboot instead of trusting
+it); making a deliberate build-vs-avoid-complexity call (no backend, no
+framework, no build step) and being able to justify it; designing a
+navigation/state structure (the home screen + `showScreen()` pattern)
+that lets new, unrelated features (future displays) get added without
+touching existing ones, while working around a real platform constraint
+(iOS's audio-unlock requirement ruling out page reloads as a navigation
 mechanism); and writing documentation aimed at someone other than
 yourself, which this file is itself an example of.
 
@@ -370,8 +382,8 @@ yourself, which this file is itself an example of.
 
 Ideas for what to build into `#homeScreen` next, roughly in order of how
 little new infrastructure each one needs (Home server health has
-already moved from "idea" to "in progress" — see the Server Health
-section under Data flow above):
+already shipped and is fully live — see the "Data flow: Server Health"
+section above):
 
 - **Electricity / gas usage** — via a UK smart meter data source (e.g.
   Hildebrand Glow or n3rgy). If on a dynamic tariff (Octopus Agile/

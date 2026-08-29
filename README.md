@@ -11,11 +11,12 @@
 
 A wall/stand-mounted iPad (in a picture-frame case) that shows one of
 several full-screen **displays** — a home screen lets you pick which one.
-**Prayer Times** (for Cheadle Masjid) is the first one built; more are
-planned (home server health, energy/water/gas usage, and others — see
-the dated entries in [CHANGELOG.md](CHANGELOG.md) for what exists today,
-and the "Where this could go next" section of
-[ARCHITECTURE.md](ARCHITECTURE.md) for ideas not built yet).
+Two exist today: **Prayer Times** (for Cheadle Masjid, built first) and
+**Server Health** (live stats for the home server itself). More are
+planned (energy/water/gas usage, bin-day reminders, and others — see
+the "Where this could go next" section of
+[ARCHITECTURE.md](ARCHITECTURE.md) for ideas not built yet, and
+[CHANGELOG.md](CHANGELOG.md) for exactly what exists today).
 
 > **Naming note:** this project started as a single-purpose prayer-times
 > display, originally named after the masjid it displays — renamed to
@@ -107,11 +108,14 @@ waiting for the real prayer time.
 ## Server Health display
 
 The second display: live stats for `gsuaha-home-server` itself —
-uptime, CPU load, memory, disk, temperature, key service status, the
-GitHub Actions runner's last successful deploy, and Docker containers,
-with trend charts for load/memory/temperature. Purple accent (deliberately
-different from Prayer Times' teal-emerald, so the two are visually
-distinct at a glance).
+uptime; CPU usage % (+ load average and core count); memory (+ swap);
+temperature; disk; network throughput; service status (Apache, SSH, the
+GitHub Actions runner, plus a live DNS/Internet connectivity check);
+pending package updates and reboot-required flag; the GitHub Actions
+runner's last successful deploy; and Docker containers — with trend
+charts for CPU, memory, temperature, and network. Purple accent
+(deliberately different from Prayer Times' teal-emerald, so the two are
+visually distinct at a glance).
 
 Unlike Prayer Times, this needs a small piece running **on the server
 itself** to produce the data — there's still no real backend/API, just
@@ -187,11 +191,19 @@ full-screen with no Safari chrome.
  [your Mac]  --git push-->  [Linux server: bare repo + post-receive hook]
                                         |
                                         v
-                              [nginx serves /var/www/home-dashboard-hub]
+                            [Apache serves /var/www/home-dashboard-hub]
                                         |
                                         v (home WiFi, plain HTTP is fine)
                               [iPad Safari, added to Home Screen]
 ```
+
+> **Apache, not nginx** — this section originally assumed nginx and
+> these instructions were written that way, but the actual server this
+> project runs on already had Apache serving an unrelated site on port
+> 80, so nginx was never actually put into service (see ARCHITECTURE.md's
+> "Two web servers fighting over port 80" for the full story). Rewritten
+> below to match what's actually deployed, so a fresh setup on a new box
+> doesn't get instructions for a web server this project doesn't use.
 
 ### One-time setup on the Linux server
 
@@ -203,11 +215,11 @@ full-screen with no Safari chrome.
 > reason: splitting them is what caused `hooks/post-receive` to end up
 > missing/misnamed the first time round.
 
-1. If you don't already have a web server, install nginx:
+1. If you don't already have a web server, install Apache:
    ```bash
-   sudo apt update && sudo apt install nginx    # Debian/Ubuntu
+   sudo apt update && sudo apt install apache2    # Debian/Ubuntu
    ```
-2. Create the folder nginx will serve, the bare git repo, and the deploy
+2. Create the folder Apache will serve, the bare git repo, and the deploy
    hook — all in one go, so the `cd` below stays in effect the whole way
    through:
    ```bash
@@ -226,27 +238,32 @@ full-screen with no Safari chrome.
    The last line should print `-rwxr-xr-x ... hooks/post-receive` followed
    by the two-line script above — if it doesn't, something in the paste
    got cut off; re-run the whole block rather than just the missing line.
-3. Point nginx at that folder. This needs `sudo` because `/etc/nginx` is
-   root-owned — note the `sudo tee ... > /dev/null` trick below rather
+3. Point Apache at that folder. This needs `sudo` because `/etc/apache2`
+   is root-owned — note the `sudo tee ... > /dev/null` trick below rather
    than `sudo cat > file`: with a plain `>` redirect, the *shell* opens
    the file before `sudo` ever runs, so it still fails with "permission
    denied" even though the command itself has `sudo` in front of it.
    `tee` is a normal program that `sudo` can actually elevate.
    ```bash
-   sudo tee /etc/nginx/sites-available/cheadle-display > /dev/null <<'EOF'
-   server {
-       listen 80;
-       server_name _;
-       root /var/www/home-dashboard-hub;
-       index index.html;
-   }
+   sudo tee /etc/apache2/sites-available/home-dashboard-hub.conf > /dev/null <<'EOF'
+   <VirtualHost *:80>
+       DocumentRoot /var/www/home-dashboard-hub
+       <Directory /var/www/home-dashboard-hub>
+           AllowOverride None
+           Require all granted
+       </Directory>
+   </VirtualHost>
    EOF
-   sudo ln -s /etc/nginx/sites-available/cheadle-display /etc/nginx/sites-enabled/
-   sudo nginx -t && sudo systemctl reload nginx
+   sudo a2ensite home-dashboard-hub.conf
+   sudo apache2ctl configtest && sudo systemctl reload apache2
    ```
-   `nginx -t` checks the config is valid before reloading — it should
-   print `syntax is ok` / `test is successful`. If it errors instead,
-   paste the error back and we'll fix it before reloading.
+   `apache2ctl configtest` checks the config is valid before reloading —
+   it should print `Syntax OK`. If it errors instead, paste the error
+   back and we'll fix it before reloading. If the box already runs
+   something else on port 80, bind to that server's specific LAN IP
+   instead of `*:80` (`<VirtualHost 192.168.x.x:80>`) rather than fighting
+   over the same wildcard listener — see ARCHITECTURE.md for why this
+   project itself needed that.
 4. **Give the server a stable address** so you're not hunting for its IP
    later. Easiest: make sure `avahi-daemon` is running (usually already is
    on Debian/Ubuntu) — that gives you `http://<hostname>.local` for free.

@@ -11,3 +11,9 @@ adhan.mp3
 # not app code, and a deploy must never overwrite or delete the live
 # one (also excluded from the rsync in .github/workflows/deploy.yml).
 server-stats.json
+
+# Written by the deploy workflow itself right after a successful
+# rsync — same server-state reasoning as server-stats.json above, and
+# also excluded from the rsync so a deploy never wipes the very
+# timestamp it just wrote.
+.last-successful-deploy

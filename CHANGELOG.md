@@ -324,6 +324,29 @@ reasoning.
   Browser (legacy v2.9.3 build 360) setup is documented in the README as
   a fallback/alternative, not deleted, in case it's ever used again.
 
+### Known risks (unresolved, not yet acted on — surface if this comes up)
+- **Prayer Times' data usage likely conflicts with Cheadle Masjid's own
+  published Terms & Conditions.** Their site's `/terms-conditions/`
+  page (checked directly, not assumed) permits using material from the
+  site for personal, informational viewing only — explicitly **not**
+  "reproduction on any other website" — and separately prohibits
+  copying, storing, or transmitting any part of the site to a third
+  party without written permission; it also asks that even *linking* to
+  the site be notified/approved first. This app fetches
+  `wp-json/dpt/v1/prayertime` (a technically-open, unauthenticated
+  WordPress REST endpoint) every 5 minutes and reproduces the data on a
+  separate display — which is exactly the kind of use those terms
+  don't permit, regardless of the endpoint being fetchable without
+  authentication. **This was identified in conversation on 29 Aug 2026
+  and never acted on** — no permission has been sought from the masjid
+  (CMA Welfare Trust), and the fetch has not been paused. The
+  recommended next step, discussed but not yet done: contact the masjid
+  and ask for explicit permission to use their prayer-time data for
+  this personal display — their own terms literally invite this
+  ("notify and seek the CMA's approval"). Don't treat "it's a public
+  GitHub project and has been running fine" as evidence this is
+  resolved; it isn't, it just hasn't been raised with them yet.
+
 ### Known trade-offs (intentional, don't "fix" without discussion)
 - No automatic page reload → a pushed code change only takes effect once
   someone manually reopens the app on the iPad (exits Guided Access,
