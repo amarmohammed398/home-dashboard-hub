@@ -293,12 +293,12 @@ reasoning.
 - **Primary path — automated**: push to `main` on GitHub → a
   self-hosted GitHub Actions runner installed on the Linux home server
   (`gsuaha-home-server`, `192.168.0.180`) picks up the job → checks out
-  the commit → `rsync`s it into `/var/www/cheadle-masjid-display`
+  the commit → `rsync`s it into `/var/www/home-dashboard-hub`
   (excluding `.git`, `.github`, `adhan.mp3`). Runs as a systemd service
   under the `gsuaha` user. See `.github/workflows/deploy.yml`.
 - **Fallback path — manual**: the original bare git repo
-  (`~/git/cheadle-masjid-display.git`) + `post-receive` hook
-  (`GIT_WORK_TREE=/var/www/cheadle-masjid-display git checkout -f main`)
+  (`~/git/home-dashboard-hub.git`) + `post-receive` hook
+  (`GIT_WORK_TREE=/var/www/home-dashboard-hub git checkout -f main`)
   still exists and still works — `git push home main` from the Mac, run
   in a real terminal (SSH auth needs the user's own password entry, not
   something done through Claude directly). Useful if the runner service
@@ -333,13 +333,12 @@ reasoning.
   `let`/`const`, or CSS variables) — a holdover from Tab 3 support that's
   no longer strictly necessary on the iPad, but left as-is since
   rewriting it would be pure churn with no functional benefit.
-- **Repo/folder/server path still named `cheadle-masjid-display`**, even
-  though the app is now a multi-display hub (see Navigation above) and
-  the browser tab title is "Home Dashboard Hub". Deliberate — renaming a
-  live GitHub repo + server directory + Apache vhost is real, riskier
-  work than a copy change, and is deferred until a couple more displays
-  exist rather than done mid-build. Don't rename these without being
-  asked; see ARCHITECTURE.md's "Future displays" section for the plan.
+- **Repo/folder/server path renamed to `home-dashboard-hub`** (29 Aug
+  2026, see the dated entry below) — was `cheadle-masjid-display` since
+  this project's original single-purpose start; deferred at the time of
+  the first multi-display change specifically to avoid touching the
+  live deployment pipeline mid-build, done properly once two displays
+  actually existed and before adding a third.
 
 ---
 
@@ -1434,3 +1433,52 @@ Confirmed via `scrollHeight`/`clientHeight` that neither orientation
 needs to scroll with the current 10 cards; confirmed the exact
 symmetric top/bottom offsets above; confirmed dark theme; no console
 errors.
+
+### 2026-08-29 — Renamed the project: cheadle-masjid-display → home-dashboard-hub
+User asked to finish this before adding a third display, rather than
+let it keep accumulating displays under the original single-purpose
+name (deferred back when Server Health was first added — see that
+entry's "Repo/folder/server path" note, and the equivalent note in
+README.md/ARCHITECTURE.md at the time). Every layer, in order:
+
+1. **Server directory**: `sudo mv /var/www/cheadle-masjid-display
+   /var/www/home-dashboard-hub`.
+2. **Apache vhost** (`/etc/apache2/sites-available/cheadle-display.conf`
+   — the vhost *file's own name* wasn't changed, only its
+   `DocumentRoot`/`Directory` paths inside it, since Apache doesn't care
+   what the `.conf` file itself is called): both paths updated,
+   `apache2ctl configtest` clean, reloaded.
+3. **Bare repo** (manual-fallback deploy path): `post-receive` hook's
+   `GIT_WORK_TREE` updated to the new path, then the bare repo directory
+   itself renamed, `~/git/cheadle-masjid-display.git` →
+   `~/git/home-dashboard-hub.git`.
+4. **This repo's own tracked files**: `.github/workflows/deploy.yml`
+   (rsync destination + the deploy-marker step), `systemd/server-stats.service`
+   (`ExecStart` path), `scripts/server-stats.sh` (`OUT_FILE`/
+   `DEPLOY_MARKER`), and README.md/ARCHITECTURE.md's setup instructions
+   and system-overview diagram — all updated to the new path/name.
+   Historical dated entries above this one were **not** rewritten —
+   they're an accurate record of what was true when they were written,
+   including the old name; only the "Current baseline" sections were
+   brought up to date, per this file's own stated policy.
+5. **GitHub repo**: renamed via Settings → repository name. GitHub
+   keeps the old URL redirecting for git operations, but the local
+   `origin` remote was pointed at the new URL explicitly anyway rather
+   than relying on the redirect indefinitely.
+6. **Local Mac folder**: `~/Desktop/cheadle-masjid-display` →
+   `~/Desktop/home-dashboard-hub`, done last, once every commit
+   referencing the old path had already been pushed successfully from
+   the old location.
+7. **`systemd/server-stats.service`** re-copied to
+   `/etc/systemd/system/` on the server (its `ExecStart` path changed,
+   so the already-installed copy from before the rename was now stale)
+   and `daemon-reload`'d.
+
+**Sequencing was the actual engineering here, not the renames
+themselves**: steps 1–3 (server-side) had to land *before* pushing step
+4's `deploy.yml` change, since that change makes the very next deploy
+rsync into the new path — pushing it first would have had the runner
+try to sync into a directory that didn't exist yet. Verified after each
+push (`curl`ing the live server directly, same pattern used throughout
+this project) rather than assuming the rename "worked" once the commands
+ran without error.

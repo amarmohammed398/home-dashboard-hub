@@ -20,4 +20,4 @@ After=network.target
 [Service]
 Type=oneshot
 User=gsuaha
-ExecStart=/var/www/cheadle-masjid-display/scripts/server-stats.sh
+ExecStart=/var/www/home-dashboard-hub/scripts/server-stats.sh

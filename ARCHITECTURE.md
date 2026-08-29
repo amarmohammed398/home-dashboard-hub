@@ -61,7 +61,7 @@ flowchart LR
     subgraph Home [Linux home server]
         Runner["Self-hosted GitHub<br/>Actions runner"]
         BareRepo["Bare repo +<br/>post-receive hook<br/>(fallback path)"]
-        Apache["Apache<br/>serves /var/www/cheadle-masjid-display"]
+        Apache["Apache<br/>serves /var/www/home-dashboard-hub"]
     end
 
     API -- "fetched client-side<br/>every 5 min, cross-origin" --> JS
@@ -392,10 +392,5 @@ section under Data flow above):
   each time, which doesn't scale as more features are added.
 - Basic uptime/health monitoring for the home server + display, since
   right now there's no alert if the display silently goes offline.
-- Once more than one or two displays exist: rename the GitHub repo,
-  local folder, and server directory from `cheadle-masjid-display` to
-  something that describes the multi-display hub (e.g.
-  `home-dashboard-hub`), and update the deploy workflow/git remotes to
-  match. Deliberately deferred rather than done alongside the first
-  home-screen/navigation change, to avoid touching the live deployment
-  pipeline mid-build (see the naming note in README.md).
+  (Server Health's own "Last Successful Deploy" card is a step in this
+  direction, but doesn't alert anyone — it just shows the number.)

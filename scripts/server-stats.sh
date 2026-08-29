@@ -16,11 +16,11 @@
 # PATH or the current user can't query it.
 set -euo pipefail
 
-OUT_FILE="/var/www/cheadle-masjid-display/server-stats.json"
+OUT_FILE="/var/www/home-dashboard-hub/server-stats.json"
 HIST_FILE="$HOME/.server-stats-history.json"
 PREV_SAMPLE_FILE="$HOME/.server-stats-prev-sample"
 UPDATES_CACHE_FILE="$HOME/.server-stats-updates-cache"
-DEPLOY_MARKER="/var/www/cheadle-masjid-display/.last-successful-deploy"
+DEPLOY_MARKER="/var/www/home-dashboard-hub/.last-successful-deploy"
 HIST_LEN=24          # ~4 minutes of history at the default 10s run interval
 UPDATES_CACHE_MAX_AGE=3600   # re-check available package updates at most hourly — this barely
                              # changes between runs, and `apt list` is unnecessary overhead every 10s

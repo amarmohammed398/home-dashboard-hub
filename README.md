@@ -18,12 +18,12 @@ and the "Where this could go next" section of
 [ARCHITECTURE.md](ARCHITECTURE.md) for ideas not built yet).
 
 > **Naming note:** this project started as a single-purpose prayer-times
-> display, hence the repo/folder/server path still being named
-> `cheadle-masjid-display` throughout this doc. That's staying as-is
-> deliberately for now — renaming a live GitHub repo, server directory,
-> and Apache vhost is its own careful piece of work, tracked to happen
-> once a couple more displays exist rather than mid-build. Every command
-> below still uses the current name; nothing here is stale.
+> display, originally named after the masjid it displays — renamed to
+> `home-dashboard-hub` (GitHub repo, local folder, server directory,
+> Apache vhost, git remotes) on 29 Aug 2026 once it had genuinely become
+> a multi-display hub, rather than mid-build. See CHANGELOG.md's dated
+> entry for exactly what moved and what the old name was. Every path/
+> command below already reflects the new name.
 
 Everything lives in one self-contained page (`index.html`, still plain
 ES5 JavaScript — see "Written in plain ES5" below), which is what makes
@@ -143,16 +143,16 @@ doesn't read units from the webroot.
 2. Confirm the script actually deployed (it ships in this repo, so a
    normal push should have already put it here):
    ```bash
-   ls -l /var/www/cheadle-masjid-display/scripts/server-stats.sh
+   ls -l /var/www/home-dashboard-hub/scripts/server-stats.sh
    ```
    If that's missing, push hasn't reached the server yet — check the
-   [Actions page](https://github.com/amarmohammed398/cheadle-masjid-display/actions)
+   [Actions page](https://github.com/amarmohammed398/home-dashboard-hub/actions)
    before continuing.
 
 3. Install and start the systemd timer that runs it every 10 seconds:
    ```bash
-   sudo cp /var/www/cheadle-masjid-display/systemd/server-stats.service /etc/systemd/system/
-   sudo cp /var/www/cheadle-masjid-display/systemd/server-stats.timer /etc/systemd/system/
+   sudo cp /var/www/home-dashboard-hub/systemd/server-stats.service /etc/systemd/system/
+   sudo cp /var/www/home-dashboard-hub/systemd/server-stats.timer /etc/systemd/system/
    sudo systemctl daemon-reload
    sudo systemctl enable --now server-stats.timer
    ```
@@ -160,7 +160,7 @@ doesn't read units from the webroot.
 4. Confirm it's actually producing data:
    ```bash
    systemctl status server-stats.timer --no-pager
-   cat /var/www/cheadle-masjid-display/server-stats.json
+   cat /var/www/home-dashboard-hub/server-stats.json
    ```
    The JSON should look sane (real numbers, not nulls/zeros everywhere)
    and `generated_at` should be within the last ~10-15 seconds. If
@@ -187,7 +187,7 @@ full-screen with no Safari chrome.
  [your Mac]  --git push-->  [Linux server: bare repo + post-receive hook]
                                         |
                                         v
-                              [nginx serves /var/www/cheadle-masjid-display]
+                              [nginx serves /var/www/home-dashboard-hub]
                                         |
                                         v (home WiFi, plain HTTP is fine)
                               [iPad Safari, added to Home Screen]
@@ -211,14 +211,14 @@ full-screen with no Safari chrome.
    hook — all in one go, so the `cd` below stays in effect the whole way
    through:
    ```bash
-   sudo mkdir -p /var/www/cheadle-masjid-display
-   sudo chown $USER:$USER /var/www/cheadle-masjid-display
-   mkdir -p ~/git/cheadle-masjid-display.git
-   cd ~/git/cheadle-masjid-display.git
+   sudo mkdir -p /var/www/home-dashboard-hub
+   sudo chown $USER:$USER /var/www/home-dashboard-hub
+   mkdir -p ~/git/home-dashboard-hub.git
+   cd ~/git/home-dashboard-hub.git
    git init --bare
    cat > hooks/post-receive <<'EOF'
    #!/bin/bash
-   GIT_WORK_TREE=/var/www/cheadle-masjid-display git checkout -f main
+   GIT_WORK_TREE=/var/www/home-dashboard-hub git checkout -f main
    EOF
    chmod +x hooks/post-receive
    ls -la hooks/post-receive && cat hooks/post-receive
@@ -237,7 +237,7 @@ full-screen with no Safari chrome.
    server {
        listen 80;
        server_name _;
-       root /var/www/cheadle-masjid-display;
+       root /var/www/home-dashboard-hub;
        index index.html;
    }
    EOF
@@ -255,7 +255,7 @@ full-screen with no Safari chrome.
 ### One-time setup on your Mac (this project)
 
 ```bash
-git remote add home ssh://<user>@<server-host>/home/<user>/git/cheadle-masjid-display.git
+git remote add home ssh://<user>@<server-host>/home/<user>/git/home-dashboard-hub.git
 git push home main
 ```
 Your site is now live at `http://<server-host>.local/` (or the IP) —
@@ -276,7 +276,7 @@ reload, below.
 ### GitHub + automated deployment
 
 This repo is public at
-[github.com/amarmohammed398/cheadle-masjid-display](https://github.com/amarmohammed398/cheadle-masjid-display),
+[github.com/amarmohammed398/home-dashboard-hub](https://github.com/amarmohammed398/home-dashboard-hub),
 pushed over SSH (a dedicated key at `~/.ssh/id_ed25519_github`, configured
 in `~/.ssh/config` for `github.com`).
 
@@ -284,7 +284,7 @@ A push to `main` there triggers `.github/workflows/deploy.yml`, which
 runs on a **self-hosted GitHub Actions runner** installed directly on
 the Linux home server (as a systemd service, under the `gsuaha` user).
 The runner checks out the pushed commit and `rsync`s it straight into
-`/var/www/cheadle-masjid-display` — no cloud runner involved, since a
+`/var/www/home-dashboard-hub` — no cloud runner involved, since a
 GitHub-hosted one has no way to reach a server with no public IP. See
 [ARCHITECTURE.md](ARCHITECTURE.md) for the full diagram and reasoning.
 
