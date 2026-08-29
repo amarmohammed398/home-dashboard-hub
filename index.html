@@ -1392,6 +1392,13 @@
     audio.pause();
     audio.currentTime = 0;
     hideAdhanAlert();
+    // Clear any leftover Settings-panel status text the moment playback
+    // actually stops — this used to be the one place a stale "Playing
+    // (Dhuhr)…" message could survive indefinitely: it was only ever
+    // set on a successful play() and never cleared anywhere, so tapping
+    // to stop the full-screen alert left it showing "Playing…" in
+    // Settings even though nothing was playing any more.
+    setAdhanStatus("", false);
   }
 
   function playAdhanFile(label, onStatus) {
@@ -1401,7 +1408,16 @@
     var p = audio.play();
     if (p && p.then) {
       p.then(function () {
-        if (onStatus) { onStatus("Playing" + (label ? " (" + label + ")" : "") + "…", false); }
+        // Deliberately no "Playing (label)…" status text here any
+        // more — the full-screen alert (showAdhanAlert) already shows
+        // which prayer is playing while it's actually playing, so this
+        // was a second, redundant status line whose only real effect
+        // was outliving the thing it described (see
+        // stopAdhanAndHideAlert() above for the fix to that). Do clear
+        // any leftover *error* text from an earlier failed attempt,
+        // though — a successful play means that old problem no longer
+        // applies, and it shouldn't keep showing.
+        if (onStatus) { onStatus("", false); }
         showAdhanAlert(label);
       }).catch(function (err) {
         if (onStatus) { onStatus("Blocked by browser — tap the screen once, then try again", true); }
@@ -1511,8 +1527,15 @@
       e.stopPropagation();
       stopAdhanAndHideAlert();
     };
+    // Same cleanup as tapping to stop it manually (stopAdhanAndHideAlert
+    // — pauses, hides the alert, clears any leftover status text) —
+    // reused here rather than just hideAdhanAlert() so a track that
+    // finishes on its own goes through the exact same "make sure
+    // nothing looks like it's still playing" cleanup as an explicit
+    // stop, instead of two slightly different code paths that could
+    // drift apart later.
     document.getElementById("adhanAudio").addEventListener("ended", function () {
-      hideAdhanAlert();
+      stopAdhanAndHideAlert();
     }, false);
   }
 

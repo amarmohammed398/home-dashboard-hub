@@ -234,6 +234,18 @@ reasoning.
   anywhere to stop" hint. Tapping it stops the audio and dismisses the
   alert; it also auto-dismisses when the adhan finishes on its own.
   Styling is fixed/theme-independent, sits above all other UI (z-index).
+- **No "Playing (Prayer)…" status text** in Settings any more (removed
+  29 Aug 2026 — see the dated entry below) — the full-screen alert
+  already says which prayer is playing while it's actually playing, so
+  a second status line in Settings was redundant, and it used to be set
+  once on a successful `play()` and never cleared, so it could outlive
+  the adhan itself indefinitely. `#adhanStatus` is still used, just for
+  genuine problems (blocked by the browser's autoplay policy, or
+  `adhan.mp3` missing) — both `stopAdhanAndHideAlert()` (manual tap-to-
+  stop) and the audio's `ended` event now explicitly clear it, and a
+  *new* successful play also clears any leftover error text from an
+  earlier attempt, so nothing in that status line can ever describe a
+  state that's no longer true.
 
 ### Deployment (current, live)
 - **Primary path — automated**: push to `main` on GitHub → a
@@ -1075,3 +1087,46 @@ screen's own heading doesn't read as "belonging" to either display's
 accent colour (green for Prayer Times, purple for Server Health) now
 that two exist with distinct colours. Verified in both themes in the
 local preview.
+
+### 2026-08-29 — Fixed stale "Playing (Prayer)…" text after testing the adhan
+User reported: tap a prayer's Test button, the full-screen alert shows
+and plays the adhan, tap to stop it — and "Playing (Dhuhr)…" (or
+whichever prayer) stays showing in Settings' Adhan section indefinitely,
+even though nothing is playing any more.
+
+**Root cause**: `playAdhanFile()`'s success path set that text once
+(`onStatus("Playing (" + label + ")…")`) right as the alert opened, but
+nothing anywhere ever cleared it — not stopping the alert manually, not
+the audio finishing on its own. It wasn't a background timer or a
+leftover interval still running (checked for that explicitly, per the
+request to make sure nothing was) — simpler than that: a one-way
+`textContent` assignment with no corresponding "clear" ever written.
+
+**Fix**: removed the "Playing…" status line entirely, since the
+full-screen alert already communicates that same information while it's
+actually true. Added explicit clearing in the two places playback
+actually stops — `stopAdhanAndHideAlert()` (manual tap) and the audio's
+`ended` event, which now calls `stopAdhanAndHideAlert()` too instead of
+a separate, slightly different `hideAdhanAlert()`-only path, so both
+"stopped it myself" and "it finished on its own" go through identical
+cleanup rather than two versions that could drift apart later. Also
+clear any *leftover error* text (e.g. an earlier "blocked by browser"
+message) the moment a later attempt actually succeeds — the status line
+should never describe a problem that's already been resolved.
+`#adhanStatus` is still used for real, current problems (autoplay
+blocked, `adhan.mp3` missing); only the redundant, ended-up-becoming-
+stale "Playing" message was removed.
+
+**Verified without a real `adhan.mp3`** (none in this sandbox, and no
+`ffmpeg`/`sox` available to fabricate a playable one) by exercising the
+*actual* fixed code paths directly rather than skipping verification:
+seeded `#adhanStatus` with the exact stale text the bug produced and
+the alert open, then invoked the real `adhanAlert.onclick` handler (the
+same one a tap triggers) and confirmed it now clears the text and
+closes the alert; separately dispatched a real `ended` event on the
+audio element and confirmed the same cleanup fires. Also clicked an
+actual Test button end-to-end — hits the pre-existing, unrelated
+"blocked by browser" autoplay-policy path (expected, since a
+script-triggered click isn't a genuine user gesture), confirming the
+error-message path still works and "Playing" never appears anywhere.
+No new console errors.
