@@ -109,13 +109,13 @@ overriding — the baseline exists precisely to catch that kind of thing.
   "Home Server", purple) — that's correct, not an inconsistency to fix.
 
 ### Server Health display
-**Status: client built (tested against a mock fixture) and the
-server-side collector script + systemd timer + workflow changes are
-written — none of it has been installed/enabled on the actual server
-yet.** See the dated entries below for the full plan and what's left
-(installing `lm-sensors`/`jq`, copying the systemd unit files into
-`/etc/systemd/system/`, enabling the timer). Don't expect real data on
-the live iPad until that manual install step is done.
+**Status: fully live (confirmed 29 Aug 2026)** — client, collector
+script, and systemd timer all installed and producing real data on
+`gsuaha-home-server` (uptime, load, memory, disk, temperature, all
+three services, deploy freshness, and live Docker containers —
+`nextcloud`/`nextcloud_db` — all came back correct on the very first
+run). See the dated entries below for the full build history and
+reasoning.
 - Second tablet screen (`#serverScreen`), purple accent throughout
   (heading, memory bar, chart lines — deliberately not the same
   teal-emerald as Prayer Times, so the two displays read as visually
@@ -956,3 +956,50 @@ deployed):** install `lm-sensors` and `jq`, run `sudo sensors-detect
 `daemon-reload`, `enable --now server-stats.timer`, then confirm
 `server-stats.json` appears in the webroot and looks sane before
 trusting the iPad's display of it.
+
+### 2026-08-29 — Server Health: installed and verified live (step 3 of 3)
+The manual server-side install from step 2, done and confirmed working
+first try:
+- `jq`/`lm-sensors` were already installed on this box; `sudo
+  sensors-detect --auto` found both a CPU package sensor (`coretemp`)
+  and a motherboard Super I/O chip (`nct6775`) on this Intel NUC5i5RYB —
+  the script's "grab the first `_input` value" approach happened to
+  land on a sensible reading (`61°C`) without needing to target a
+  specific chip/label, so no adjustment to the script's temperature
+  line was needed after all.
+- `gsuaha` added to the `docker` group so the container list would
+  populate — worth noting *why* this took effect immediately without a
+  fresh login (which group-membership changes normally need): the
+  script runs as a fresh process spawned by systemd each time the timer
+  fires, and systemd resolves group membership from `/etc/group` at
+  that process's own launch, not inherited from whatever shell session
+  happened to add the user to the group. An already-open interactive
+  shell would still need a re-login to see the new group; a systemd
+  timer's next tick doesn't.
+- Systemd unit files copied to `/etc/systemd/system/`, `daemon-reload`,
+  `enable --now server-stats.timer` — `systemctl status` showed
+  `active (waiting)` with a ~10s trigger countdown immediately, and
+  `server-stats.json` had fresh, sane, real numbers on the very first
+  read (not zeros/nulls/placeholder-looking data): real uptime, real
+  load average, real memory (7822 MB total — the actual RAM on this
+  box, not the round 7900 used in step 1's mock fixture), a real
+  `last_successful_deploy` timestamp matching the commit that had just
+  deployed, and two real running containers (`nextcloud`,
+  `nextcloud_db`) neither of which were anticipated by name in advance
+  — confirming the container-listing code generalizes correctly to
+  whatever's actually running, not just what was tested against.
+- Real data surfaced one genuinely useful finding this whole feature
+  was built to surface: root disk at **73% full (37/54 GB)** on a box
+  also running Nextcloud — not an emergency, but worth keeping an eye
+  on, and a concrete example of why this display is worth having.
+- One follow-up flagged, not yet confirmed either way: whether
+  `coretemp`/`nct6775` are written to `/etc/modules` for auto-load on
+  boot (`sensors-detect --auto`'s last prompt), or only loaded for the
+  current boot — temperature reads correctly *right now* regardless,
+  this only matters for whether it still does after the server's next
+  reboot.
+
+**All three steps of the Server Health build are now done.** Full
+schema, card list, and architecture reasoning stay documented above and
+in ARCHITECTURE.md's "Data flow: Server Health" section — this entry is
+the record of what got installed and confirmed, not a new design.
