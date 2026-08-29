@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Cheadle Masjid - Prayer Times</title>
+<title>Home Dashboard Hub</title>
 <!-- iOS: makes "Add to Home Screen" launch full-screen with no Safari
      chrome (address bar / toolbar), so it behaves like a kiosk app. -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Cheadle Masjid">
+<meta name="apple-mobile-web-app-title" content="Home Dashboard Hub">
 <style>
   /* ---------- structural / layout (theme-independent) ---------- */
   html, body {
@@ -23,7 +23,10 @@
     -webkit-transition: background-color 0.25s ease, color 0.25s ease;
     transition: background-color 0.25s ease, color 0.25s ease;
   }
-  #app {
+  /* #prayerScreen is one of several full-screen "tablets" this app can
+     show (see #homeScreen below) — named for what it displays, now that
+     "app" would be ambiguous about which screen it means. */
+  #prayerScreen {
     display: -webkit-box;
     display: -webkit-flex;
     display: flex;
@@ -44,7 +47,7 @@
      reflects more light near the top). Exact fill colour/opacity is
      theme-dependent, set below in the light/dark sections; the
      properties here are the same regardless of theme. */
-  #header, #countdownClock, #card, #settingsPanel {
+  #header, #countdownClock, #card, #settingsPanel, #moreMenu, .tile {
     -webkit-backdrop-filter: blur(28px) saturate(180%);
     backdrop-filter: blur(28px) saturate(180%);
     border: 1px solid transparent;
@@ -234,23 +237,91 @@
     font-weight: 500;
   }
 
+  /* ---------- home screen (tablet picker) ---------- */
+  /* The launcher screen: pick which "tablet" (display) to show. Only
+     one tile exists today (Prayer Times); the grid is written to take
+     more without layout changes — new tiles just wrap onto new rows. */
+  #homeScreen {
+    display: none; /* JS toggles this to flex via showScreen() */
+    -webkit-box-orient: vertical;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 3vh 3vw;
+  }
+  #homeScreen.show {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+  }
+  #homeTitle {
+    font-size: 2.6vw;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin: 5vh 0 5vh;
+  }
+  #tileGrid {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-wrap: wrap;
+    flex-wrap: wrap;
+    -webkit-box-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    width: 100%;
+  }
+  .tile {
+    width: 22vw;
+    min-width: 170px;
+    height: 22vw;
+    min-height: 170px;
+    margin: 1.5vh 1.5vw;
+    border-radius: 28px;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-box-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .tileIcon svg { width: 5vw; height: 5vw; min-width: 38px; min-height: 38px; }
+  .tileLabel {
+    margin-top: 1.6vh;
+    font-size: 1.7vw;
+    font-weight: 700;
+    text-align: center;
+  }
+
   /* ---------- settings button + panel ---------- */
-  /* "More" entry point — a bare icon that floats in the margin gutter
-     outside the header's own glass pane, not nested inside it. It used
-     to live inside #clockBlock (in the header's flex row); moved back
-     out to a fixed-position icon per request, but — unlike the old
-     floating gear this replaced — it sits inside the *existing*
-     symmetric 3vw gutter that #app already reserves on both sides,
-     rather than #app growing a special one-sided padding just for it.
-     That's what keeps header/countdown-box/table all still perfectly
-     symmetric (verified via getBoundingClientRect()). Horizontal
-     position is a fixed CSS offset centred in that gutter; vertical
-     position is set from JS (positionSettingsBtn(), called on load/
-     resize) because the header's height is content-driven (vw-sized
-     text), not a fixed number CSS can center against reliably.
-     Deliberately no background/border/shadow — bare icon, minimum
-     visual weight. */
-  #settingsBtn {
+  /* Two bare corner icons float in the margin gutter outside the
+     header's own glass pane, not nested inside it — one per side, so
+     they read as a matched pair rather than one-off buttons. They sit
+     inside the *existing* symmetric 3vw gutter that #prayerScreen
+     already reserves on both sides, rather than growing a special
+     one-sided padding just for them — that's what keeps header/
+     countdown-box/table all still perfectly symmetric (verified via
+     getBoundingClientRect()). Horizontal position is a fixed CSS offset
+     centred in that gutter; vertical position is set from JS
+     (positionCornerIcons(), called on load/resize/screen-switch)
+     because the header's height is content-driven (vw-sized text), not
+     a fixed number CSS can center against reliably. Deliberately no
+     background/border/shadow — bare icons, minimum visual weight.
+     Both are hidden while the home screen (tablet picker) is showing —
+     there's nothing for either to do there yet. */
+  #settingsBtn, #homeBtn {
     position: fixed;
     display: -webkit-box;
     display: -webkit-flex;
@@ -263,11 +334,43 @@
     justify-content: center;
     width: 28px;
     height: 28px;
-    right: calc(1.5vw - 14px);
     cursor: pointer;
     z-index: 20;
   }
-  #settingsBtn svg { width: 18px; height: 18px; }
+  #settingsBtn svg, #homeBtn svg { width: 18px; height: 18px; }
+  #settingsBtn { right: calc(1.5vw - 14px); }
+  #homeBtn { left: calc(1.5vw - 14px); }
+
+  /* Small popover the "more" (settingsBtn) icon opens — currently just
+     one row ("Settings", a gear, → opens #settingsPanel), written as a
+     list so more entries can be added later without restructuring it.
+     Position: right-aligned to match settingsBtn's gutter; top is set
+     from JS (positionMoreMenu()) each time it opens, anchored to
+     settingsBtn's own live position rather than a guessed offset. */
+  #moreMenu {
+    position: fixed;
+    right: 1.2vh;
+    width: 190px;
+    border-radius: 18px;
+    padding: 6px;
+    z-index: 21;
+    display: none;
+  }
+  #moreMenu.open { display: block; }
+  .moreMenuRow {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    padding: 10px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  .moreMenuRow svg { width: 18px; height: 18px; -webkit-flex: 0 0 auto; flex: 0 0 auto; }
+  .moreMenuRow span { margin-left: 10px; font-size: 15px; font-weight: 600; }
+
   #settingsPanel {
     position: fixed;
     top: 6.4vh;
@@ -465,7 +568,9 @@
   body.theme-light #header,
   body.theme-light #countdownClock,
   body.theme-light #card,
-  body.theme-light #settingsPanel {
+  body.theme-light #settingsPanel,
+  body.theme-light #moreMenu,
+  body.theme-light .tile {
     background-color: rgba(255, 255, 255, 0.55);
     border-color: rgba(255, 255, 255, 0.7);
     box-shadow: 0 8px 32px 0 rgba(31, 41, 55, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -481,7 +586,7 @@
   body.theme-light .sub { color: #b45309; }
   body.theme-light #footer { color: #4b5563; }
   body.theme-light #footer.offline { color: #b45309; }
-  body.theme-light #settingsBtn { color: #374151; }
+  body.theme-light #settingsBtn, body.theme-light #homeBtn { color: #374151; }
   body.theme-light #settingsPanel { color: #1f2937; }
   body.theme-light #settingsPanel .panelTitle { color: #4b5563; }
   body.theme-light .toggleSwitch { background-color: rgba(31, 41, 55, 0.12); }
@@ -490,6 +595,11 @@
   body.theme-light .testBtn { background-color: rgba(31, 41, 55, 0.08); color: #374151; }
   body.theme-light #adhanStatus { color: #4b5563; }
   body.theme-light #adhanStatus.error { color: #b45309; }
+  body.theme-light #homeTitle { color: #0b7a5c; }
+  body.theme-light .tileLabel { color: #1f2937; }
+  body.theme-light .tileIcon { color: #0e8f6b; }
+  body.theme-light #moreMenu { color: #1f2937; }
+  body.theme-light .moreMenuRow:active { background-color: rgba(31, 41, 55, 0.08); }
 
   /* ================= DARK THEME ================= */
   body.theme-dark {
@@ -502,7 +612,9 @@
   body.theme-dark #header,
   body.theme-dark #countdownClock,
   body.theme-dark #card,
-  body.theme-dark #settingsPanel {
+  body.theme-dark #settingsPanel,
+  body.theme-dark #moreMenu,
+  body.theme-dark .tile {
     background-color: rgba(22, 26, 34, 0.55);
     border-color: rgba(255, 255, 255, 0.14);
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -518,7 +630,7 @@
   body.theme-dark .sub { color: #f2b84b; }
   body.theme-dark #footer { color: #9aa1ac; }
   body.theme-dark #footer.offline { color: #f2b84b; }
-  body.theme-dark #settingsBtn { color: #cbd2dc; }
+  body.theme-dark #settingsBtn, body.theme-dark #homeBtn { color: #cbd2dc; }
   body.theme-dark #settingsPanel { color: #f3f4f6; }
   body.theme-dark #settingsPanel .panelTitle { color: #9aa1ac; }
   body.theme-dark .toggleSwitch { background-color: rgba(255, 255, 255, 0.14); }
@@ -527,10 +639,30 @@
   body.theme-dark .testBtn { background-color: rgba(255, 255, 255, 0.1); color: #cbd2dc; }
   body.theme-dark #adhanStatus { color: #cbd2dc; }
   body.theme-dark #adhanStatus.error { color: #f2b84b; }
+  body.theme-dark #homeTitle { color: #4de3ac; }
+  body.theme-dark .tileLabel { color: #f3f4f6; }
+  body.theme-dark .tileIcon { color: #2fd39a; }
+  body.theme-dark #moreMenu { color: #f3f4f6; }
+  body.theme-dark .moreMenuRow:active { background-color: rgba(255, 255, 255, 0.08); }
 </style>
 </head>
 <body class="theme-light">
-<div id="app">
+
+<!-- Home screen: the tablet picker. One tile today (Prayer Times);
+     more get added here as new displays are built. -->
+<div id="homeScreen">
+  <div id="homeTitle">Choose a Display</div>
+  <div id="tileGrid">
+    <div class="tile" data-screen="prayer-times">
+      <div class="tileIcon">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+      </div>
+      <div class="tileLabel">Prayer Times</div>
+    </div>
+  </div>
+</div>
+
+<div id="prayerScreen">
 
   <div id="header">
     <div>
@@ -560,12 +692,23 @@
 
 </div>
 
+<div id="homeBtn" aria-label="Home">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10,20v-6h4v6h5v-8h3L12,3L2,12h3v8H10z"></path></svg>
+</div>
+
 <div id="settingsBtn" aria-label="More options">
   <svg viewBox="0 0 24 24" fill="currentColor">
     <circle cx="12" cy="5" r="2.2"></circle>
     <circle cx="12" cy="12" r="2.2"></circle>
     <circle cx="12" cy="19" r="2.2"></circle>
   </svg>
+</div>
+
+<div id="moreMenu">
+  <div class="moreMenuRow" id="openSettingsRow">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"></path></svg>
+    <span>Settings</span>
+  </div>
 </div>
 
 <div id="settingsPanel">
@@ -693,43 +836,150 @@
   // is driven by its vw-sized text content, not a fixed number — so we
   // measure it directly instead of guessing a top offset that would
   // drift if the header's content (or the viewport) ever changes size.
-  function positionSettingsBtn() {
-    var btn = document.getElementById("settingsBtn");
+  // Only meaningful while a tablet screen (with its own #header) is
+  // showing — showScreen() re-runs this every time it switches to one.
+  function positionCornerIcons() {
     var header = document.getElementById("header");
     var headerRect = header.getBoundingClientRect();
-    var top = headerRect.top + headerRect.height / 2 - btn.offsetHeight / 2;
-    btn.style.top = top + "px";
+    var ids = ["settingsBtn", "homeBtn"];
+    var i, btn, top;
+    for (i = 0; i < ids.length; i++) {
+      btn = document.getElementById(ids[i]);
+      top = headerRect.top + headerRect.height / 2 - btn.offsetHeight / 2;
+      btn.style.top = top + "px";
+    }
   }
 
-  function initSettingsUI() {
+  // Anchors the "more" popover to settingsBtn's own live position rather
+  // than a guessed offset, same reasoning as positionCornerIcons() above.
+  function positionMoreMenu() {
     var btn = document.getElementById("settingsBtn");
-    var panel = document.getElementById("settingsPanel");
-    var toggle = document.getElementById("themeToggle");
+    var menu = document.getElementById("moreMenu");
+    var btnRect = btn.getBoundingClientRect();
+    menu.style.top = (btnRect.bottom + 10) + "px";
+  }
 
-    positionSettingsBtn();
-    window.onresize = positionSettingsBtn;
+  /* ---------------- screen switching (home screen / tablets) ----------
+     The app is one or more full-screen "tablets" (currently just
+     Prayer Times) plus a home screen that picks between them. Switching
+     is a pure show/hide, never a page reload — a reload would re-lock
+     iOS's audio-autoplay unlock the adhan relies on (see the comment on
+     tick() below), so every screen has to coexist in the same document
+     and just toggle visibility. */
 
-    btn.onclick = function (e) {
+  var SCREEN_KEY = "cheadleMasjidLastScreen";
+  var currentScreen = "prayer-times";
+
+  function getLastScreen() {
+    try {
+      return localStorage.getItem(SCREEN_KEY) || "prayer-times";
+    } catch (e) {
+      return "prayer-times";
+    }
+  }
+
+  function saveLastScreen(name) {
+    try {
+      localStorage.setItem(SCREEN_KEY, name);
+    } catch (e) { /* ignore storage errors */ }
+  }
+
+  function showScreen(name) {
+    var home = document.getElementById("homeScreen");
+    var prayer = document.getElementById("prayerScreen");
+    var homeBtn = document.getElementById("homeBtn");
+    var settingsBtn = document.getElementById("settingsBtn");
+
+    // Close any open popovers so switching screens never leaves one
+    // stranded open over the new screen.
+    document.getElementById("moreMenu").className = "";
+    document.getElementById("settingsPanel").className = "";
+
+    currentScreen = name;
+
+    if (name === "home") {
+      home.className = "show";
+      prayer.style.display = "none";
+      homeBtn.style.display = "none";
+      settingsBtn.style.display = "none";
+      return;
+    }
+
+    // Only one non-home screen exists today (prayer-times); future
+    // tablets add another branch here rather than an else.
+    home.className = "";
+    prayer.style.display = "flex";
+    homeBtn.style.display = "flex";
+    settingsBtn.style.display = "flex";
+    positionCornerIcons();
+    saveLastScreen(name);
+  }
+
+  function initNavigationUI() {
+    var homeBtn = document.getElementById("homeBtn");
+    var settingsBtn = document.getElementById("settingsBtn");
+    var moreMenu = document.getElementById("moreMenu");
+    var settingsPanel = document.getElementById("settingsPanel");
+    var openSettingsRow = document.getElementById("openSettingsRow");
+
+    window.onresize = function () {
+      if (currentScreen !== "home") { positionCornerIcons(); }
+    };
+
+    homeBtn.onclick = function (e) {
       e.stopPropagation();
-      if (panel.className.indexOf("open") !== -1) {
-        panel.className = "";
+      showScreen("home");
+    };
+
+    settingsBtn.onclick = function (e) {
+      e.stopPropagation();
+      if (moreMenu.className.indexOf("open") !== -1) {
+        moreMenu.className = "";
       } else {
-        panel.className = "open";
+        positionMoreMenu();
+        moreMenu.className = "open";
       }
     };
 
+    openSettingsRow.onclick = function (e) {
+      e.stopPropagation();
+      moreMenu.className = "";
+      settingsPanel.className = "open";
+    };
+
+    var tiles = document.querySelectorAll(".tile[data-screen]");
+    var i;
+    for (i = 0; i < tiles.length; i++) {
+      (function (tileEl) {
+        tileEl.onclick = function (e) {
+          e.stopPropagation();
+          showScreen(tileEl.getAttribute("data-screen"));
+        };
+      })(tiles[i]);
+    }
+
+    document.addEventListener("click", function (e) {
+      if (moreMenu.className.indexOf("open") !== -1 &&
+          e.target !== moreMenu && !moreMenu.contains(e.target) &&
+          e.target !== settingsBtn && !settingsBtn.contains(e.target)) {
+        moreMenu.className = "";
+      }
+      if (settingsPanel.className.indexOf("open") !== -1 &&
+          e.target !== settingsPanel && !settingsPanel.contains(e.target) &&
+          e.target !== settingsBtn && !settingsBtn.contains(e.target)) {
+        settingsPanel.className = "";
+      }
+    });
+
+    showScreen(getLastScreen());
+  }
+
+  function initSettingsUI() {
+    var toggle = document.getElementById("themeToggle");
     toggle.onclick = function (e) {
       e.stopPropagation();
       toggleTheme();
     };
-
-    document.addEventListener("click", function (e) {
-      if (panel.className.indexOf("open") !== -1 &&
-          e.target !== panel && !panel.contains(e.target) &&
-          e.target !== btn && !btn.contains(e.target)) {
-        panel.className = "";
-      }
-    });
   }
 
   /* ---------------- adhan (call to prayer) handling ---------------- */
@@ -1197,6 +1447,7 @@
 
   // Boot
   initTheme();
+  initNavigationUI();
   initSettingsUI();
   initAdhanUI();
 

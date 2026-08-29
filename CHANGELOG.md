@@ -63,12 +63,46 @@ overriding — the baseline exists precisely to catch that kind of thing.
   dated entries below. This is the current, settled form; don't
   reintroduce the flip clock or analogue without being asked again.)
 
+### Navigation (home screen / multiple displays)
+- The app can show one of several full-screen **displays**; a home
+  screen (`#homeScreen`) picks between them. Only one display exists
+  today — Prayer Times (`#prayerScreen`, formerly just `#app`) — shown
+  as a single tile with a crescent-moon icon.
+- Switching screens (`showScreen(name)` in `index.html`) is a pure
+  show/hide of existing DOM, **never a page reload/navigation** — a
+  reload would throw away the adhan's audio-autoplay unlock (see
+  Adhan below), so every display has to coexist in one document.
+- Two bare corner icons, outside whichever display's glass panel is
+  showing: **home icon** (top-left) → always returns to `#homeScreen`;
+  **⋮ icon** (top-right) → opens a small popover (`#moreMenu`) with one
+  row today, **Settings** (gear icon), which opens that display's
+  settings panel. Both corner icons are hidden while `#homeScreen`
+  itself is showing — nothing to navigate to or configure from there
+  yet.
+- Reopening the app (e.g. after an iPad restart) returns to whichever
+  display was last open (`localStorage` key `cheadleMasjidLastScreen`),
+  **not** the home screen — defaults to `prayer-times` if nothing's
+  saved yet, so the always-on kiosk behaviour that predates the home
+  screen is unaffected by adding one.
+- Corner-icon vertical position is computed from the current display's
+  own `#header` via `getBoundingClientRect()` (`positionCornerIcons()`),
+  re-run every time `showScreen()` switches to a non-home screen (as
+  well as on `window.resize`) — this only works while that display's
+  header actually exists in the DOM and is visible, which is why it's
+  tied to the screen-switch, not just a one-time page-load call.
+- Browser tab / PWA title is now **"Home Dashboard Hub"** (was "Cheadle
+  Masjid - Prayer Times") — reflects the app as a whole, not just its
+  first display. The Prayer Times display's own on-screen heading still
+  says "Cheadle Masjid" (that's correct — it's that display's own
+  branding, not the app's).
+
 ### Appearance
 - **"Liquid Glass" look** (matching iOS 26's own material design): every
-  floating panel (`#header`, `#countdownClock`, `#card`, `#settingsPanel`)
-  is translucent with `backdrop-filter: blur(28px) saturate(180%)` and a
-  bright hairline border. `#settingsBtn` is deliberately **not** part of
-  this shared glass styling — it's a bare icon, not a panel (see below).
+  floating panel (`#header`, `#countdownClock`, `#card`, `#settingsPanel`,
+  `#moreMenu`, `.tile`) is translucent with `backdrop-filter: blur(28px)
+  saturate(180%)` and a bright hairline border. `#settingsBtn` and
+  `#homeBtn` are deliberately **not** part of this shared glass styling —
+  they're bare icons, not panels (see Navigation below).
 - **Page background is a plain flat colour, no gradient**: pure white
   (`#ffffff`) in light theme, pure black (`#000000`) in dark theme — by
   explicit request (see dated entries below; this went colourful → flat
@@ -79,12 +113,9 @@ overriding — the baseline exists precisely to catch that kind of thing.
   backdrop. That trade-off was made consciously this time, not
   overlooked.
 - Emerald (`#0e8f6b` light / `#2fd39a` dark) accent colour throughout.
-- Dark mode available via the **"more" (⋮) icon**, a bare vertical
-  three-dot icon fixed just outside the header's glass pane, top-right
-  — → Settings panel → Dark mode toggle. Choice persists in
-  `localStorage` (`cheadleMasjidTheme`) across reloads. See the dated
-  entry below for why this moved from a fixed gear-icon circle to a bare
-  in-flow ellipsis.
+- Dark mode available via **⋮ → Settings → Dark mode toggle** (see
+  Navigation below for the full ⋮/Settings/Home structure). Choice
+  persists in `localStorage` (`cheadleMasjidTheme`) across reloads.
 - Both themes are plain CSS classes (`body.theme-light` /
   `body.theme-dark`), not CSS custom properties — kept for compatibility
   with the old Galaxy Tab 3 fallback path (see Deployment). Note this
@@ -174,6 +205,13 @@ overriding — the baseline exists precisely to catch that kind of thing.
   `let`/`const`, or CSS variables) — a holdover from Tab 3 support that's
   no longer strictly necessary on the iPad, but left as-is since
   rewriting it would be pure churn with no functional benefit.
+- **Repo/folder/server path still named `cheadle-masjid-display`**, even
+  though the app is now a multi-display hub (see Navigation above) and
+  the browser tab title is "Home Dashboard Hub". Deliberate — renaming a
+  live GitHub repo + server directory + Apache vhost is real, riskier
+  work than a copy change, and is deferred until a couple more displays
+  exist rather than done mid-build. Don't rename these without being
+  asked; see ARCHITECTURE.md's "Future displays" section for the plan.
 
 ---
 
@@ -615,3 +653,79 @@ Verified in both light and dark themes in the local preview: icon
 renders in the correct theme colour, sits visibly clear of the header's
 blurred background, opens/closes the panel correctly, and panel
 symmetry (header/countdown-box/table) is unaffected.
+
+### 2026-08-29 — Home screen + multi-display navigation; project scope widened
+User is taking this from a single-purpose prayer-times display into a
+multi-display smart-home hub: one iPad (picture-frame case) picking
+between several full-screen "displays" from a home screen, starting with
+Prayer Times and adding more later (home server health, energy/water/gas
+usage, etc. — brainstormed together, tracked as ideas in
+ARCHITECTURE.md's "Future displays" section, not commitments yet).
+
+Two concrete UI changes requested to kick this off: (1) the ⋮ icon
+should open a small menu with a **Settings** gear entry, rather than
+opening the settings panel directly; (2) a separate **Home** button
+should exist to reach a **home screen** for picking between displays,
+with only one tile (Prayer Times) for now.
+
+Implemented:
+- **`#app` renamed to `#prayerScreen`** — now that there's more than one
+  screen, "app" was ambiguous about which one it meant. No other id
+  changed. Renaming was safe to do in one pass: it was referenced only
+  in CSS and one HTML tag, never by JS (confirmed by grep before
+  renaming).
+- **New `#homeScreen`**: a centred grid of "tiles" (`.tile`, styled with
+  the same glass-panel treatment as the other panels), one per display.
+  Today there's exactly one, "Prayer Times" (a crescent-moon icon, Feather
+  Icons' widely-used `M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z`
+  path, filled) — tapping it calls `showScreen("prayer-times")`.
+- **New `#homeBtn`**: a solid house glyph (Material Design's public
+  "home" icon path), mirrored to the left of the existing ⋮ icon
+  (`#settingsBtn`) — same size, same fixed-in-the-existing-gutter
+  positioning technique, same JS-computed vertical centring against the
+  current screen's header (`positionCornerIcons()`, generalised from the
+  old single-icon `positionSettingsBtn()` to loop over both). Clicking it
+  calls `showScreen("home")`.
+- **New `#moreMenu` popover**: clicking `#settingsBtn` now opens/closes
+  this small list (currently one row: a Material Design gear icon +
+  "Settings" label) instead of opening `#settingsPanel` directly.
+  Clicking the row closes the popover and opens `#settingsPanel`, same
+  as before. Positioned via a new `positionMoreMenu()`, anchored to
+  `#settingsBtn`'s own live `getBoundingClientRect()` rather than a
+  guessed offset — same reasoning as the existing corner-icon
+  positioning. Written as a list (not a single button) specifically so
+  more entries can be added later without restructuring it.
+- **`showScreen(name)`**: the single function that shows one screen and
+  hides the rest, closes any open popovers/panels on every switch, shows/
+  hides both corner icons (hidden entirely on the home screen — nothing
+  to configure or navigate to from there yet), and — for any non-home
+  screen — repositions the corner icons and saves the choice to
+  `localStorage` (`cheadleMasjidLastScreen`). Deliberately a pure show/
+  hide via `className`/`style.display`, never a page reload/navigation:
+  a reload would re-lock iOS's audio-autoplay unlock the adhan depends
+  on, so this app can never navigate to "change screens," only toggle
+  visibility within one already-loaded document.
+- **Boot behaviour**: `initNavigationUI()` calls
+  `showScreen(getLastScreen())` on load, defaulting to `"prayer-times"`
+  if nothing's saved yet — so a cold boot (e.g. iPad restart) goes
+  straight into Prayer Times exactly as before, not to the new home
+  screen. The home screen is purely opt-in via the new Home button.
+- **Title changed**: browser tab / PWA title is now "Home Dashboard Hub"
+  (`<title>` and `apple-mobile-web-app-title`), reflecting the app as a
+  whole. The Prayer Times display's own on-screen `#masjidName` heading
+  is untouched — "Cheadle Masjid" is that display's own branding, not
+  the app's.
+- **Project not renamed yet**: repo, local folder, and server directory
+  all still `cheadle-masjid-display` — see the new "Known trade-offs"
+  entry above. README.md and ARCHITECTURE.md updated to describe the
+  wider vision and explicitly flag this as deferred, not forgotten.
+
+Verified in the local preview, both themes: default boot lands on
+Prayer Times (not Home); Home icon → tile grid renders correctly, no
+corner icons showing; tapping the tile returns to Prayer Times with the
+countdown still ticking (confirming no reload happened); ⋮ → popover →
+Settings → panel opens correctly and popover closes itself; dark mode
+toggle still re-colours both corner icons and the tile; reloading the
+page while parked on the home screen still returns to Prayer Times (not
+stuck on Home), confirming `getLastScreen()`'s save-on-tablet-only
+behaviour.

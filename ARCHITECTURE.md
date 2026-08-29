@@ -10,10 +10,37 @@ the way. For the granular commit-by-commit history, see
 
 ## What it does
 
-A tablet mounted in a living room shows Cheadle Masjid's daily prayer
-times, counts down live to the next Iqamah, and optionally sounds the
-adhan through the tablet's speaker at the right moment — unattended,
+An iPad mounted around the house (picture-frame case, permanent power)
+shows one of several full-screen **displays**, picked from a home
+screen. The first display built is Cheadle Masjid's daily prayer times —
+counts down live to the next Iqamah, and optionally sounds the adhan
+through the tablet's speaker at the right moment. More displays are
+planned (home server health, utility usage, and others — see "Where
+this could go next" at the bottom); the app is deliberately structured
+so adding one means adding a new screen and a new home-screen tile, not
+rebuilding anything that already works. All of it runs unattended,
 indefinitely, updated by pushing code from a laptop.
+
+### Multi-display navigation
+
+Every display, plus the home screen that picks between them, lives in
+the *same* `index.html` document — switching is a JS show/hide of a
+`<div>`, never a real page navigation. This is a hard requirement, not
+a style choice: the Prayer Times display depends on a one-time "audio
+autoplay unlock" (see the adhan section below) that a page reload would
+throw away, so nothing in this app is allowed to reload the page just
+to change what's on screen. `showScreen(name)` in `index.html` is the
+single place that shows one screen and hides the rest; adding a new
+display means adding a new branch there plus a new tile in `#homeScreen`
+— it does not touch how any existing display works.
+
+Two small icons float outside the currently-open display's own panel:
+a **home icon** (always returns to the picker) and a **⋮ menu** (opens
+that display's own Settings, if it has any). Both are hidden on the
+home screen itself. Reopening the app after it's been closed (e.g. an
+iPad restart) returns straight to whichever display was last open, not
+the home screen, so the always-on kiosk behaviour this app was already
+tuned for isn't disturbed by having a picker at all.
 
 ## System overview
 
@@ -222,10 +249,39 @@ content-addressing means changing history reshapes everything after it);
 Linux system administration (systemd services, Apache virtual hosting,
 file permissions, SSH key management); making a deliberate
 build-vs-avoid-complexity call (no backend, no framework, no build
-step) and being able to justify it; and writing documentation aimed at
-someone other than yourself, which this file is itself an example of.
+step) and being able to justify it; designing a navigation/state
+structure (the home screen + `showScreen()` pattern) that lets new,
+unrelated features (future displays) get added without touching
+existing ones, while working around a real platform constraint (iOS's
+audio-unlock requirement ruling out page reloads as a navigation
+mechanism); and writing documentation aimed at someone other than
+yourself, which this file is itself an example of.
 
-## Where this could go next (learning-oriented ideas, not commitments)
+## Future displays under consideration (not commitments)
+
+Ideas for what to build into `#homeScreen` next, roughly in order of how
+little new infrastructure each one needs:
+
+- **Home server health** — CPU/RAM/disk/uptime for `gsuaha-home-server`
+  itself (and the Apache/GitHub Actions runner status). Lowest-effort
+  next display by far: it reuses the exact same pattern already built
+  for prayer times (a small JSON endpoint, polled client-side every few
+  minutes) — the only new work is writing that endpoint.
+- **Electricity / gas usage** — via a UK smart meter data source (e.g.
+  Hildebrand Glow or n3rgy). If on a dynamic tariff (Octopus Agile/
+  Cosy), a "current rate + cheapest window tonight" view is genuinely
+  useful, not just decorative.
+- **Water usage** — depends on whether the local supplier exposes any
+  API/export at all; worth checking before committing design time to
+  the display itself.
+- **Bin collection countdown** — low effort, high daily usefulness for
+  a kitchen/hallway placement, if the local council publishes a feed.
+- **Ambient/screensaver mode** — a photo-frame idle state (family
+  photos + a small clock) any display could fall back to after
+  inactivity, distinct from the "pick a display" home screen — suits
+  the picture-frame form factor directly.
+
+## Other engineering ideas (learning-oriented, not commitments)
 
 - Have the workflow run a quick check (e.g. that `index.html` is valid
   and the JS parses) *before* the rsync step, so a broken push never
@@ -242,3 +298,10 @@ someone other than yourself, which this file is itself an example of.
   each time, which doesn't scale as more features are added.
 - Basic uptime/health monitoring for the home server + display, since
   right now there's no alert if the display silently goes offline.
+- Once more than one or two displays exist: rename the GitHub repo,
+  local folder, and server directory from `cheadle-masjid-display` to
+  something that describes the multi-display hub (e.g.
+  `home-dashboard-hub`), and update the deploy workflow/git remotes to
+  match. Deliberately deferred rather than done alongside the first
+  home-screen/navigation change, to avoid touching the live deployment
+  pipeline mid-build (see the naming note in README.md).

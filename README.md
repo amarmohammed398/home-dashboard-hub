@@ -1,4 +1,4 @@
-# Cheadle Masjid — Living Room Prayer Display
+# Home Dashboard Hub
 
 > **[ARCHITECTURE.md](ARCHITECTURE.md)** explains how this works at a
 > system level — data flow, deployment pipeline, and the real
@@ -9,28 +9,72 @@
 > dated change history — the source of truth for what currently works.
 > Check it before making changes, and update it after.
 
-A single self-contained page (`index.html`) that shows today's prayer times
-for Cheadle Masjid: live clock, Hijri + Gregorian date, Begins/Iqamah table,
-a countdown to the next Iqamah, and an optional adhan (call to prayer) played
-through the tablet's speaker at the start of whichever prayers you enable.
-On Fridays it swaps Dhuhr for the Jumu'ah row (1st/2nd Khutbah), matching
-the masjid's own display screen.
+A wall/stand-mounted iPad (in a picture-frame case) that shows one of
+several full-screen **displays** — a home screen lets you pick which one.
+**Prayer Times** (for Cheadle Masjid) is the first one built; more are
+planned (home server health, energy/water/gas usage, and others — see
+the dated entries in [CHANGELOG.md](CHANGELOG.md) for what exists today,
+and the "Where this could go next" section of
+[ARCHITECTURE.md](ARCHITECTURE.md) for ideas not built yet).
+
+> **Naming note:** this project started as a single-purpose prayer-times
+> display, hence the repo/folder/server path still being named
+> `cheadle-masjid-display` throughout this doc. That's staying as-is
+> deliberately for now — renaming a live GitHub repo, server directory,
+> and Apache vhost is its own careful piece of work, tracked to happen
+> once a couple more displays exist rather than mid-build. Every command
+> below still uses the current name; nothing here is stale.
+
+Everything lives in one self-contained page (`index.html`, still plain
+ES5 JavaScript — see "Written in plain ES5" below), which is what makes
+switching between displays instant: it's all one document, and switching
+just shows/hides a section rather than navigating to a new page (a real
+page navigation would silently break the Prayer Times adhan — see
+"Why the page no longer auto-reloads" further down).
+
+## Navigating the display
+
+- **Home icon** (top-left, outside the main panel) → goes to the home
+  screen, where each display appears as a tile. Tap a tile to open it.
+  It's hidden while you're already on the home screen — there's nothing
+  to navigate to from there yet.
+- **⋮ icon** (top-right) → opens a small menu. Today it has one entry,
+  **Settings** (gear icon), which opens the current display's settings
+  panel — for Prayer Times that's Appearance (dark mode) and Adhan. Both
+  the ⋮ icon and the Settings panel are specific to whichever display is
+  currently open; the home screen itself has neither yet.
+- Reopening the app (e.g. after the iPad restarts) goes straight back to
+  whichever display you last had open — not the home screen — so the
+  always-on kiosk behaviour is unaffected by adding a home screen at all.
+
+## Prayer Times display
+
+The first, currently only, display: today's prayer times for Cheadle
+Masjid — live clock, Hijri + Gregorian date, Begins/Iqamah table, a
+countdown to the next Iqamah, and an optional adhan (call to prayer)
+played through the tablet's speaker at the start of whichever prayers
+you enable. On Fridays it swaps Dhuhr for the Jumu'ah row (1st/2nd
+Khutbah), matching the masjid's own display screen.
 
 It pulls live data straight from the masjid's own website
 (`https://cheadlemasjid.org/wp-json/dpt/v1/prayertime?filter=today`) every
 5 minutes, so **you never edit prayer times by hand** — the masjid keeps
 that accurate, you just keep the page's look/behaviour maintained.
 
-Written in plain ES5 JavaScript (no `fetch`, no arrow functions, no CSS
-variables) — that was originally to support a 2013 Galaxy Tab 3's ancient
-browser engine. The current deployment target is an iPad Pro 11" (iOS
-26), which is modern enough that none of that was necessary any more —
-but the ES5 code runs identically well there, so it's been left as-is
-rather than rewritten for no functional gain.
+### Written in plain ES5
 
-## Adhan (call to prayer)
+No `fetch`, no arrow functions, no CSS variables — that was originally
+to support a 2013 Galaxy Tab 3's ancient browser engine. The current
+deployment target is an iPad Pro 11" (iOS 26), which is modern enough
+that none of that was necessary any more — but the ES5 code runs
+identically well there, so it's been left as-is rather than rewritten
+for no functional gain. Future displays should follow the same
+convention unless there's a real reason not to, so the whole page stays
+one consistent, easy-to-follow style.
 
-Tap the gear icon (top-right) to open Settings. Under **Adhan** there's a
+### Adhan (call to prayer)
+
+Open the Prayer Times display, then **⋮ → Settings** to get there. Under **Adhan** there's a
 toggle for each of Fajr, Dhuhr/Jumu'ah, Asr, Maghrib and Isha — turn on
 whichever ones you want played out loud, and a small speaker icon appears
 next to that prayer's name on the main display as a reminder it's armed.
