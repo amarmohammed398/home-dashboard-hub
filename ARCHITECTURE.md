@@ -220,6 +220,35 @@ the *process* of finding and fixing them is the actual engineering:
   built native app (dotKiosk) that does exactly that one thing. Knowing
   when a problem is a platform boundary rather than a bug to keep
   debugging is its own skill.
+- **A "healthy" service that couldn't actually do anything.** Two
+  deploys once sat stuck in GitHub's queue for over an hour with no
+  error visible anywhere in the repo or workflow. `systemctl status` on
+  the runner showed it `active (running)` the whole time — the process
+  itself was fine, which made this misleading rather than a normal
+  "service crashed" bug. The real fault was one layer down: the log
+  showed `Name or service not known` against GitHub's own hostnames —
+  DNS, not the runner. Tracing it further with `resolvectl status`
+  showed *why*: the server's active network interface (`wlp2s0`) had no
+  DNS server assigned at all — the only interface with one configured
+  was Tailscale's, and it deliberately isn't the default route for
+  non-Tailscale domains (`-DefaultRoute` in `resolvectl status`), so it
+  correctly refused to resolve a public GitHub hostname. `enp0s25`
+  turned out to be a red herring at first — it *looked* like the
+  server's wired interface, but `ip route get` showed it was actually
+  `DOWN` and unused, so setting DNS there did nothing until `ip route`
+  identified `wlp2s0` as the interface actually carrying traffic. Fixed
+  live with `resolvectl dns wlp2s0 1.1.1.1 8.8.8.8` +
+  `resolvectl domain wlp2s0 '~.'`, confirmed via `resolvectl query`
+  before touching the runner at all, then a runner restart cleared the
+  backlog in seconds. **Deliberately not made permanent yet** — this
+  only lasts until the next reboot/network change; the interface has a
+  static-looking IP with no DNS ever configured, but nobody's confirmed
+  yet whether that's intentional or itself the underlying gap, so
+  writing a persistent config change wasn't done on a guess. The
+  general lesson: "the service is running" and "the service can do its
+  job" are different claims, and confirming which layer actually failed
+  (process vs. name resolution vs. network reachability) before
+  touching anything avoids fixing the wrong thing.
 
 ## Frontend implementation notes
 
