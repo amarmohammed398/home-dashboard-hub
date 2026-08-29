@@ -90,6 +90,22 @@ overriding — the baseline exists precisely to catch that kind of thing.
   showing — nothing to navigate to or configure from there yet. (There
   was briefly a second, separate top-left Home icon — see the dated
   entry below for why that got folded into this menu instead.)
+- `#settingsPanel`'s content is **scoped to whichever display is
+  active** — Appearance (dark mode) always shows since it's genuinely
+  app-wide, but Prayer Times-only sections (Adhan) are hidden on any
+  other display via `updateSettingsPanelForScreen()`, called every time
+  `showScreen()` switches screens. Any future display's own settings
+  should follow the same pattern: wrap them in a section keyed to that
+  display's name, hidden by default elsewhere.
+- `#settingsPanel` closes **only** via its own ✕ button
+  (`#settingsPanelClose`, top-right inside the panel) or by navigating
+  to a different screen — tapping elsewhere on the screen while it's
+  open does nothing, unlike `#moreMenu`, which still closes on an
+  outside tap. Deliberately inconsistent between the two: a popover
+  menu (choose Home or Settings) benefits from a quick outside-tap
+  dismiss; a settings panel with toggles you might be mid-adjusting
+  benefits from requiring an explicit close so an accidental tap
+  elsewhere doesn't lose your place.
 - Reopening the app (e.g. after an iPad restart) returns to whichever
   display was last open (`localStorage` key `cheadleMasjidLastScreen`),
   **not** the home screen — defaults to `prayer-times` if nothing's
@@ -1003,3 +1019,50 @@ first try:
 schema, card list, and architecture reasoning stay documented above and
 in ARCHITECTURE.md's "Data flow: Server Health" section — this entry is
 the record of what got installed and confirmed, not a new design.
+
+### 2026-08-29 — Verified the live iPad's data source; scoped Settings per-display; Settings now closes only via ✕
+Three small, unrelated fixes from the same conversation, after Server
+Health went live.
+
+**Verified the live pipeline, not just the local preview**: fetched
+`http://192.168.0.180/server-stats.json` and `/index.html` directly
+from outside the iPad — confirmed the deployed page is current (title,
+markup) and the JSON it's pulling is genuinely fresh (`generated_at`
+within seconds, full 24-point history, real containers) — rather than
+only trusting the local `bash -n`/isolated-jq/local-preview testing
+from the step 2/3 entries above. Didn't (couldn't) see the physical
+iPad's screen itself — that's a real limitation, not skipped out of
+laziness — but everything upstream of the glass is confirmed correct.
+
+**Settings panel content is now scoped per-display**: user noticed
+Prayer Times' Adhan toggles were showing up in Settings while on the
+Server Health screen, where they mean nothing. Fixed by wrapping the
+Adhan section in `#adhanSettingsSection` and adding
+`updateSettingsPanelForScreen()` (hides it unless
+`currentScreen === "prayer-times"`), called from `showScreen()` so it
+stays correct on every screen switch regardless of whether Settings
+happens to be open at the time. Appearance (dark mode) stays visible on
+every screen — it's a genuinely app-wide setting, not display-specific.
+
+**Settings panel now closes only via an explicit ✕**: previously,
+tapping anywhere outside `#settingsPanel` closed it, same as
+`#moreMenu`. User asked for this specifically to stop working that way
+for Settings (a toggle-heavy panel someone might be mid-adjusting, where
+an accidental outside tap losing your place is worse than for a simple
+Home/Settings picker menu) — added `#settingsPanelClose` (a small ✕
+button, top-right inside the panel, Material's "close" glyph) and
+removed the settingsPanel branch from the outside-click handler.
+`#moreMenu` is intentionally left as-is, still closing on an outside
+tap — the inconsistency between the two panels is deliberate, not an
+oversight, and shouldn't be "fixed" into consistency without asking.
+
+Verified in the local preview: Prayer Times' Settings still shows
+Appearance + Adhan; Server Health's Settings shows Appearance only, no
+Adhan section at all; tapping elsewhere on the screen while Settings is
+open no longer closes it (confirmed by an explicit outside-tap test);
+the ✕ closes it correctly; switching back to Prayer Times and reopening
+Settings shows Adhan again (`adhanSettingsSection.style.display`
+confirmed back to visible via direct inspection, not just eyeballing);
+`#moreMenu`'s own outside-tap-to-close behaviour is unchanged; dark mode
+still recolours the new ✕ button correctly; no console errors beyond
+the known/expected missing-`adhan.mp3` 404 in the local test folder.

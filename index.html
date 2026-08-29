@@ -529,6 +529,28 @@
     display: none;
   }
   #settingsPanel.open { display: block; }
+  /* Explicit close only — tapping elsewhere on the screen no longer
+     dismisses this panel (unlike #moreMenu, which still does). Sized
+     as a real touch target, not just the icon's own bounding box. */
+  #settingsPanelClose {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-box-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  #settingsPanelClose svg { width: 16px; height: 16px; }
   #settingsPanel .panelTitle {
     font-size: 13px;
     font-weight: 700;
@@ -759,6 +781,8 @@
   body.theme-light #settingsBtn { color: #374151; }
   body.theme-light #settingsPanel { color: #1f2937; }
   body.theme-light #settingsPanel .panelTitle { color: #4b5563; }
+  body.theme-light #settingsPanelClose { color: #4b5563; }
+  body.theme-light #settingsPanelClose:active { background-color: rgba(31, 41, 55, 0.08); }
   body.theme-light .toggleSwitch { background-color: rgba(31, 41, 55, 0.12); }
   body.theme-light .toggleSwitch.on { background-color: #0e8f6b; }
   body.theme-light .adhanArmedIcon { color: #0e8f6b; }
@@ -824,6 +848,8 @@
   body.theme-dark #settingsBtn { color: #cbd2dc; }
   body.theme-dark #settingsPanel { color: #f3f4f6; }
   body.theme-dark #settingsPanel .panelTitle { color: #9aa1ac; }
+  body.theme-dark #settingsPanelClose { color: #9aa1ac; }
+  body.theme-dark #settingsPanelClose:active { background-color: rgba(255, 255, 255, 0.1); }
   body.theme-dark .toggleSwitch { background-color: rgba(255, 255, 255, 0.14); }
   body.theme-dark .toggleSwitch.on { background-color: #2fd39a; }
   body.theme-dark .adhanArmedIcon { color: #2fd39a; }
@@ -965,49 +991,59 @@
 </div>
 
 <div id="settingsPanel">
+  <div id="settingsPanelClose" aria-label="Close settings">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19,6.41L17.59,5 12,10.59 6.41,5 5,6.41 10.59,12 5,17.59 6.41,19 12,13.41 17.59,19 19,17.59 13.41,12z"></path></svg>
+  </div>
+
   <div class="panelTitle">Appearance</div>
   <div class="panelRow">
     <span class="panelLabel">Dark mode</span>
     <div class="toggleSwitch" id="themeToggle"><div class="knob"></div></div>
   </div>
 
-  <div class="panelTitle withGap">Adhan</div>
-  <div class="panelRow" data-prayer="fajr">
-    <span class="panelLabel">Fajr</span>
-    <div class="panelRowRight">
-      <div class="testBtn" data-test="fajr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
-      <div class="toggleSwitch" data-toggle="fajr"><div class="knob"></div></div>
+  <!-- Prayer Times-only settings — shown/hidden by showScreen() based on
+       which tablet screen is currently active, so Server Health (or any
+       future display) doesn't show Adhan controls that don't apply to
+       it. See updateSettingsPanelForScreen() in the script below. -->
+  <div id="adhanSettingsSection">
+    <div class="panelTitle withGap">Adhan</div>
+    <div class="panelRow" data-prayer="fajr">
+      <span class="panelLabel">Fajr</span>
+      <div class="panelRowRight">
+        <div class="testBtn" data-test="fajr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+        <div class="toggleSwitch" data-toggle="fajr"><div class="knob"></div></div>
+      </div>
     </div>
-  </div>
-  <div class="panelRow" data-prayer="dhuhr">
-    <span class="panelLabel">Dhuhr / Jumu&rsquo;ah</span>
-    <div class="panelRowRight">
-      <div class="testBtn" data-test="dhuhr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
-      <div class="toggleSwitch" data-toggle="dhuhr"><div class="knob"></div></div>
+    <div class="panelRow" data-prayer="dhuhr">
+      <span class="panelLabel">Dhuhr / Jumu&rsquo;ah</span>
+      <div class="panelRowRight">
+        <div class="testBtn" data-test="dhuhr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+        <div class="toggleSwitch" data-toggle="dhuhr"><div class="knob"></div></div>
+      </div>
     </div>
-  </div>
-  <div class="panelRow" data-prayer="asr">
-    <span class="panelLabel">Asr</span>
-    <div class="panelRowRight">
-      <div class="testBtn" data-test="asr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
-      <div class="toggleSwitch" data-toggle="asr"><div class="knob"></div></div>
+    <div class="panelRow" data-prayer="asr">
+      <span class="panelLabel">Asr</span>
+      <div class="panelRowRight">
+        <div class="testBtn" data-test="asr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+        <div class="toggleSwitch" data-toggle="asr"><div class="knob"></div></div>
+      </div>
     </div>
-  </div>
-  <div class="panelRow" data-prayer="maghrib">
-    <span class="panelLabel">Maghrib</span>
-    <div class="panelRowRight">
-      <div class="testBtn" data-test="maghrib"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
-      <div class="toggleSwitch" data-toggle="maghrib"><div class="knob"></div></div>
+    <div class="panelRow" data-prayer="maghrib">
+      <span class="panelLabel">Maghrib</span>
+      <div class="panelRowRight">
+        <div class="testBtn" data-test="maghrib"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+        <div class="toggleSwitch" data-toggle="maghrib"><div class="knob"></div></div>
+      </div>
     </div>
-  </div>
-  <div class="panelRow" data-prayer="isha">
-    <span class="panelLabel">Isha</span>
-    <div class="panelRowRight">
-      <div class="testBtn" data-test="isha"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
-      <div class="toggleSwitch" data-toggle="isha"><div class="knob"></div></div>
+    <div class="panelRow" data-prayer="isha">
+      <span class="panelLabel">Isha</span>
+      <div class="panelRowRight">
+        <div class="testBtn" data-test="isha"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+        <div class="toggleSwitch" data-toggle="isha"><div class="knob"></div></div>
+      </div>
     </div>
+    <div id="adhanStatus"></div>
   </div>
-  <div id="adhanStatus"></div>
 </div>
 
 <audio id="adhanAudio" src="adhan.mp3" preload="none"></audio>
@@ -1150,6 +1186,19 @@
     } catch (e) { /* ignore storage errors */ }
   }
 
+  // Shows/hides the settings panel's per-display sections based on
+  // whichever tablet screen is currently active — e.g. Adhan controls
+  // are Prayer Times-specific and have no meaning on Server Health (or
+  // any future display), so they're hidden rather than shown
+  // everywhere regardless of relevance. Appearance (dark mode) stays
+  // visible always since it's a genuinely app-wide setting. Called
+  // from showScreen() so this stays correct even if settings happens
+  // to already be open when the screen underneath it changes.
+  function updateSettingsPanelForScreen() {
+    var adhanSection = document.getElementById("adhanSettingsSection");
+    adhanSection.style.display = (currentScreen === "prayer-times") ? "" : "none";
+  }
+
   function showScreen(name) {
     var home = document.getElementById("homeScreen");
     var settingsBtn = document.getElementById("settingsBtn");
@@ -1161,6 +1210,7 @@
     document.getElementById("settingsPanel").className = "";
 
     currentScreen = name;
+    updateSettingsPanelForScreen();
 
     // Hide every tablet screen first, then show only the one requested
     // (if any) — simpler and less error-prone than an if/else chain
@@ -1188,6 +1238,7 @@
     var settingsBtn = document.getElementById("settingsBtn");
     var moreMenu = document.getElementById("moreMenu");
     var settingsPanel = document.getElementById("settingsPanel");
+    var settingsPanelClose = document.getElementById("settingsPanelClose");
     var goHomeRow = document.getElementById("goHomeRow");
     var openSettingsRow = document.getElementById("openSettingsRow");
 
@@ -1217,6 +1268,11 @@
       settingsPanel.className = "open";
     };
 
+    settingsPanelClose.onclick = function (e) {
+      e.stopPropagation();
+      settingsPanel.className = "";
+    };
+
     var tiles = document.querySelectorAll(".tile[data-screen]");
     var i;
     for (i = 0; i < tiles.length; i++) {
@@ -1228,16 +1284,16 @@
       })(tiles[i]);
     }
 
+    // Only #moreMenu closes on an outside tap. #settingsPanel
+    // deliberately does not — it only closes via its own ✕ button
+    // (settingsPanelClose above) or by navigating to a different
+    // screen (showScreen() always closes it) — a tap elsewhere on the
+    // screen while it's open does nothing, on request.
     document.addEventListener("click", function (e) {
       if (moreMenu.className.indexOf("open") !== -1 &&
           e.target !== moreMenu && !moreMenu.contains(e.target) &&
           e.target !== settingsBtn && !settingsBtn.contains(e.target)) {
         moreMenu.className = "";
-      }
-      if (settingsPanel.className.indexOf("open") !== -1 &&
-          e.target !== settingsPanel && !settingsPanel.contains(e.target) &&
-          e.target !== settingsBtn && !settingsBtn.contains(e.target)) {
-        settingsPanel.className = "";
       }
     });
 
