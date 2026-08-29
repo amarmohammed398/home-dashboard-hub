@@ -70,24 +70,18 @@ overriding — the baseline exists precisely to catch that kind of thing.
 - **"Liquid Glass" look** (matching iOS 26's own material design): every
   floating panel (`#header`, `#countdownClock`, `#card`, `#settingsPanel`,
   `#settingsBtn`) is translucent with `backdrop-filter: blur(28px)
-  saturate(180%)`, a bright hairline border, a diagonal sheen
-  (`background-image: linear-gradient(135deg, ...)`, lighter top-left
-  fading out — like light catching a curved glass surface), and an
-  inset top highlight. The glass impression comes from the **panel's
-  own material** (the sheen/border/highlight together), not from
-  blurring whatever's behind it — that distinction matters because a
-  `backdrop-filter` blur over a plain flat page background shows no
-  visible effect at all (nothing varied behind it to soften), so the
-  glass has to be self-sufficient to work over a plain background too.
-- Light theme by default: **plain flat** page background (`#eef2f5`),
-  emerald (`#0e8f6b`) accent. (Was a soft pastel mesh gradient
-  originally, same as dark mode — both were flattened by request; see
-  dated entries below. The panels still read as glass via their own
-  sheen/border/highlight, not by blurring a colourful backdrop.)
+  saturate(180%)`, a bright hairline border, and an inset top highlight,
+  sitting over a fixed multi-blob radial-gradient background (not an
+  image — cheap to render continuously). The blur only reads as "glass"
+  because the background behind it is colourful/varied; a flat single
+  colour wouldn't show any visible effect.
+- Light theme by default: soft pastel mesh gradient (mint/blue/cream/
+  lavender) behind frosted white-ish glass panels, emerald (`#0e8f6b`)
+  accent.
 - Dark mode available via the gear icon (top-right) → Settings panel →
   Dark mode toggle. Choice persists in `localStorage`
-  (`cheadleMasjidTheme`) across reloads. Also a plain flat background
-  (`#10131a`).
+  (`cheadleMasjidTheme`) across reloads. Dark mode uses the same glass
+  treatment over a deep jewel-toned gradient instead.
 - Both themes are plain CSS classes (`body.theme-light` /
   `body.theme-dark`), not CSS custom properties — kept for compatibility
   with the old Galaxy Tab 3 fallback path (see Deployment). Note this
@@ -396,37 +390,16 @@ entirely), so that fallback path would show flat-ish translucent panels
 without the blur — a graceful, expected degradation, not a bug, since
 it's just an unsupported-property no-op rather than breaking anything.
 
-### 2026-08-29 — Dark mode background: plain, but keep the glass look
-User asked for dark mode's colourful mesh-gradient background to go
-back to plain, but still wanted the panels to look like glass. Those
-two things were in tension as originally built: the glass panels'
-"look" was leaning on `backdrop-filter` blurring the colourful
-background behind them, and a blur over a flat colour is visually a
-no-op (nothing varied there to soften).
-
-Fix: moved the glass impression onto the **panel's own material**
-instead of the backdrop — added a diagonal sheen
-(`background-image: linear-gradient(135deg, rgba(255,255,255,0.20) 0%,
-rgba(255,255,255,0.02) 55%)`) to the shared panel rule, on top of the
-existing translucent fill, bright border, and inset top highlight.
-`backdrop-filter` is still applied (harmless, and still useful for the
-one case where something genuinely sits behind a panel — the settings
-panel opening over the prayer table), but none of the "does this read
-as glass" impression depends on it any more. Dark mode's background is
-now a plain `#10131a`; light mode's mesh gradient is untouched (only
-dark mode was asked to change). Verified visually — the panels still
-clearly read as frosted glass over the plain dark background, similar
-to how iOS's own widgets/Control Center look over a plain wallpaper.
-
-### 2026-08-29 — Light mode background also made plain
-Same request as the dark mode change above, applied to light mode:
-flattened the pastel mesh gradient to a plain `#eef2f5`. No CSS
-mechanism changes needed this time — the panel-material-based glass
-look (sheen/border/top-highlight) built for the dark mode fix already
-works identically regardless of what's behind it, so this was just
-swapping one `background` declaration for a `background-color`.
-Verified visually: panels still clearly read as glass over the plain
-light background. Both themes are now plain flat backgrounds; the
-original colourful mesh-gradient version of this design no longer
-exists anywhere in the live app (only in git history, if ever wanted
-back).
+### 2026-08-29 — Reverted the plain-background experiment
+The two "make the background plain" changes (dark mode, then light
+mode) made the glass hard to distinguish in practice — without a
+colourful, varied backdrop for `backdrop-filter: blur()` to actually
+soften, the panels read as plain translucent boxes rather than glass,
+even with the added sheen/border/highlight. User asked to revert;
+`git revert -n 03d54bc 95fd124` cleanly restored the original colourful
+multi-blob gradient backgrounds for both themes (this file's baseline
+above already describes that original version — it was never rewritten
+to describe the flattened one being reverted here). Lesson for next
+time a background-simplification request comes up: try it and actually
+look at it side-by-side with the original before assuming a
+panel-material-only glass effect will read clearly enough on its own.
