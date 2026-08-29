@@ -1743,3 +1743,38 @@ the manual fallback remote:
 
 Net effect: `git push home main` now works non-interactively, with no
 password prompt, and both remotes' histories match again.
+
+### 2026-08-30 — Restored `adhan.mp3` on the live server (went missing, likely during the rename)
+While testing on the real iPad, the user hit the app's own documented
+"Couldn't find adhan.mp3 — add it next to index.html" message — the
+intended, self-explanatory failure mode for exactly this file (see the
+Adhan baseline section above), but it wasn't expected to actually be
+missing on a server that had it working before. Checked directly
+(`find /` on the server, an HTTP request for the file) and confirmed
+it was genuinely absent from `/var/www/home-dashboard-hub/` — not a
+caching or client-side issue.
+
+Likely cause: the 29 Aug 2026 rename's step 1 was `sudo mv
+/var/www/cheadle-masjid-display /var/www/home-dashboard-hub`, which
+should have carried the untracked file along with everything else —
+but that step wasn't followed by a check that `adhan.mp3` specifically
+survived, unlike every other piece of that rename (which *was*
+verified end-to-end). Root cause not fully confirmed (the old path no
+longer exists to inspect), but the effect is clear either way: the
+file was gone.
+
+Fixed by `scp`ing the still-present local copy
+(`~/Desktop/home-dashboard-hub/adhan.mp3`) straight to the server over
+the same key-based SSH connection set up in the previous entry, then
+verified two ways before considering it done: an HTTP `200` for
+`/adhan.mp3` (not the earlier `404`), and matching `md5` checksums
+between the local file and what the server actually serves back over
+HTTP — not just "the file exists," but "it's byte-identical to the
+real recording, not a truncated or corrupted copy."
+
+**Lesson for any future rename/migration of this project**: `adhan.mp3`
+lives outside git entirely, so no amount of re-checking the repo's own
+files would have caught this — anything untracked needs its own
+explicit "did this specific file survive" check, not just "did the
+directory move." Worth adding a one-line reminder to the README's
+rename/migration notes if this project is ever restructured again.
