@@ -34,13 +34,14 @@ single place that shows one screen and hides the rest; adding a new
 display means adding a new branch there plus a new tile in `#homeScreen`
 — it does not touch how any existing display works.
 
-Two small icons float outside the currently-open display's own panel:
-a **home icon** (always returns to the picker) and a **⋮ menu** (opens
-that display's own Settings, if it has any). Both are hidden on the
-home screen itself. Reopening the app after it's been closed (e.g. an
-iPad restart) returns straight to whichever display was last open, not
-the home screen, so the always-on kiosk behaviour this app was already
-tuned for isn't disturbed by having a picker at all.
+One small **⋮ icon** floats outside the currently-open display's own
+panel, opening a menu with **Home** (always returns to the picker) and
+**Settings** (that display's own, if it has any). It's hidden on the
+home screen itself — nothing to navigate to or configure from there
+yet. Reopening the app after it's been closed (e.g. an iPad restart)
+returns straight to whichever display was last open, not the home
+screen, so the always-on kiosk behaviour this app was already tuned for
+isn't disturbed by having a picker at all.
 
 ## System overview
 

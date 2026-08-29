@@ -306,22 +306,23 @@
   }
 
   /* ---------- settings button + panel ---------- */
-  /* Two bare corner icons float in the margin gutter outside the
-     header's own glass pane, not nested inside it — one per side, so
-     they read as a matched pair rather than one-off buttons. They sit
-     inside the *existing* symmetric 3vw gutter that #prayerScreen
-     already reserves on both sides, rather than growing a special
-     one-sided padding just for them — that's what keeps header/
-     countdown-box/table all still perfectly symmetric (verified via
-     getBoundingClientRect()). Horizontal position is a fixed CSS offset
-     centred in that gutter; vertical position is set from JS
-     (positionCornerIcons(), called on load/resize/screen-switch)
-     because the header's height is content-driven (vw-sized text), not
-     a fixed number CSS can center against reliably. Deliberately no
-     background/border/shadow — bare icons, minimum visual weight.
-     Both are hidden while the home screen (tablet picker) is showing —
-     there's nothing for either to do there yet. */
-  #settingsBtn, #homeBtn {
+  /* One bare icon floats in the margin gutter outside the header's own
+     glass pane, not nested inside it. It sits inside the *existing*
+     symmetric 3vw gutter that #prayerScreen already reserves on both
+     sides, rather than growing a special one-sided padding for it —
+     that's what keeps header/countdown-box/table all still perfectly
+     symmetric (verified via getBoundingClientRect()). Horizontal
+     position is a fixed CSS offset centred in that gutter; vertical
+     position is set from JS (positionMoreIcon(), called on load/
+     resize/screen-switch) because the header's height is content-
+     driven (vw-sized text), not a fixed number CSS can center against
+     reliably. Deliberately no background/border/shadow — a bare icon,
+     minimum visual weight. Hidden while the home screen (tablet
+     picker) is showing — there's nothing for it to do there yet.
+     Home and Settings both live inside the popover this opens (see
+     #moreMenu below) rather than each being its own top-level icon —
+     one entry point, extensible for more rows later. */
+  #settingsBtn {
     position: fixed;
     display: -webkit-box;
     display: -webkit-flex;
@@ -334,19 +335,18 @@
     justify-content: center;
     width: 28px;
     height: 28px;
+    right: calc(1.5vw - 14px);
     cursor: pointer;
     z-index: 20;
   }
-  #settingsBtn svg, #homeBtn svg { width: 18px; height: 18px; }
-  #settingsBtn { right: calc(1.5vw - 14px); }
-  #homeBtn { left: calc(1.5vw - 14px); }
+  #settingsBtn svg { width: 18px; height: 18px; }
 
-  /* Small popover the "more" (settingsBtn) icon opens — currently just
-     one row ("Settings", a gear, → opens #settingsPanel), written as a
-     list so more entries can be added later without restructuring it.
-     Position: right-aligned to match settingsBtn's gutter; top is set
-     from JS (positionMoreMenu()) each time it opens, anchored to
-     settingsBtn's own live position rather than a guessed offset. */
+  /* Small popover the "more" (settingsBtn) icon opens — a short list of
+     rows (currently "Home" and "Settings"), written as a list so more
+     entries can be added later without restructuring it. Position:
+     right-aligned to match settingsBtn's gutter; top is set from JS
+     (positionMoreMenu()) each time it opens, anchored to settingsBtn's
+     own live position rather than a guessed offset. */
   #moreMenu {
     position: fixed;
     right: 1.2vh;
@@ -586,7 +586,7 @@
   body.theme-light .sub { color: #b45309; }
   body.theme-light #footer { color: #4b5563; }
   body.theme-light #footer.offline { color: #b45309; }
-  body.theme-light #settingsBtn, body.theme-light #homeBtn { color: #374151; }
+  body.theme-light #settingsBtn { color: #374151; }
   body.theme-light #settingsPanel { color: #1f2937; }
   body.theme-light #settingsPanel .panelTitle { color: #4b5563; }
   body.theme-light .toggleSwitch { background-color: rgba(31, 41, 55, 0.12); }
@@ -630,7 +630,7 @@
   body.theme-dark .sub { color: #f2b84b; }
   body.theme-dark #footer { color: #9aa1ac; }
   body.theme-dark #footer.offline { color: #f2b84b; }
-  body.theme-dark #settingsBtn, body.theme-dark #homeBtn { color: #cbd2dc; }
+  body.theme-dark #settingsBtn { color: #cbd2dc; }
   body.theme-dark #settingsPanel { color: #f3f4f6; }
   body.theme-dark #settingsPanel .panelTitle { color: #9aa1ac; }
   body.theme-dark .toggleSwitch { background-color: rgba(255, 255, 255, 0.14); }
@@ -692,10 +692,6 @@
 
 </div>
 
-<div id="homeBtn" aria-label="Home">
-  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10,20v-6h4v6h5v-8h3L12,3L2,12h3v8H10z"></path></svg>
-</div>
-
 <div id="settingsBtn" aria-label="More options">
   <svg viewBox="0 0 24 24" fill="currentColor">
     <circle cx="12" cy="5" r="2.2"></circle>
@@ -705,6 +701,10 @@
 </div>
 
 <div id="moreMenu">
+  <div class="moreMenuRow" id="goHomeRow">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10,20v-6h4v6h5v-8h3L12,3L2,12h3v8H10z"></path></svg>
+    <span>Home</span>
+  </div>
   <div class="moreMenuRow" id="openSettingsRow">
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"></path></svg>
     <span>Settings</span>
@@ -838,20 +838,16 @@
   // drift if the header's content (or the viewport) ever changes size.
   // Only meaningful while a tablet screen (with its own #header) is
   // showing — showScreen() re-runs this every time it switches to one.
-  function positionCornerIcons() {
+  function positionMoreIcon() {
+    var btn = document.getElementById("settingsBtn");
     var header = document.getElementById("header");
     var headerRect = header.getBoundingClientRect();
-    var ids = ["settingsBtn", "homeBtn"];
-    var i, btn, top;
-    for (i = 0; i < ids.length; i++) {
-      btn = document.getElementById(ids[i]);
-      top = headerRect.top + headerRect.height / 2 - btn.offsetHeight / 2;
-      btn.style.top = top + "px";
-    }
+    var top = headerRect.top + headerRect.height / 2 - btn.offsetHeight / 2;
+    btn.style.top = top + "px";
   }
 
   // Anchors the "more" popover to settingsBtn's own live position rather
-  // than a guessed offset, same reasoning as positionCornerIcons() above.
+  // than a guessed offset, same reasoning as positionMoreIcon() above.
   function positionMoreMenu() {
     var btn = document.getElementById("settingsBtn");
     var menu = document.getElementById("moreMenu");
@@ -887,7 +883,6 @@
   function showScreen(name) {
     var home = document.getElementById("homeScreen");
     var prayer = document.getElementById("prayerScreen");
-    var homeBtn = document.getElementById("homeBtn");
     var settingsBtn = document.getElementById("settingsBtn");
 
     // Close any open popovers so switching screens never leaves one
@@ -900,7 +895,6 @@
     if (name === "home") {
       home.className = "show";
       prayer.style.display = "none";
-      homeBtn.style.display = "none";
       settingsBtn.style.display = "none";
       return;
     }
@@ -909,26 +903,20 @@
     // tablets add another branch here rather than an else.
     home.className = "";
     prayer.style.display = "flex";
-    homeBtn.style.display = "flex";
     settingsBtn.style.display = "flex";
-    positionCornerIcons();
+    positionMoreIcon();
     saveLastScreen(name);
   }
 
   function initNavigationUI() {
-    var homeBtn = document.getElementById("homeBtn");
     var settingsBtn = document.getElementById("settingsBtn");
     var moreMenu = document.getElementById("moreMenu");
     var settingsPanel = document.getElementById("settingsPanel");
+    var goHomeRow = document.getElementById("goHomeRow");
     var openSettingsRow = document.getElementById("openSettingsRow");
 
     window.onresize = function () {
-      if (currentScreen !== "home") { positionCornerIcons(); }
-    };
-
-    homeBtn.onclick = function (e) {
-      e.stopPropagation();
-      showScreen("home");
+      if (currentScreen !== "home") { positionMoreIcon(); }
     };
 
     settingsBtn.onclick = function (e) {
@@ -939,6 +927,12 @@
         positionMoreMenu();
         moreMenu.className = "open";
       }
+    };
+
+    goHomeRow.onclick = function (e) {
+      e.stopPropagation();
+      moreMenu.className = "";
+      showScreen("home");
     };
 
     openSettingsRow.onclick = function (e) {

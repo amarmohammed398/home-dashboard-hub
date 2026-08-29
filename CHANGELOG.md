@@ -72,20 +72,21 @@ overriding — the baseline exists precisely to catch that kind of thing.
   show/hide of existing DOM, **never a page reload/navigation** — a
   reload would throw away the adhan's audio-autoplay unlock (see
   Adhan below), so every display has to coexist in one document.
-- Two bare corner icons, outside whichever display's glass panel is
-  showing: **home icon** (top-left) → always returns to `#homeScreen`;
-  **⋮ icon** (top-right) → opens a small popover (`#moreMenu`) with one
-  row today, **Settings** (gear icon), which opens that display's
-  settings panel. Both corner icons are hidden while `#homeScreen`
-  itself is showing — nothing to navigate to or configure from there
-  yet.
+- **One bare corner icon** (top-right, ⋮, `#settingsBtn`), outside
+  whichever display's glass panel is showing → opens a small popover
+  (`#moreMenu`) with two rows today: **Home** (house icon) → returns to
+  `#homeScreen`; **Settings** (gear icon) → opens that display's
+  settings panel. The icon is hidden while `#homeScreen` itself is
+  showing — nothing to navigate to or configure from there yet. (There
+  was briefly a second, separate top-left Home icon — see the dated
+  entry below for why that got folded into this menu instead.)
 - Reopening the app (e.g. after an iPad restart) returns to whichever
   display was last open (`localStorage` key `cheadleMasjidLastScreen`),
   **not** the home screen — defaults to `prayer-times` if nothing's
   saved yet, so the always-on kiosk behaviour that predates the home
   screen is unaffected by adding one.
-- Corner-icon vertical position is computed from the current display's
-  own `#header` via `getBoundingClientRect()` (`positionCornerIcons()`),
+- The ⋮ icon's vertical position is computed from the current display's
+  own `#header` via `getBoundingClientRect()` (`positionMoreIcon()`),
   re-run every time `showScreen()` switches to a non-home screen (as
   well as on `window.resize`) — this only works while that display's
   header actually exists in the DOM and is visible, which is why it's
@@ -729,3 +730,34 @@ toggle still re-colours both corner icons and the tile; reloading the
 page while parked on the home screen still returns to Prayer Times (not
 stuck on Home), confirming `getLastScreen()`'s save-on-tablet-only
 behaviour.
+
+### 2026-08-29 — Folded the separate Home icon into the ⋮ menu
+User asked for Home to be reachable from the ⋮ menu instead of its own
+icon on the opposite side of the display — one entry point instead of
+two.
+
+- **`#homeBtn` removed entirely** (markup, its CSS rules, its theme
+  colours, its `positionCornerIcons()` loop entry) — there is now only
+  one corner icon, `#settingsBtn` (⋮), same as before the previous
+  entry introduced Home.
+- **`#moreMenu` gained a second row**, "Home" (the same solid house
+  glyph `#homeBtn` used), placed above "Settings" — clicking it closes
+  the popover and calls `showScreen("home")`, same pattern as the
+  Settings row already used.
+- `positionCornerIcons()` (which looped over an array of icon ids for
+  the two-icon layout) reverted to a single-icon function, renamed
+  `positionMoreIcon()` — an array-of-one loop would've been dead
+  generality now that only `#settingsBtn` needs positioning.
+- `showScreen()` no longer shows/hides a `homeBtn` — only `settingsBtn`
+  is hidden on the home screen now.
+- No change to `#moreMenu`'s own position/size, or to how Settings
+  itself opens — only what triggers "go to the home screen" moved.
+
+Verified in the local preview: ⋮ → popover now shows both "Home" and
+"Settings" rows with their icons; tapping Home closes the popover and
+shows the tile grid with no corner icon visible; tapping the Prayer
+Times tile returns correctly with the countdown still ticking (no
+reload); no console errors from the removed `#homeBtn` references
+(confirmed via a full grep of `index.html` for stray `homeBtn`/
+`positionCornerIcons` mentions before testing, then again via the
+browser console after).
