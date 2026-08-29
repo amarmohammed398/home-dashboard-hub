@@ -307,14 +307,26 @@ the *process* of finding and fixing them is the actual engineering:
   live with `resolvectl dns wlp2s0 1.1.1.1 8.8.8.8` +
   `resolvectl domain wlp2s0 '~.'`, confirmed via `resolvectl query`
   before touching the runner at all, then a runner restart cleared the
-  backlog in seconds. **Deliberately not made permanent yet** — this
-  only lasts until the next reboot/network change; the interface has a
-  static-looking IP with no DNS ever configured, but nobody's confirmed
-  yet whether that's intentional or itself the underlying gap, so
-  writing a persistent config change wasn't done on a guess. The
-  general lesson: "the service is running" and "the service can do its
-  job" are different claims, and confirming which layer actually failed
-  (process vs. name resolution vs. network reachability) before
+  backlog in seconds. That live fix was deliberately session-only at
+  the time — nobody had yet confirmed whether `wlp2s0` never having DNS
+  was intentional or itself the underlying gap, so a persistent config
+  change wasn't written on a guess. **Root-caused and made permanent the
+  same day** (see the dated entry below): `wlp2s0` is managed by
+  NetworkManager (not netplan — its wifi config file is empty,
+  `wifis: {}`; the WiFi connection profile lives entirely inside
+  NetworkManager itself), and `/etc/NetworkManager/NetworkManager.conf`
+  had no explicit `dns=` setting, leaving DNS registration into
+  `systemd-resolved` to an implicit default that could apparently drop
+  silently (a reconnect, a sleep/wake — never conclusively pinned down).
+  Fixed with two changes, not one: `dns=systemd-resolved` made explicit
+  in `NetworkManager.conf` (the likely actual fix), plus
+  `FallbackDNS=1.1.1.1 8.8.8.8` added to `resolved.conf` — which had none
+  configured at all — as a safety net regardless of cause, the same
+  "fix the likely cause, add a safety net anyway" approach used
+  elsewhere in this project (see the Server Health grid overflow fix).
+  The general lesson: "the service is running" and "the service can do
+  its job" are different claims, and confirming which layer actually
+  failed (process vs. name resolution vs. network reachability) before
   touching anything avoids fixing the wrong thing.
 
 ## Frontend implementation notes

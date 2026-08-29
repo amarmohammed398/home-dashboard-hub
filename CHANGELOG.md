@@ -1482,3 +1482,51 @@ try to sync into a directory that didn't exist yet. Verified after each
 push (`curl`ing the live server directly, same pattern used throughout
 this project) rather than assuming the rename "worked" once the commands
 ran without error.
+
+### 2026-08-29 — Made the DNS fix permanent (root-caused, not just patched)
+The 29 Aug DNS outage (ARCHITECTURE.md's "A 'healthy' service that
+couldn't actually do anything") was only fixed live at the time —
+deliberately not made permanent, since the actual reason `wlp2s0` had
+no DNS server wasn't confirmed. Root-caused before writing any
+persistent config, not guessed at:
+
+- `wlp2s0` turns out to be managed entirely by **NetworkManager**, not
+  netplan — its netplan wifi file is genuinely empty (`wifis: {}`); the
+  WiFi connection profile ("SKYTTBBB") lives only inside
+  NetworkManager's own connection store.
+- `/etc/NetworkManager/NetworkManager.conf` had no explicit `dns=`
+  setting under `[main]` — left to an implicit default, which is
+  exactly the kind of thing that can misbehave silently after a
+  reconnect/sleep-wake without ever showing up as a "broken config" on
+  inspection (the connection's own DNS looked fine — `nmcli connection
+  show SKYTTBBB` reported `192.168.0.1` correctly — it just wasn't
+  reliably making it into `systemd-resolved`).
+- `/etc/systemd/resolved.conf` had **no `FallbackDNS` configured at
+  all** — not deliberately empty, just never set, so there was
+  genuinely nothing to fall back to if the primary registration ever
+  dropped again.
+
+**Fix, two parts, matching the two gaps found**: `sudo sed -i
+'/^\[main\]/a dns=systemd-resolved' /etc/NetworkManager/NetworkManager.conf`
+(the likely actual cause) and `sudo sed -i '/^\[Resolve\]/a
+FallbackDNS=1.1.1.1 8.8.8.8' /etc/systemd/resolved.conf` (a safety net
+regardless of cause — same "fix the likely cause, add a safety net
+anyway" approach as the Server Health grid overflow fix). Both services
+restarted (`NetworkManager`, `systemd-resolved`) to apply.
+
+**Verified, not assumed**: `resolvectl status` for `wlp2s0` now shows
+`Current Scopes: DNS` with `+DefaultRoute` (previously `none`/
+`-DefaultRoute` — this is the specific flag that was missing before);
+`resolvectl query broker.actions.githubusercontent.com` (the exact
+hostname that failed during the original outage) resolved successfully;
+the live Server Health display's own "DNS Resolution" and "Internet"
+service rows both show active, using the server's own real self-check
+rather than a one-off manual query. This is a config file change, not a
+live command — confirmed to persist across the reboot in the next
+entry, not just assumed to.
+
+One caveat worth being upfront about: restarting `NetworkManager` over
+an SSH session on a WiFi-connected box risks briefly dropping the
+connection — flagged to the user before running it, since a server with
+no other access path could theoretically need physical/console
+recovery if it didn't reconnect on its own (it did, without issue).
