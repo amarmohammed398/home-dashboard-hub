@@ -468,3 +468,23 @@ sections above):
   right now there's no alert if the display silently goes offline.
   (Server Health's own "Last Successful Deploy" card is a step in this
   direction, but doesn't alert anyone — it just shows the number.)
+- **Remote reboot button on the Server Health display — discussed and
+  deliberately deferred (30 Aug 2026), not forgotten.** Technically
+  possible, but it would be the first *mutating/privileged* action this
+  app has ever triggered — everything else here is read-only content
+  or a periodically-written data file. Recommended against building it
+  as a plain button because: the iPad sits in a shared space where a
+  stray tap (kid, guest, pet) could trigger it, with a client-side
+  confirm dialog protecting nothing real since anyone who can view the
+  page source can hit the underlying endpoint directly; the server also
+  runs other services (Nextcloud) that a reboot takes down too, not
+  just this display; and the actual need (restarting after a pending
+  update, already visible via the existing "reboot required" flag) is
+  rare and trivial to do over SSH already. If this gets revisited, it
+  needs real safeguards, not just a UI convenience: a POST-only
+  endpoint gated behind its own auth (separate from the app's own
+  access), a hold-to-confirm or type-to-confirm gesture on-device
+  rather than a single tap, a `sudoers` entry scoped to *only* the
+  reboot command via a wrapper script (never blanket passwordless
+  sudo), and a log of every trigger. Don't build the plain version of
+  this without re-raising these risks with the user first.
