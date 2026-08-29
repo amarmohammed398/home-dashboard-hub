@@ -132,15 +132,24 @@ app, with a small script doing the work in the background:
    is the same "static file, not a live backend" philosophy as the rest
    of the app, just applied to locally-generated data instead of a
    remote API.
-2. `scripts/server-stats.sh` reads `/proc`, `df`, `systemctl`,
-   `lm-sensors`, and (if usable) `docker ps`, assembles the result with
-   `jq`, and writes it to `server-stats.json` in the webroot — the same
-   folder `index.html` lives in, so the client's fetch is same-origin
-   (no CORS question at all, unlike the masjid API).
+2. `scripts/server-stats.sh` reads `/proc`, `df`, `ip route`,
+   `systemctl`, `lm-sensors`, `apt`, and (if usable) `docker ps`,
+   assembles the result with `jq`, and writes it to `server-stats.json`
+   in the webroot — the same folder `index.html` lives in, so the
+   client's fetch is same-origin (no CORS question at all, unlike the
+   masjid API).
 3. The script also keeps a short rolling history (last ~24 samples) of
-   CPU load, memory %, and temperature in a dotfile in its own home
-   directory, persisted between runs, purely so the client can draw
-   trend sparklines rather than just a single current-value snapshot.
+   CPU load/usage, memory %, temperature, and network throughput in a
+   dotfile in its own home directory, persisted between runs, purely so
+   the client can draw trend sparklines rather than just a single
+   current-value snapshot. A *separate* single-sample state file
+   persists the previous `/proc/stat` and `/proc/net/dev` readings
+   specifically — CPU usage % and network throughput are only
+   meaningful as a delta between two points in time, since both sources
+   are cumulative counters, not instantaneous values; the very first
+   run after install (or after that file is ever deleted) has nothing
+   to diff against, so those two fields come back `null` for exactly
+   one run and are correct from the second run onward.
 4. The client polls `server-stats.json` every 10 seconds (much faster
    than Prayer Times' 5-minute API poll — freshness matters a lot more
    for a live health display than for prayer times that only change

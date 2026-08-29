@@ -303,6 +303,15 @@
     margin-top: 0.6vh;
     font-variant-numeric: tabular-nums;
   }
+  /* Small supporting line under a card's headline value — load average
+     + core count under CPU%, swap under the memory bar, reboot status
+     under the updates count. Same warn/bad classes as .statValue for
+     the one case that needs it (reboot required). */
+  .statSubtext {
+    font-size: 1.2vw;
+    font-weight: 600;
+    margin-top: 0.5vh;
+  }
   .statBar {
     width: 100%;
     height: 8px;
@@ -760,6 +769,9 @@
   body.theme-light .statValue { color: #1f2937; }
   body.theme-light .statValue.statWarn { color: #b45309; }
   body.theme-light .statValue.statBad { color: #dc2626; }
+  body.theme-light .statSubtext { color: #4b5563; }
+  body.theme-light .statSubtext.statWarn { color: #b45309; }
+  body.theme-light .statSubtext.statBad { color: #dc2626; }
   body.theme-light .statBar { background-color: rgba(31, 41, 55, 0.1); }
   body.theme-light .statBarFill { background-color: #7c3aed; }
   body.theme-light .statBarFill.statWarn { background-color: #b45309; }
@@ -832,6 +844,9 @@
   body.theme-dark .statValue { color: #f3f4f6; }
   body.theme-dark .statValue.statWarn { color: #f2b84b; }
   body.theme-dark .statValue.statBad { color: #f87171; }
+  body.theme-dark .statSubtext { color: #9aa1ac; }
+  body.theme-dark .statSubtext.statWarn { color: #f2b84b; }
+  body.theme-dark .statSubtext.statBad { color: #f87171; }
   body.theme-dark .statBar { background-color: rgba(255, 255, 255, 0.14); }
   body.theme-dark .statBarFill { background-color: #a78bfa; }
   body.theme-dark .statBarFill.statWarn { background-color: #f2b84b; }
@@ -934,14 +949,16 @@
       <div class="statValue" id="statUptime">&ndash;</div>
     </div>
     <div class="statCard">
-      <div class="statLabel">CPU Load</div>
-      <div class="statValue" id="statLoad">&ndash;</div>
-      <div class="statChart" id="statLoadChart"></div>
+      <div class="statLabel">CPU</div>
+      <div class="statValue" id="statCpuPercent">&ndash;</div>
+      <div class="statSubtext" id="statCpuSub">&ndash;</div>
+      <div class="statChart" id="statCpuChart"></div>
     </div>
     <div class="statCard">
       <div class="statLabel">Memory</div>
       <div class="statValue" id="statMemory">&ndash;</div>
       <div class="statBar"><div class="statBarFill" id="statMemoryBar"></div></div>
+      <div class="statSubtext" id="statSwapSub">&ndash;</div>
       <div class="statChart" id="statMemoryChart"></div>
     </div>
     <div class="statCard">
@@ -956,6 +973,16 @@
     <div class="statCard statCardWide">
       <div class="statLabel">Services</div>
       <div id="statServicesRows"></div>
+    </div>
+    <div class="statCard">
+      <div class="statLabel">Network</div>
+      <div class="statValue" id="statNetwork">&ndash;</div>
+      <div class="statChart" id="statNetworkChart"></div>
+    </div>
+    <div class="statCard">
+      <div class="statLabel">Maintenance</div>
+      <div class="statValue" id="statUpdates">&ndash;</div>
+      <div class="statSubtext" id="statReboot">&ndash;</div>
     </div>
     <div class="statCard">
       <div class="statLabel">Last Successful Deploy</div>
@@ -1798,10 +1825,13 @@
 
     document.getElementById("statUptime").textContent = formatUptime(d.uptime_seconds);
 
-    var load = d.load_avg || [];
-    document.getElementById("statLoad").textContent = load.length
-      ? load.map(function (n) { return n.toFixed(2); }).join(" / ")
-      : "--";
+    var cpu = d.cpu || {};
+    var cpuPercent = (cpu.percent !== undefined && cpu.percent !== null) ? cpu.percent : null;
+    document.getElementById("statCpuPercent").textContent = (cpuPercent !== null) ? cpuPercent + "%" : "--";
+    var load = cpu.load_avg || [];
+    var loadText = load.length ? load.map(function (n) { return n.toFixed(2); }).join(" / ") : "--";
+    document.getElementById("statCpuSub").textContent =
+      "Load " + loadText + (cpu.cores ? " · " + cpu.cores + " cores" : "");
 
     var mem = d.memory || {};
     var memPercent = (mem.percent !== undefined && mem.percent !== null) ? mem.percent : null;
@@ -1812,8 +1842,34 @@
     memBar.style.width = (memPercent !== null ? memPercent : 0) + "%";
     setBarClass(memBar, memPercent !== null ? memPercent : 0);
 
+    var swap = d.swap || {};
+    var swapPercent = (swap.percent !== undefined && swap.percent !== null) ? swap.percent : null;
+    document.getElementById("statSwapSub").textContent = (swapPercent !== null)
+      ? "Swap " + swap.used_mb + " / " + swap.total_mb + " MB (" + swapPercent + "%)"
+      : "Swap —";
+
     var tempC = (d.temp_c !== undefined && d.temp_c !== null) ? d.temp_c : null;
     document.getElementById("statTemp").textContent = (tempC !== null) ? tempC.toFixed(1) + "°C" : "--";
+
+    var network = d.network || {};
+    var rxKbps = (network.rx_kbps !== undefined && network.rx_kbps !== null) ? network.rx_kbps : null;
+    var txKbps = (network.tx_kbps !== undefined && network.tx_kbps !== null) ? network.tx_kbps : null;
+    document.getElementById("statNetwork").textContent = (rxKbps !== null && txKbps !== null)
+      ? ("↓ " + rxKbps.toFixed(1) + " · ↑ " + txKbps.toFixed(1) + " KB/s")
+      : "--";
+
+    var maintenance = d.maintenance || {};
+    var updatesAvailable = (maintenance.updates_available !== undefined && maintenance.updates_available !== null)
+      ? maintenance.updates_available : null;
+    var updatesEl = document.getElementById("statUpdates");
+    updatesEl.textContent = (updatesAvailable !== null)
+      ? (updatesAvailable === 0 ? "Up to date" : updatesAvailable + " updates")
+      : "--";
+    setStatValueClass(updatesEl, 1, Infinity, updatesAvailable !== null ? updatesAvailable : null);
+    var rebootEl = document.getElementById("statReboot");
+    var rebootRequired = !!maintenance.reboot_required;
+    rebootEl.textContent = rebootRequired ? "Reboot required" : "No reboot needed";
+    rebootEl.className = "statSubtext" + (rebootRequired ? " statWarn" : "");
 
     // Trend charts — a short rolling history the server script keeps
     // (see the "server health display" comment above fetchServerStats).
@@ -1821,11 +1877,12 @@
     // this is optional richness, not something the rest of the screen
     // depends on.
     var history = d.history || {};
-    renderSparkline("statLoadChart", history.cpu_load, "");
+    renderSparkline("statCpuChart", history.cpu_percent, "");
     renderSparkline("statMemoryChart", history.memory_percent,
       memPercent !== null && memPercent >= 90 ? "statBad" : memPercent >= 70 ? "statWarn" : "");
     renderSparkline("statTempChart", history.temp_c,
       tempC !== null && tempC >= 80 ? "statBad" : tempC >= 65 ? "statWarn" : "");
+    renderSparkline("statNetworkChart", history.network_kbps, "");
 
     var diskContainer = document.getElementById("statDisksRows");
     diskContainer.innerHTML = "";

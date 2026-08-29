@@ -140,20 +140,36 @@ reasoning.
   same resilient pattern as the prayer-time fetch: falls back to the
   last-known-good response in `localStorage` on failure, never clears
   the screen just because one poll failed).
-- Cards: Uptime, CPU Load (+ trend chart), Memory (+ bar + trend chart),
-  Temperature (+ trend chart), Disk (per mount), Services (per-service
-  active/inactive dot), **Last Successful Deploy** (age since the
-  runner's last successful job — not just "is the runner process
+- Cards: Uptime; **CPU** (usage %, + trend chart, with load average and
+  core count as supporting text — usage % is the headline number since
+  it's more intuitive than load average alone, which only makes sense
+  once you know the core count); Memory (+ bar + trend chart, with swap
+  as supporting text); Temperature (+ trend chart); Disk (per mount);
+  Services (per-service active/inactive dot — now also includes **DNS
+  Resolution** and **Internet** as two more rows, see below); **Network**
+  (down/up throughput + trend chart); **Maintenance** (pending package
+  updates, reboot-required flag); **Last Successful Deploy** (age since
+  the runner's last successful job — not just "is the runner process
   running", which the 29 Aug DNS outage proved doesn't actually tell you
-  whether deploys are working), Containers.
+  whether deploys are working); Containers.
+- **Connectivity is two separate checks, not one**: DNS Resolution
+  (`getent hosts github.com`) and Internet (`ping` a raw IP, `1.1.1.1`,
+  bypassing DNS entirely) are deliberately independent — the 29 Aug
+  outage was exactly a case where DNS was broken but the network route
+  itself was fine, and one combined "internet: yes/no" flag would have
+  hidden that distinction. Both render as ordinary rows in the existing
+  Services card (no new card needed — they're just more entries in the
+  same `services` array, active/inactive like any other service).
 - Trend charts (`renderSparkline()`) are small hand-built inline-SVG
   line+area charts reading a short rolling `history` array per metric
-  (`history.cpu_load`, `.memory_percent`, `.temp_c` — oldest first) —
-  no charting library, consistent with the rest of this app. Colour
-  follows the same warn/bad thresholds as the metric's own bar/text
-  (memory/temp ≥70% or ≥90%-equivalent turn amber/red); CPU load's
-  chart is deliberately left neutral since "too high" depends on core
-  count, which isn't tracked, so no threshold is invented for it.
+  (`history.cpu_load`, `.cpu_percent`, `.memory_percent`, `.temp_c`,
+  `.network_kbps` — oldest first) — no charting library, consistent
+  with the rest of this app. Colour follows the same warn/bad
+  thresholds as the metric's own bar/text (memory/temp ≥70% or
+  ≥90%-equivalent turn amber/red); CPU usage and network throughput
+  charts are deliberately left neutral, since "too high" for either
+  depends on context (core count; what's normal for this connection)
+  that isn't tracked, so no threshold is invented for either.
 - Service/container status dots are **iOS systemGreen/systemRed**
   (`#34c759`/`#ff3b30` light, `#30d158`/`#ff453a` dark) — deliberately
   not the same green as Prayer Times' accent or this screen's purple;
@@ -1130,3 +1146,72 @@ actual Test button end-to-end — hits the pre-existing, unrelated
 script-triggered click isn't a genuine user gesture), confirming the
 error-message path still works and "Playing" never appears anywhere.
 No new console errors.
+
+### 2026-08-29 — Server Health: six new stats (user felt the display "looked quite little")
+Added, all user-selected from a menu of options: an internet/DNS
+connectivity check, CPU core count + real usage %, swap usage, network
+throughput, and two maintenance flags (pending updates, reboot
+required).
+
+**Schema changes** (`scripts/server-stats.sh` + client both updated
+together, no external consumers to keep compatible with):
+- `load_avg` moved from top-level into a new `cpu` object alongside it:
+  `cpu: {cores, percent, load_avg}`.
+- New top-level `swap: {used_mb, total_mb, percent}` (0%, not null,
+  when no swap is configured — that's a normal setup, not missing data).
+- New top-level `network: {interface, rx_kbps, tx_kbps}`.
+- New top-level `maintenance: {reboot_required, updates_available}`.
+- `services` array gained two more entries: `dns` (DNS Resolution) and
+  `internet` (Internet) — rendered by the exact same generic
+  `renderStatRows()` the other services already use, no new rendering
+  code needed for these two.
+- `history` gained `cpu_percent` and `network_kbps` alongside the
+  existing three series.
+
+**CPU % and network throughput are both computed from cumulative
+counters, not point-in-time readings** — `/proc/stat` (CPU ticks) and
+`/proc/net/dev` (bytes) only make sense as *deltas* between two
+samples, so the script now persists one extra state file between runs
+(`~/.server-stats-prev-sample`: timestamp + previous counters) purely
+for this, separate from the existing rolling-history file. First run
+after this deploys (or after that file is ever deleted) has nothing to
+diff against, so `cpu.percent`/`network.rx_kbps`/`network.tx_kbps` come
+back `null` for exactly that one run — verified the client already
+handled this correctly (shows "--", draws no chart, no crash) before
+ever touching the real server, since the exact same "first sample" case
+already existed for temperature history in the original build.
+
+**Network interface is auto-detected**, not hardcoded — `ip route show
+default` finds whichever interface actually carries the default route,
+rather than assuming `wlp2s0` specifically (true on this box today, but
+no reason to bake that in when the check to find it properly is one
+line).
+
+**Pending updates check is cached for an hour** (`apt list
+--upgradable`, itself just reading already-fetched local package lists,
+no network call) — it can only change after an `apt update` runs, so
+checking it fresh every 10 seconds would be pure waste. Cache file's own
+mtime is the "how old is this" check, no extra bookkeeping needed.
+
+**Connectivity check is deliberately two separate booleans**, not one
+— `dns_ok` (`getent hosts github.com`) and `internet_ok` (`ping` a raw
+IP, `1.1.1.1`, which can't be affected by a DNS problem). This directly
+mirrors the 29 Aug outage, where DNS was broken but the network route
+itself was fine — a single combined flag would have hidden exactly the
+distinction that mattered that day.
+
+**Verified without deploying to the real server first**: the new awk
+one-liners (CPU% delta math, network rate math, divide-by-zero and
+negative-delta guards for a counter reset) tested standalone with
+known inputs and confirmed exact expected outputs; the extended jq
+history/final-JSON logic tested in isolation across multiple simulated
+runs including the first-run-null case; the exact resulting JSON shape
+fed into the real client in the local preview and visually confirmed
+for every new card, including forcing each maintenance state
+("Up to date" vs "N updates" vs "Reboot required") and the all-null
+first-run state, in both themes. No console errors in any state. Only
+after all of that did this get committed and pushed — the actual
+server picks up the new script automatically via the existing deploy
+pipeline, no manual re-install needed this time (unlike the original
+Server Health build, this change is pure script content, not new
+packages or systemd units).
