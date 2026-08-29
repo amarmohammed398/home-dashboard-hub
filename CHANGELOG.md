@@ -1066,3 +1066,12 @@ confirmed back to visible via direct inspection, not just eyeballing);
 `#moreMenu`'s own outside-tap-to-close behaviour is unchanged; dark mode
 still recolours the new ✕ button correctly; no console errors beyond
 the known/expected missing-`adhan.mp3` 404 in the local test folder.
+
+### 2026-08-29 — "Choose a Display" heading: plain black/white
+`#homeTitle` was the same accent colour as each theme's other headings
+(`#0b7a5c` light / `#4de3ac` dark, matching `#masjidName`) — changed on
+request to plain `#000000` light / `#ffffff` dark instead, so the home
+screen's own heading doesn't read as "belonging" to either display's
+accent colour (green for Prayer Times, purple for Server Health) now
+that two exist with distinct colours. Verified in both themes in the
+local preview.
