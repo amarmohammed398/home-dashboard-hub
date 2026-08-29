@@ -202,6 +202,58 @@ reasoning.
   committed or wiped by a deploy (added to the rsync exclude list once
   the server-side script exists).
 
+### Bin Day display
+**Status: fully live (confirmed 29 Aug 2026).** Third tablet screen
+(`#binScreen`), iOS-blue accent (`#007aff` light / `#0a84ff`–`#409cff`
+dark) — deliberately distinct from Prayer Times' teal-emerald and
+Server Health's purple, same "each display gets its own colour" rule.
+- **Deliberately zero live fetching — no backend, no XHR at all.**
+  Stockport Council's own bin-day lookup
+  (`forms.stockport.gov.uk/bin-collections`) is a multi-step,
+  session-based form with no public JSON API, so scraping it reliably
+  would need real backend infrastructure this project has otherwise
+  avoided everywhere. UK bin collections instead follow a fixed
+  recurring pattern, so the pattern itself is hardcoded
+  (`BIN_ROTATION_REFERENCE` / `BIN_ROTATION` / `BIN_LABELS`) and the
+  schedule is computed client-side with plain date math
+  (`computeBinSchedule()`), the same "derive it live from the clock"
+  philosophy already used for the countdown and day-rollover logic.
+- **The verified rule** (collection day: every Monday; round "21A"):
+  the **green** bin is collected every single Monday with no
+  exceptions, plus a 4-week rotation that layers on extra bins:
+  week 0 adds **black**, week 1 adds **blue + brown**, week 2 adds
+  **black**, week 3 adds nothing (green only). Anchored to Monday 5
+  Jan 2026 as a confirmed "week 0" (black) week.
+- **How this was verified**: checked directly against Stockport
+  Council's own published calendar for round 21A (covering April 2025
+  – September 2026) across every date from January–September 2026 — 9
+  months, zero exceptions — then cross-checked against the live
+  per-property "next collections" lookup for a date *beyond* the
+  printed calendar's own range (21 September 2026, predicted
+  blue+brown), which matched exactly. Stockport's site states its bin
+  data is published under the **Open Government Licence** (checked
+  directly on their `/terms-and-conditions` page), which explicitly
+  permits this kind of reuse — a materially different, more permissive
+  situation than the Cheadle Masjid data-usage risk noted below.
+- **This rule needs manual re-verification if Stockport ever changes
+  round 21A's schedule** (their own calendar notes at least one past
+  frequency change, May 2025) — the app has no way to detect that on
+  its own; if collections stop matching what's shown, re-derive the
+  rotation from an updated council calendar rather than assuming the
+  hardcoded rule still holds indefinitely.
+- The home address used to look up which round/day applies is
+  deliberately **not stored anywhere in this repo or its docs** — only
+  the resulting anonymous schedule pattern above is committed.
+- `#binNextCard` shows the next upcoming collection ("Today" /
+  "Tomorrow" / "In N days", the date, and coloured bin chips);
+  `#binCard`/`#binRows` lists the following 5 upcoming Mondays. Reuses
+  the same overflow-safety CSS pattern as Server Health's `#statGrid`
+  (`flex: 1; min-height: 0; overflow-y: auto`), tested at both iPad
+  orientations before shipping given the earlier real overflow bug.
+- Rendered every tick (`renderBinDay()`, called unconditionally from
+  `tick()` and once at boot) — cheap, since it's just date math and a
+  handful of `textContent`/`innerHTML` writes, not an XHR.
+
 ### Appearance
 - **"Liquid Glass" look** (matching iOS 26's own material design): every
   floating panel (`#header`, `#countdownClock`, `#card`, `#settingsPanel`,
@@ -1588,3 +1640,47 @@ right. Full checklist run after the reboot came back up:
 Nothing needed manual intervention after the reboot — every fix from
 today's session (DNS root-cause, sensor module persistence, the full
 project rename) is now proven durable rather than merely applied.
+
+### 2026-08-29 — Third display: Bin Day
+Added a third tablet screen for Stockport Council bin collection days,
+following the exact same multi-display pattern as Server Health: a new
+home-screen tile (`data-screen="bin-day"`), a `#binScreen` with its own
+`.screenHeader`, an entry in `TABLET_SCREENS`, and its own accent
+colour — iOS blue, to stay visually distinct from Prayer Times'
+teal-emerald and Server Health's purple.
+
+The interesting decision was *not* building a live fetch. Stockport's
+own lookup (`forms.stockport.gov.uk/bin-collections`) is a session-based
+form with no public API — scraping it would need real backend
+infrastructure this project has avoided everywhere else, and would
+quietly break the day the council redesigns the form. UK bin
+collections are a fixed recurring pattern instead, so the pattern
+itself is hardcoded and the schedule is computed with plain date math,
+consistent with how the rest of the app already computes everything
+live off the clock rather than pre-scheduling anything.
+
+The rotation rule (green every Monday, plus a 4-week rotation of
+black/blue+brown/black/nothing — full detail in the baseline section
+above) was derived from the user's real address, but was verified
+exhaustively before being hardcoded: checked against Stockport's
+official round-21A calendar for every date January–September 2026 (9
+months, zero exceptions), then cross-validated against the live
+per-property lookup for 21 September 2026 — a date beyond the printed
+calendar's own range — which matched the formula's prediction exactly.
+The address itself was used only for that one-off lookup and is not
+stored anywhere in this repo; only the anonymous resulting pattern is
+committed. Also confirmed, directly on Stockport's own
+`/terms-and-conditions` page, that their data is published under the
+Open Government Licence — a meaningfully more permissive footing than
+the unresolved Cheadle Masjid data-usage risk noted above, and part of
+why this display was comfortable to build the same way Prayer Times
+was.
+
+Tested in local preview at both iPad orientations (834×1194 portrait,
+1194×834 landscape) and both themes before shipping — given the recent
+real overflow bug on Server Health, `#binCard` reuses the same
+`flex: 1; min-height: 0; overflow-y: auto` safety pattern rather than
+assuming five rows will always fit. Also verified the computed schedule
+directly in-browser against the two known-correct dates above (31 Aug
+2026 → black+green, 21 Sept 2026 → blue+brown) before considering this
+done — matched exactly in both cases.

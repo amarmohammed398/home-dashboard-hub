@@ -47,7 +47,7 @@
      reflects more light near the top). Exact fill colour/opacity is
      theme-dependent, set below in the light/dark sections; the
      properties here are the same regardless of theme. */
-  #countdownClock, #card, #settingsPanel, #moreMenu, .tile, .screenHeader, .statCard {
+  #countdownClock, #card, #settingsPanel, #moreMenu, .tile, .screenHeader, .statCard, #binNextCard, #binCard {
     -webkit-backdrop-filter: blur(28px) saturate(180%);
     backdrop-filter: blur(28px) saturate(180%);
     border: 1px solid transparent;
@@ -420,6 +420,163 @@
     align-items: center;
   }
 
+  /* ---------- bin day (third display) ---------- */
+  #binScreen {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex; /* showScreen() toggles style.display none/flex at runtime */
+    -webkit-box-orient: vertical;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 3vh 3vw;
+  }
+  #binName {
+    font-size: 3.6vw;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  #binSub {
+    font-size: 1.7vw;
+    margin-top: 0.3vh;
+    font-weight: 500;
+  }
+  #binTodayLine {
+    font-size: 1.7vw;
+    font-weight: 500;
+  }
+  /* The big headline panel — same visual weight/role as Prayer Times'
+     #countdownClock, just day-granularity ("in 2 days") rather than a
+     live HH:MM:SS tick, since bin day genuinely doesn't need
+     second-resolution urgency. */
+  #binNextCard {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    border-radius: 28px;
+    padding: 2.2vh 0;
+    margin-bottom: 2vh;
+  }
+  #binNextLabel {
+    font-size: 2vw;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  #binNextDays {
+    font-size: 6vw;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-top: 0.4vh;
+  }
+  #binNextDate {
+    font-size: 1.8vw;
+    font-weight: 600;
+    margin-top: 0.6vh;
+  }
+  #binNextChips {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-wrap: wrap;
+    flex-wrap: wrap;
+    -webkit-box-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    margin-top: 1.4vh;
+  }
+  #binCard {
+    -webkit-box-flex: 1;
+    -webkit-flex: 1;
+    flex: 1;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    border-radius: 28px;
+    padding: 1.6vh 1.6vw;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  #binCardTitle {
+    font-size: 1.35vw;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    font-weight: 700;
+    padding: 0.6vh 0.6vw 1.2vh;
+  }
+  .binRow {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-box-pack: justify;
+    -webkit-justify-content: space-between;
+    justify-content: space-between;
+    padding: 1.2vh 0.6vw;
+  }
+  .binRow + .binRow {
+    border-top-width: 1px;
+    border-top-style: solid;
+  }
+  .binRowDate {
+    font-size: 1.8vw;
+    font-weight: 700;
+  }
+  .binChips {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-wrap: wrap;
+    flex-wrap: wrap;
+    -webkit-box-pack: end;
+    -webkit-justify-content: flex-end;
+    justify-content: flex-end;
+  }
+  /* One pill per bin colour due that day — a coloured dot (the bin's
+     actual real-world colour) plus its name, rather than colouring the
+     whole pill, so it stays readable in both themes without needing a
+     separate light/dark palette per bin colour. */
+  .binChip {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.5vh 1vw 0.5vh 0.6vw;
+    margin: 0.3vh 0 0.3vh 0.6vw;
+    font-size: 1.3vw;
+    font-weight: 700;
+  }
+  .binChipDot {
+    width: 0.9vw;
+    height: 0.9vw;
+    min-width: 11px;
+    min-height: 11px;
+    border-radius: 50%;
+    margin-right: 0.5vw;
+    -webkit-flex: 0 0 auto;
+    flex: 0 0 auto;
+  }
+  .binChipDot.black { background-color: #48484a; }
+  .binChipDot.green { background-color: #34a853; }
+  .binChipDot.blue { background-color: #0a84ff; }
+  .binChipDot.brown { background-color: #a1662f; }
+
   /* ---------- home screen (tablet picker) ---------- */
   /* The launcher screen: pick which "tablet" (display) to show — new
      tiles just wrap onto new rows, no layout changes needed. */
@@ -776,7 +933,9 @@
   body.theme-light #settingsPanel,
   body.theme-light #moreMenu,
   body.theme-light .tile,
-  body.theme-light .statCard {
+  body.theme-light .statCard,
+  body.theme-light #binNextCard,
+  body.theme-light #binCard {
     background-color: rgba(255, 255, 255, 0.55);
     border-color: rgba(255, 255, 255, 0.7);
     box-shadow: 0 8px 32px 0 rgba(31, 41, 55, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -836,8 +995,18 @@
   body.theme-light .tileLabel { color: #1f2937; }
   body.theme-light .tileIcon { color: #0e8f6b; }
   body.theme-light .tile[data-screen="server-health"] .tileIcon { color: #7c3aed; }
+  body.theme-light .tile[data-screen="bin-day"] .tileIcon { color: #007aff; }
   body.theme-light #moreMenu { color: #1f2937; }
   body.theme-light .moreMenuRow:active { background-color: rgba(31, 41, 55, 0.08); }
+  body.theme-light #binName { color: #007aff; text-shadow: 0 1px 2px rgba(255,255,255,0.5); }
+  body.theme-light #binSub, body.theme-light #binTodayLine { color: #374151; }
+  body.theme-light #binNextLabel { color: #4b5563; }
+  body.theme-light #binNextDays { color: #007aff; }
+  body.theme-light #binNextDate { color: #1f2937; }
+  body.theme-light #binCardTitle { color: #4b5563; }
+  body.theme-light .binRow + .binRow { border-top-color: rgba(31,41,55,0.08); }
+  body.theme-light .binRowDate { color: #1f2937; }
+  body.theme-light .binChip { background-color: rgba(31, 41, 55, 0.08); color: #1f2937; }
 
   /* ================= DARK THEME ================= */
   body.theme-dark {
@@ -853,7 +1022,9 @@
   body.theme-dark #settingsPanel,
   body.theme-dark #moreMenu,
   body.theme-dark .tile,
-  body.theme-dark .statCard {
+  body.theme-dark .statCard,
+  body.theme-dark #binNextCard,
+  body.theme-dark #binCard {
     background-color: rgba(22, 26, 34, 0.55);
     border-color: rgba(255, 255, 255, 0.14);
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -908,8 +1079,18 @@
   body.theme-dark .tileLabel { color: #f3f4f6; }
   body.theme-dark .tileIcon { color: #2fd39a; }
   body.theme-dark .tile[data-screen="server-health"] .tileIcon { color: #a78bfa; }
+  body.theme-dark .tile[data-screen="bin-day"] .tileIcon { color: #0a84ff; }
   body.theme-dark #moreMenu { color: #f3f4f6; }
   body.theme-dark .moreMenuRow:active { background-color: rgba(255, 255, 255, 0.08); }
+  body.theme-dark #binName { color: #409cff; }
+  body.theme-dark #binSub, body.theme-dark #binTodayLine { color: #cbd2dc; }
+  body.theme-dark #binNextLabel { color: #9aa1ac; }
+  body.theme-dark #binNextDays { color: #409cff; }
+  body.theme-dark #binNextDate { color: #f3f4f6; }
+  body.theme-dark #binCardTitle { color: #9aa1ac; }
+  body.theme-dark .binRow + .binRow { border-top-color: rgba(255,255,255,0.08); }
+  body.theme-dark .binRowDate { color: #f3f4f6; }
+  body.theme-dark .binChip { background-color: rgba(255, 255, 255, 0.1); color: #f3f4f6; }
 </style>
 </head>
 <body class="theme-light">
@@ -930,6 +1111,12 @@
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16c1.1 0 2 .9 2 2v3c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2zm0 8h16c1.1 0 2 .9 2 2v6c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2v-6c0-1.1.9-2 2-2zm2.5-6C5.67 5 5 5.67 5 6.5S5.67 8 6.5 8 8 7.33 8 6.5 7.33 5 6.5 5zm0 8c-.83 0-1.5.67-1.5 1.5S5.67 16 6.5 16s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"></path></svg>
       </div>
       <div class="tileLabel">Server Health</div>
+    </div>
+    <div class="tile" data-screen="bin-day">
+      <div class="tileIcon">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path></svg>
+      </div>
+      <div class="tileLabel">Bin Day</div>
     </div>
   </div>
 </div>
@@ -1025,6 +1212,37 @@
       <div class="statLabel">Containers</div>
       <div id="statContainersRows"></div>
     </div>
+  </div>
+
+</div>
+
+<!-- Third display: bin collection days. Deliberately no fetch at all —
+     see computeBinSchedule() below for why a hardcoded recurring rule
+     is used instead of scraping the council's session-based lookup
+     form, and BIN_ROTATION's own comment for where that rule came from
+     and how it was verified. -->
+<div id="binScreen">
+
+  <div class="screenHeader">
+    <div>
+      <div id="binName">Bin Day</div>
+      <div id="binSub">Stockport Council</div>
+    </div>
+    <div id="binMetaBlock">
+      <div id="binTodayLine">&ndash;</div>
+    </div>
+  </div>
+
+  <div id="binNextCard">
+    <div id="binNextLabel">Next Collection In</div>
+    <div id="binNextDays">&ndash;</div>
+    <div id="binNextDate">&ndash;</div>
+    <div id="binNextChips"></div>
+  </div>
+
+  <div id="binCard">
+    <div id="binCardTitle">Upcoming</div>
+    <div id="binRows"></div>
   </div>
 
 </div>
@@ -1188,7 +1406,8 @@
   // about how switching itself works needs to change.
   var TABLET_SCREENS = {
     "prayer-times": "prayerScreen",
-    "server-health": "serverScreen"
+    "server-health": "serverScreen",
+    "bin-day": "binScreen"
   };
 
   // Vertically centers the fixed #settingsBtn icon on the current
@@ -2020,6 +2239,111 @@
     updatedLine.className = stale ? "stale" : "";
   }
 
+  /* ---------------- Bin Day (third display) ----------------
+     Deliberately no live fetch at all, unlike either other display —
+     Stockport's official lookup (forms.stockport.gov.uk/bin-collections)
+     is a multi-step, session-based form with no public API, so
+     scraping it reliably would need real backend infrastructure this
+     app has otherwise avoided everywhere, and would quietly break the
+     day the council redesigns that form. UK bin collections are just a
+     fixed recurring pattern instead, so the pattern itself is
+     hardcoded and the schedule is computed with plain date math,
+     exactly like the rest of this app already computes everything else
+     live from the current clock rather than pre-scheduling anything.
+
+     This rotation was verified directly against Stockport's own
+     official calendar for this address's round ("21A", published March
+     2025) before being hardcoded — checked against every date from
+     January through September 2026 (9 months, zero exceptions), then
+     cross-checked against the live myaccount.stockport.gov.uk
+     per-property lookup for a date *beyond* the printed calendar's own
+     range (21 Sept 2026), which matched this formula exactly. Round
+     schedules do occasionally change (Stockport's own calendar notes a
+     May 2025 frequency change) — if collections ever stop matching
+     this, re-derive it from an updated calendar rather than assuming
+     this rule still holds indefinitely; this app has no way to detect
+     that on its own. */
+  var BIN_ROTATION_REFERENCE = new Date(2026, 0, 5); // Monday 5 Jan 2026 — a confirmed "black" week
+  var BIN_ROTATION = [
+    ["black"],          // week 0
+    ["blue", "brown"],  // week 1
+    ["black"],          // week 2
+    []                  // week 3 — green only
+  ];
+  var BIN_LABELS = { black: "Black", green: "Green", blue: "Blue", brown: "Brown" };
+
+  function startOfDay(d) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+
+  // Green is added unconditionally — it's the one bin collected every
+  // single Monday with no exceptions found anywhere in the verified
+  // range, so it isn't part of the rotation array at all.
+  function binsForMonday(mondayDate) {
+    var diffDays = Math.round((mondayDate.getTime() - BIN_ROTATION_REFERENCE.getTime()) / 86400000);
+    var weekIndex = ((diffDays / 7) % BIN_ROTATION.length + BIN_ROTATION.length) % BIN_ROTATION.length;
+    return ["green"].concat(BIN_ROTATION[weekIndex]);
+  }
+
+  function computeBinSchedule(now, count) {
+    var today = startOfDay(now);
+    var dayOfWeek = today.getDay(); // 0 = Sunday .. 6 = Saturday
+    var daysUntilMonday = (1 - dayOfWeek + 7) % 7; // 0 if today itself is Monday
+    var firstMonday = new Date(today.getTime() + daysUntilMonday * 86400000);
+    var schedule = [];
+    var i, mondayDate;
+    for (i = 0; i < count; i++) {
+      mondayDate = new Date(firstMonday.getTime() + i * 7 * 86400000);
+      schedule.push({ date: mondayDate, bins: binsForMonday(mondayDate) });
+    }
+    return schedule;
+  }
+
+  function binChipsHtml(bins) {
+    var i, key, html = "";
+    for (i = 0; i < bins.length; i++) {
+      key = bins[i];
+      html += '<span class="binChip"><span class="binChipDot ' + key + '"></span>' + BIN_LABELS[key] + '</span>';
+    }
+    return html;
+  }
+
+  function formatBinDate(d) {
+    return DAY_NAMES[d.getDay()] + ", " + d.getDate() + " " + MONTH_NAMES[d.getMonth()];
+  }
+
+  function renderBinDay(now) {
+    document.getElementById("binTodayLine").textContent = formatBinDate(now);
+
+    var schedule = computeBinSchedule(now, 6);
+    var next = schedule[0];
+    var today = startOfDay(now);
+    var diffDays = Math.round((next.date.getTime() - today.getTime()) / 86400000);
+
+    var daysEl = document.getElementById("binNextDays");
+    if (diffDays === 0) {
+      daysEl.textContent = "Today";
+    } else if (diffDays === 1) {
+      daysEl.textContent = "Tomorrow";
+    } else {
+      daysEl.textContent = "In " + diffDays + " days";
+    }
+
+    document.getElementById("binNextDate").textContent = formatBinDate(next.date);
+    document.getElementById("binNextChips").innerHTML = binChipsHtml(next.bins);
+
+    var container = document.getElementById("binRows");
+    container.innerHTML = "";
+    var i, item, rowEl;
+    for (i = 1; i < schedule.length; i++) {
+      item = schedule[i];
+      rowEl = el("div", "binRow",
+        '<div class="binRowDate">' + formatBinDate(item.date) + '</div>' +
+        '<div class="binChips">' + binChipsHtml(item.bins) + '</div>');
+      container.appendChild(rowEl);
+    }
+  }
+
   function saveLocal(d) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ d: d, savedAt: new Date().getTime() }));
@@ -2243,6 +2567,11 @@
     if (serverData) {
       renderServerStats();
     }
+    // Bin Day has no fetched data to gate on at all — it's pure date
+    // math off the live clock — so just re-render it every tick like
+    // the clock itself. Cheap: no DOM rebuild beyond a few textContent
+    // writes unless the day has actually rolled over.
+    renderBinDay(now);
     // No automatic page reload: on iOS, reloading would re-lock audio
     // autoplay until someone next taps the screen, which would silently
     // stop the adhan from sounding. The day already rolls over reactively
@@ -2271,6 +2600,8 @@
   }
   renderServerStats();
   fetchServerStats();
+
+  renderBinDay(new Date());
 
   setInterval(tick, 1000);
   setInterval(fetchData, REFRESH_MS);

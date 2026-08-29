@@ -11,12 +11,12 @@
 
 A wall/stand-mounted iPad (in a picture-frame case) that shows one of
 several full-screen **displays** — a home screen lets you pick which one.
-Two exist today: **Prayer Times** (for Cheadle Masjid, built first) and
-**Server Health** (live stats for the home server itself). More are
-planned (energy/water/gas usage, bin-day reminders, and others — see
-the "Where this could go next" section of
-[ARCHITECTURE.md](ARCHITECTURE.md) for ideas not built yet, and
-[CHANGELOG.md](CHANGELOG.md) for exactly what exists today).
+Three exist today: **Prayer Times** (for Cheadle Masjid, built first),
+**Server Health** (live stats for the home server itself), and
+**Bin Day** (Stockport Council collection schedule). More are planned
+(energy/gas usage and others — see the "Where this could go next"
+section of [ARCHITECTURE.md](ARCHITECTURE.md) for ideas not built yet,
+and [CHANGELOG.md](CHANGELOG.md) for exactly what exists today).
 
 > **Naming note:** this project started as a single-purpose prayer-times
 > display, originally named after the masjid it displays — renamed to
@@ -179,6 +179,30 @@ instead of "Waiting for data…". If it's ever stuck on "Waiting for
 data…" or shows a "Stale data" banner, check the timer with the same
 `systemctl status`/`cat` commands above before assuming the display
 itself is broken.
+
+## Bin Day display
+
+The third display: Stockport Council bin collection days. iOS-blue
+accent, distinct from the other two displays' colours.
+
+Unlike the other two displays, this one needs **no setup and no live
+data source at all** — no server-side script, no fetch, nothing to
+install. UK bin collections follow a fixed recurring pattern, so the
+schedule is just hardcoded in `index.html` and computed client-side
+with plain date math (see `CHANGELOG.md`'s "Bin Day display" baseline
+section for the exact rule and how it was verified against Stockport
+Council's own published calendar). This is deliberate: Stockport's own
+bin-lookup tool is a session-based web form with no public API, so a
+live fetch would need real backend infrastructure this project has
+avoided everywhere else, for a value that only changes on the
+council's own schedule anyway.
+
+**If your household's collection days ever stop matching what's
+shown**, that means the council has changed your collection round —
+re-derive the rotation from an updated council calendar and update the
+constants at the top of the Bin Day section of `index.html`
+(`BIN_ROTATION_REFERENCE` / `BIN_ROTATION`); there's no way for the app
+to detect this change on its own.
 
 ## Deployment: self-hosted on your Linux server, displayed on the iPad
 

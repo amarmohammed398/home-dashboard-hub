@@ -12,15 +12,18 @@ the way. For the granular commit-by-commit history, see
 
 An iPad mounted around the house (picture-frame case, permanent power)
 shows one of several full-screen **displays**, picked from a home
-screen. Two exist today: **Prayer Times**, the first one built —
+screen. Three exist today: **Prayer Times**, the first one built —
 Cheadle Masjid's daily prayer times, counting down live to the next
 prayer's Begins time, and optionally sounding the adhan through the
-tablet's speaker at that moment — and **Server Health**, live stats for
-the home server itself. More are planned (utility usage and others —
-see "Where this could go next" at the bottom); the app is deliberately
-structured so adding one means adding a new screen and a new
-home-screen tile, not rebuilding anything that already works. All of it
-runs unattended, indefinitely, updated by pushing code from a laptop.
+tablet's speaker at that moment; **Server Health**, live stats for the
+home server itself; and **Bin Day**, Stockport Council's bin collection
+schedule computed entirely from a hardcoded recurring rule, with no
+live data source at all (see "Data flow: Bin Day" below for why). More
+are planned (utility usage and others — see "Where this could go next"
+at the bottom); the app is deliberately structured so adding one means
+adding a new screen and a new home-screen tile, not rebuilding anything
+that already works. All of it runs unattended, indefinitely, updated by
+pushing code from a laptop.
 
 ### Multi-display navigation
 
@@ -180,6 +183,52 @@ app, with a small script doing the work in the background:
    is exactly why that distinction exists: the runner sat
    `active (running)` the entire time it couldn't actually deploy
    anything, which a naive process check would never have caught.
+
+## Data flow: Bin Day
+
+A third shape of problem, different again from the other two: the data
+doesn't come from an existing API (Prayer Times) or from the machine
+this app already controls (Server Health) — it comes from a council
+website with no public API, gated behind a session-based lookup form.
+The pragmatic answer here wasn't to build a scraper; it was to notice
+that the underlying real-world data is a fixed, low-frequency recurring
+pattern, so there's no data flow at all in the usual sense:
+
+```
+[BIN_ROTATION constant, index.html] --date math, every tick--> [Bin Day tablet screen]
+```
+
+1. The recurring rule — a bin collected every Monday, plus a 4-week
+   rotation of extra bins — was derived once, manually, by checking
+   Stockport Council's own published calendar for the relevant
+   collection round against real dates, then hardcoded as a small
+   JS constant (`BIN_ROTATION`, anchored to a known reference Monday).
+   See CHANGELOG.md's "Bin Day display" baseline entry for the exact
+   rule and how thoroughly it was cross-checked before being trusted.
+2. `computeBinSchedule()` derives the next several Mondays from
+   whatever `now` the browser's clock reports and runs each one through
+   the rotation math — the same "derive it live from the current time,
+   never pre-schedule anything in advance" principle already used for
+   Prayer Times' countdown and adhan-firing logic, just applied to a
+   much lower-frequency event.
+3. There is no fetch, no polling interval, no cache, and no
+   `localStorage` fallback for this display at all — there's nothing
+   to go stale or fail to load, since nothing is ever requested over
+   the network in the first place. This is the simplest of the three
+   displays specifically because the underlying real-world problem
+   (a fixed recurring schedule) doesn't actually require anything more.
+4. The trade-off, made explicitly rather than accidentally: if
+   Stockport ever changes the collection round's schedule, this app has
+   no way to detect that — the hardcoded rule needs a human to notice
+   collections stopped matching reality and re-derive it from an
+   updated council calendar. Given how infrequently these schedules
+   change in practice, this was judged a better trade than building and
+   maintaining a scraper against a form with no stable public contract.
+5. Stockport publishes this data under the **Open Government Licence**
+   (checked directly on their own `/terms-and-conditions` page) — a
+   meaningfully clearer legal footing than the still-unresolved Prayer
+   Times data-usage question above, and part of why this display was
+   comfortable to hardcode and ship without further discussion.
 
 ## Deployment architecture
 
@@ -381,19 +430,20 @@ yourself, which this file is itself an example of.
 ## Future displays under consideration (not commitments)
 
 Ideas for what to build into `#homeScreen` next, roughly in order of how
-little new infrastructure each one needs (Home server health has
-already shipped and is fully live — see the "Data flow: Server Health"
-section above):
+little new infrastructure each one needs (Server Health and Bin Day
+have already shipped and are fully live — see their own "Data flow"
+sections above):
 
 - **Electricity / gas usage** — via a UK smart meter data source (e.g.
-  Hildebrand Glow or n3rgy). If on a dynamic tariff (Octopus Agile/
-  Cosy), a "current rate + cheapest window tonight" view is genuinely
+  Hildebrand Glow or n3rgy). User is on Scottish Power, prepayment
+  plan — worth confirming what data a prepayment smart meter actually
+  exposes (some data sources assume credit-plan billing) before
+  committing design time. If a dynamic tariff ever becomes relevant, a
+  "current rate + cheapest window tonight" view would be genuinely
   useful, not just decorative.
 - **Water usage** — depends on whether the local supplier exposes any
   API/export at all; worth checking before committing design time to
   the display itself.
-- **Bin collection countdown** — low effort, high daily usefulness for
-  a kitchen/hallway placement, if the local council publishes a feed.
 - **Ambient/screensaver mode** — a photo-frame idle state (family
   photos + a small clock) any display could fall back to after
   inactivity, distinct from the "pick a display" home screen — suits
