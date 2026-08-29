@@ -177,6 +177,17 @@
     font-weight: 700;
     position: relative;
     padding-left: 0.6vw;
+    /* Flex (rather than relying on vertical-align on the icon) so the
+       speaker icon centers against the true height of the text's line
+       box regardless of font metrics — vertical-align: middle aligns to
+       half the x-height, which reads as "too low" against bold/large
+       text like this. */
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
   }
   .cell.time {
     font-size: 2.7vw;
@@ -186,16 +197,21 @@
   }
   /* Small "adhan armed" indicator next to a prayer's name — a proper
      icon rather than an emoji, coloured with the app's accent so it
-     reads as "this one's on" (same colour as an active toggle switch). */
+     reads as "this one's on" (same colour as an active toggle switch).
+     Vertical centering comes from .cell.name's flex/align-items now,
+     not vertical-align, so no positioning properties needed here. */
   .adhanArmedIcon {
-    display: inline-block;
-    vertical-align: middle;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-flex: 0;
+    -webkit-flex: 0 0 auto;
+    flex: 0 0 auto;
     margin-left: 0.3vw;
   }
   .adhanArmedIcon svg {
     width: 1.5vw;
     height: 1.5vw;
-    vertical-align: middle;
   }
   .sub {
     display: block;

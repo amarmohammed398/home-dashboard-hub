@@ -516,3 +516,16 @@ Verified: play buttons still trigger their test correctly (click
 bubbles up from the SVG child to the button div's handler, same
 pattern already relied on for the settings gear), icons render cleanly
 in both themes.
+
+### 2026-08-29 — Fixed vertical centering of the adhan-armed icon
+User noticed the speaker icon sat a little low next to the prayer name.
+Cause: it relied on `vertical-align: middle` on an inline icon next to
+large (`2.7vw`), bold (`700`) text — `vertical-align: middle` aligns to
+half the text's *x-height*, not the visual centre of the glyphs, and
+that gap becomes noticeable at large/bold sizes. Fixed by making
+`.cell.name` a flex container (`display: flex; align-items: center`)
+instead — the bare "Fajr" text becomes an anonymous flex item
+alongside the icon's `<span>`, and flexbox centres both against the
+cell's true height regardless of font metrics. Verified via
+`getBoundingClientRect()` rather than eyeballing a screenshot: icon's
+vertical centre now lands within 0.004px of the cell's centre.
