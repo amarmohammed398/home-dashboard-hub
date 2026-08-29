@@ -1530,3 +1530,38 @@ an SSH session on a WiFi-connected box risks briefly dropping the
 connection — flagged to the user before running it, since a server with
 no other access path could theoretically need physical/console
 recovery if it didn't reconnect on its own (it did, without issue).
+
+### 2026-08-29 — Rebooted the server: confirmed everything survives, not just assumed to
+The actual point of doing this now rather than whenever the pending
+kernel update got dealt with eventually: every fix made today (DNS,
+temperature sensor modules, the project rename) needed to be proven to
+survive a real reboot, not just trusted because the config file looked
+right. Full checklist run after the reboot came back up:
+
+- **DNS**: `wlp2s0` still shows `Current Scopes: DNS` with
+  `+DefaultRoute`; `resolvectl query broker.actions.githubusercontent.com`
+  (the exact hostname from the original outage) resolved successfully.
+  The `NetworkManager.conf`/`resolved.conf` fix is confirmed durable,
+  not just a live patch that happened to still be in memory.
+- **Temperature sensors**: `lsmod | grep -E "coretemp|nct6775"` shows
+  both loaded on this fresh boot — `sensors-detect --auto`'s automatic
+  `/etc/modules` entry (confirmed present days ago, but never actually
+  tested against a real reboot until now) genuinely works.
+- **Apache**: active, serving `index.html` with a real `HTTP 200` — at
+  the new `/var/www/home-dashboard-hub` path, confirming the rename's
+  vhost change is also reboot-durable, not just applied to the running
+  config.
+- **GitHub Actions runner**: active immediately after boot with no
+  manual restart — the systemd service survives a reboot on its own
+  (it was already `enabled`), nothing extra needed.
+- **Server Health collector**: `server-stats.timer` active, and
+  `server-stats.json` already had fresh data (`uptime_seconds: 653` —
+  about 11 minutes post-boot) at the *new* path, confirming both the
+  systemd unit re-copy and the rename survived together.
+- **Docker containers**: `nextcloud`/`nextcloud_db` both back up
+  automatically (Docker's own restart policy, not anything this project
+  configured) within the same ~8-minute post-boot window.
+
+Nothing needed manual intervention after the reboot — every fix from
+today's session (DNS root-cause, sensor module persistence, the full
+project rename) is now proven durable rather than merely applied.
