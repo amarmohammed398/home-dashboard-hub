@@ -270,26 +270,60 @@
     font-size: 1.5vw;
     font-weight: 500;
   }
+  /* CSS Grid, not flexbox-with-per-card-margins (what this used to be)
+     — `gap` gives genuinely uniform spacing on all four sides for
+     free, including the bottom edge of the last row, which hand-rolled
+     margins (each card carrying its own right+bottom margin, relying
+     on the container's own padding for the rest) got subtly wrong: the
+     last row ended up with an extra half-gap of margin the top of the
+     grid never had, so the bottom of the screen sat measurably closer
+     to the last row than the top sat to the header. Fixed two-column
+     layout (rather than flex's auto-wrapping-by-width) also means wide
+     cards (`.statCardWide`, via `grid-column: span 2`) always land
+     predictably, and every card pairs up — no lone card left stranded
+     alone on its own row with empty space beside it, which is exactly
+     why Containers went back to a regular (non-wide) card: it now
+     pairs with Last Successful Deploy instead of being the one
+     odd-one-out on the final row. */
   #statGrid {
-    display: -webkit-box;
-    display: -webkit-flex;
-    display: flex;
-    -webkit-flex-wrap: wrap;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.6vh 1.6vw;
+    /* Lets the grid take exactly the remaining height under the header
+       and scroll internally if its content is ever taller than that —
+       a safety net, not the primary fix: found via testing that 10
+       cards at 2-per-row genuinely overflowed the visible screen in
+       landscape (confirmed via scrollHeight vs. viewport height, not
+       just eyeballed), with the last row silently clipped by this
+       page's usual overflow:hidden. flex/min-height:0 is what makes a
+       flex child's own overflow actually able to kick in instead of
+       just growing taller than its share of space. */
+    -webkit-box-flex: 1;
+    -webkit-flex: 1;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  /* More columns in landscape (this app's real target orientation) so
+     10 cards pack into 3 rows instead of 6 — Uptime/CPU/Memory/
+     Temperature share one row, Disk+Services (each still spanning 2)
+     share the next, Network/Maintenance/Last Successful Deploy/
+     Containers share the third — rather than relying on the scroll
+     safety net above for what should just fit outright. Portrait keeps
+     2 columns (already confirmed to fit with room to spare). */
+  @media (orientation: landscape) {
+    #statGrid {
+      grid-template-columns: repeat(4, 1fr);
+    }
   }
   .statCard {
-    -webkit-box-flex: 1;
-    -webkit-flex: 1 1 21%;
-    flex: 1 1 21%;
-    min-width: 190px;
-    margin: 0.8vh 0.8vw 0.8vh 0;
     border-radius: 24px;
     padding: 1.8vh 1.6vw;
     box-sizing: border-box;
+    min-width: 0; /* lets a grid cell shrink below its content's natural width, e.g. long chart SVGs */
   }
   .statCardWide {
-    -webkit-flex-basis: 45%;
-    flex-basis: 45%;
+    grid-column: span 2;
   }
   .statLabel {
     font-size: 1.1vw;
@@ -384,12 +418,6 @@
     -webkit-box-align: center;
     -webkit-align-items: center;
     align-items: center;
-  }
-  #serverFooter {
-    text-align: center;
-    font-size: 1.2vw;
-    margin-top: 1.6vh;
-    font-weight: 500;
   }
 
   /* ---------- home screen (tablet picker) ---------- */
@@ -789,8 +817,7 @@
      screen's muted purple or Prayer Times' teal-emerald accent. */
   body.theme-light .statDot.on { background-color: #34c759; }
   body.theme-light .statDot.off { background-color: #ff3b30; }
-  body.theme-light #serverFooter { color: #4b5563; }
-  body.theme-light #serverFooter.offline { color: #b45309; }
+  body.theme-light #serverUpdatedLine.stale { color: #b45309; }
   body.theme-light #settingsBtn { color: #374151; }
   body.theme-light #settingsPanel { color: #1f2937; }
   body.theme-light #settingsPanel .panelTitle { color: #4b5563; }
@@ -862,8 +889,7 @@
   body.theme-dark .statRow + .statRow { border-top-color: rgba(255,255,255,0.08); }
   body.theme-dark .statDot.on { background-color: #30d158; }
   body.theme-dark .statDot.off { background-color: #ff453a; }
-  body.theme-dark #serverFooter { color: #9aa1ac; }
-  body.theme-dark #serverFooter.offline { color: #f2b84b; }
+  body.theme-dark #serverUpdatedLine.stale { color: #f2b84b; }
   body.theme-dark #settingsBtn { color: #cbd2dc; }
   body.theme-dark #settingsPanel { color: #f3f4f6; }
   body.theme-dark #settingsPanel .panelTitle { color: #9aa1ac; }
@@ -995,13 +1021,11 @@
       <div class="statLabel">Last Successful Deploy</div>
       <div class="statValue" id="statDeploy">&ndash;</div>
     </div>
-    <div class="statCard statCardWide">
+    <div class="statCard">
       <div class="statLabel">Containers</div>
       <div id="statContainersRows"></div>
     </div>
   </div>
-
-  <div id="serverFooter">Waiting for data&hellip;</div>
 
 </div>
 
@@ -1683,12 +1707,6 @@
     f.className = offline ? "offline" : "";
   }
 
-  function setServerFooter(text, offline) {
-    var f = document.getElementById("serverFooter");
-    f.innerHTML = text;
-    f.className = offline ? "offline" : "";
-  }
-
   /* ---------------- server health display ----------------
      Second tablet screen. Unlike prayer times (a slow-moving external
      API), this needs to feel live — a small script on the home server
@@ -1892,7 +1910,7 @@
 
     if (!serverData) {
       updatedLine.textContent = "Waiting for data…";
-      setServerFooter("Waiting for connection…", true);
+      updatedLine.className = "stale";
       return;
     }
 
@@ -1986,18 +2004,20 @@
     setStatValueClass(deployEl, DEPLOY_WARN_MS, DEPLOY_BAD_MS, deployAgeMs);
 
     var updatedAgoText = formatAgo(d.generated_at) || "unknown";
-    updatedLine.textContent = "Updated " + updatedAgoText;
 
     var genAgeMs = d.generated_at
       ? (new Date().getTime() - new Date(d.generated_at).getTime())
       : null;
     var stale = (genAgeMs === null) || (genAgeMs > SERVER_STALE_AFTER_MS) || !serverFetchOk;
 
-    if (stale) {
-      setServerFooter("Stale data &middot; last update " + updatedAgoText, true);
-    } else {
-      setServerFooter("Live &middot; updated " + updatedAgoText, false);
-    }
+    // "Updated Xm ago" (top-right of the header) is the only staleness
+    // indicator now — the bottom-of-screen "Live/Stale · updated..."
+    // footer was removed as a duplicate of this exact same information.
+    // The stale/live distinction itself isn't dropped, just moved onto
+    // this line's own colour (amber when stale, same as everywhere else
+    // on this screen uses that colour for "needs attention").
+    updatedLine.textContent = "Updated " + updatedAgoText;
+    updatedLine.className = stale ? "stale" : "";
   }
 
   function saveLocal(d) {

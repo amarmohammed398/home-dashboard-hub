@@ -183,11 +183,20 @@ reasoning.
   reads as a distinct "terminal/systemd status" signal (think
   `systemctl status`'s "active"/"failed"), universal green=good/red=bad
   regardless of which display it's on.
-- A stale-data banner (mirroring Prayer Times' "Offline · showing last
-  update") shows if `generated_at` is more than 30s old **or** the last
-  poll failed — catches both "the collector script died" and "the
-  network request failed" as the same user-facing "don't trust this"
-  state, rather than only handling one of the two.
+- Staleness (`generated_at` more than 30s old, **or** the last poll
+  failed — catches both "the collector script died" and "the network
+  request failed" as the same "don't trust this" state) is shown by
+  colouring the header's own **"Updated Xm ago"** line amber — there is
+  **no separate bottom-of-screen banner** any more (removed 29 Aug
+  2026, see the dated entry below; it duplicated the header line
+  exactly).
+- **Grid is CSS Grid, not flexbox-with-per-card-margins** — 2 columns
+  in portrait, 4 in landscape (`@media (orientation: landscape)`), wide
+  cards (`.statCardWide`) always `grid-column: span 2`. `#statGrid`
+  itself is a flex child of `#serverScreen` with `flex: 1;
+  min-height: 0; overflow-y: auto;` — a safety net (not the primary
+  fix) so content can never be silently clipped by the page's usual
+  `overflow: hidden` again, however many cards this grows to later.
 - `server-stats.json` is `.gitignore`'d, same treatment as `adhan.mp3` —
   it's server-generated state, not app code, and must never be
   committed or wiped by a deploy (added to the rsync exclude list once
@@ -1358,3 +1367,70 @@ countdown correctly skipped ahead to "Asr Begins in 01:15:00" rather
 than continuing to show Dhuhr — the exact scenario that couldn't be
 exercised just by waiting for real time to pass during testing. No
 console errors; dark theme re-checked too.
+
+### 2026-08-29 — Removed the duplicate footer; fixed a real content-overflow bug on the iPad
+User asked to remove the "Live/Stale · updated..." text at the bottom
+of Server Health (duplicated the "Updated Xm ago" already shown top-
+right) and reported the bottom card looking wrong — too close to the
+edge, uneven gap. Testing turned up something more serious than
+uneven spacing.
+
+**Footer removed.** `#serverFooter` (element, CSS, and the
+`setServerFooter()` function) deleted entirely. The stale/live signal
+it carried isn't lost, just relocated: `#serverUpdatedLine` (top-right)
+now takes an amber `.stale` class under the same conditions the footer
+used to check, so that information still exists, just without a second
+copy of it at the bottom.
+
+**The real bug, found by testing at actual iPad dimensions, not just
+the wide desktop-shaped preview used throughout this whole feature's
+development**: in landscape orientation (1194×834), the 10-card grid's
+real content height was **1025px against an 834px viewport** —
+confirmed via `scrollHeight` vs. `clientHeight`, not eyeballed — so the
+entire bottom row (Last Successful Deploy, Containers) and part of the
+row above it were **completely invisible**, silently clipped by this
+app's usual `overflow: hidden`. What looked like "proportions are off"
+from a screenshot was actually real, inaccessible data. Portrait
+(834×1194) had no overflow at all — plenty of spare room — which is
+exactly why this was never caught earlier: every previous test and
+screenshot in this whole Server Health feature happened to use a
+portrait-shaped or otherwise generously-tall viewport.
+
+**Two fixes, not one**:
+1. `#statGrid` now uses **CSS Grid** instead of flexbox with per-card
+   margins — `repeat(2, 1fr)` normally, `repeat(4, 1fr)` in landscape
+   (`@media (orientation: landscape)`), `gap` for spacing instead of
+   hand-rolled margins. 4 columns repacks the same 10 cards into 3 rows
+   instead of 6 (Uptime/CPU/Memory/Temperature share a row; Disk +
+   Services, each still `grid-column: span 2`, share the next; Network/
+   Maintenance/Last Successful Deploy/Containers share the third) —
+   comfortably fits landscape without needing to scroll at all.
+   Containers changed from a wide card to a regular one specifically so
+   it pairs evenly with Last Successful Deploy in portrait's 2-column
+   layout too, rather than being the one card stranded alone on its own
+   row with empty space beside it.
+2. `#statGrid` also got `flex: 1; min-height: 0; overflow-y: auto;` —
+   a **safety net**, not the primary fix: if this grid ever grows past
+   whatever screen it's on again (more cards added later, a different
+   device), it scrolls instead of silently hiding data the way it just
+   did. `min-height: 0` is the standard fix for a flex child that
+   otherwise refuses to shrink enough to let its own `overflow-y`
+   actually engage.
+- `gap`-based spacing also fixed the smaller issue actually reported:
+  the old per-card margin approach gave every card its own bottom
+  margin but the grid itself no equivalent top-side allowance, so the
+  last row sat measurably closer to the screen edge than the header sat
+  to the top. Confirmed via direct measurement this is now exact: header
+  top offset and grid bottom offset both computed to the identical
+  25.02px (landscape, 3vh of 834px) and 35.81px (portrait, 3vh of
+  1194px) — not just visually close, the same number.
+
+**Verified at actual iPad dimensions in both orientations** — this is
+the key change in testing method here, not just the fix: every stat-
+card test up to this point had used the pane's own default/desktop-
+shaped viewport, which is exactly why a real device-specific overflow
+bug went unnoticed through several rounds of Server Health work.
+Confirmed via `scrollHeight`/`clientHeight` that neither orientation
+needs to scroll with the current 10 cards; confirmed the exact
+symmetric top/bottom offsets above; confirmed dark theme; no console
+errors.
