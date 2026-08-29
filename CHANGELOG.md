@@ -55,37 +55,32 @@ overriding — the baseline exists precisely to catch that kind of thing.
   scheduling all work reactively off the live clock instead.
 
 ### Countdown display
-- A **flip-clock** countdown (`#flipClock`) to the next Iqamah: 6 tiles
-  (HH:MM:SS) that each play a 3D flip animation (CSS `rotateX`, two
-  static halves + two animated flap layers per tile) when their digit
-  changes, once a second. Tiles now match the same Liquid Glass material
-  as the rest of the UI — translucent, `backdrop-filter: blur(16px)`,
-  bright hairline border, theme-specific fill/text colour (top half
-  slightly more opaque than bottom, for subtle depth) — rather than the
-  original fixed solid-dark colour scheme, which looked out of place
-  once the glass redesign landed (see dated entry below). Also sized up
-  (was `4.6vw`×`6vh` tiles/`4vw` digits, now `6.6vw`×`8.6vh`/`5.6vw`).
-  Caption above it still reads "`<Prayer>` Iqamah in". (History: was a
-  plain digital `HH:MM:SS` string before this, and an animated analogue
-  clock face before that — see dated entries below. Don't reintroduce
-  analogue without being asked.)
+- A plain **digital `HH:MM:SS`** countdown (`#countdownDigital`) to the
+  next Iqamah, ticking down every second, with a caption above it
+  reading "`<Prayer>` Iqamah in". (Full history: digital current-time
+  clock → analogue clock → animated analogue → plain digital → flip
+  clock → **back to plain digital**, all in the space of one day — see
+  dated entries below. This is the current, settled form; don't
+  reintroduce the flip clock or analogue without being asked again.)
 
 ### Appearance
 - **"Liquid Glass" look** (matching iOS 26's own material design): every
   floating panel (`#header`, `#countdownClock`, `#card`, `#settingsPanel`,
   `#settingsBtn`) is translucent with `backdrop-filter: blur(28px)
-  saturate(180%)`, a bright hairline border, and an inset top highlight,
-  sitting over a fixed multi-blob radial-gradient background (not an
-  image — cheap to render continuously). The blur only reads as "glass"
-  because the background behind it is colourful/varied; a flat single
-  colour wouldn't show any visible effect.
-- Light theme by default: soft pastel mesh gradient (mint/blue/cream/
-  lavender) behind frosted white-ish glass panels, emerald (`#0e8f6b`)
-  accent.
+  saturate(180%)` and a bright hairline border.
+- **Page background is a plain flat colour, no gradient**: pure white
+  (`#ffffff`) in light theme, pure black (`#000000`) in dark theme — by
+  explicit request (see dated entries below; this went colourful → flat
+  → colourful → flat again, settle on flat this time unless asked
+  otherwise). This means the glass blur has nothing colourful behind it
+  to visibly soften — the panels still read as glass via their
+  translucency/border/shadow, just more subtly than with a busy
+  backdrop. That trade-off was made consciously this time, not
+  overlooked.
+- Emerald (`#0e8f6b` light / `#2fd39a` dark) accent colour throughout.
 - Dark mode available via the gear icon (top-right) → Settings panel →
   Dark mode toggle. Choice persists in `localStorage`
-  (`cheadleMasjidTheme`) across reloads. Dark mode uses the same glass
-  treatment over a deep jewel-toned gradient instead.
+  (`cheadleMasjidTheme`) across reloads.
 - Both themes are plain CSS classes (`body.theme-light` /
   `body.theme-dark`), not CSS custom properties — kept for compatibility
   with the old Galaxy Tab 3 fallback path (see Deployment). Note this
@@ -93,11 +88,8 @@ overriding — the baseline exists precisely to catch that kind of thing.
   (Android 4.4's WebView predates it) — the glass look is iPad-only by
   necessity; the old Tab 3 fallback would just show solid-ish flat
   panels instead, which is fine/expected, not a bug to fix.
-- The flip-clock tiles are now glass too, theme-aware like every other
-  panel (see Countdown display above) — reversed from the original
-  "deliberately opaque, real flip clocks aren't glass" decision, by
-  request, once it actually looked inconsistent next to the glass
-  redesign rather than intentionally contrasting.
+- The flip-clock tiles no longer exist (see Countdown display above) —
+  no glass-vs-solid question for them any more.
 - iOS "Add to Home Screen" meta tags (`apple-mobile-web-app-capable`
   etc.) so the Home Screen icon launches full-screen, no Safari chrome.
 
@@ -425,3 +417,36 @@ board: tile `4.6vw×6vh` → `6.6vw×8.6vh`, digit font `4vw` → `5.6vw`,
 colon `3vw` → `4vw`. Verified in both themes: tiles now clearly read as
 part of the same glass system as the header/countdown box/table, still
 legible, flip animation unaffected by the material change.
+
+### 2026-08-29 — Flip clock removed, backgrounds made truly plain
+User asked to (1) drop the flip clock entirely and go back to the plain
+digital `HH:MM:SS` countdown, and (2) make each theme's background a
+single flat colour with no other colours mixed in — white for light,
+dark for dark, full stop (stricter than the earlier "plain flat colour"
+attempt, which still used off-white/near-black tones like `#eef2f5` and
+`#10131a`; this time genuinely `#ffffff` and `#000000`).
+
+Removed entirely rather than hidden/disabled: `#flipClock` and all
+`.flipTile`/`.flap`/`.half` CSS, the `buildFlipTile`/`buildFlipClock`/
+`setFlipDigit` JS functions and the `flipTiles` array, the flip
+keyframes, and the theme-specific flip-tile colour rules. Restored the
+original `#countdownDigital` element, its CSS, and the plain-text
+`renderCountdown()` body — pulled from this file's own history of that
+exact code rather than reconstructed from scratch, to make sure it
+matched exactly.
+
+Backgrounds: `body.theme-light`/`body.theme-dark` are now bare
+`background-color: #ffffff` / `#000000`, no gradient layers at all. As
+already noted in the baseline, this makes the glass panels' blur have
+nothing to visibly soften — accepted this time as a deliberate,
+understood trade-off rather than something to re-litigate.
+
+Verified both themes visually before shipping. One thing worth a note
+for next time: the dark-mode screenshot taken during verification
+rendered as mid-grey instead of black, but `getComputedStyle` confirmed
+`rgb(0, 0, 0)` with no filters/blend-modes applied — a capture-pipeline
+quirk in this project's testing tool (likely colour-profile/gamma
+handling), not a real rendering bug. Same category as the earlier
+WEBrick and hidden-tab-timer-throttling artifacts: verify via computed
+styles when a screenshot looks suspicious, don't assume the screenshot
+is ground truth.

@@ -103,141 +103,14 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
   }
-  /* ---------- flip-clock countdown ---------- */
-  /* Tiles now match the Liquid Glass material used everywhere else
-     (translucent + blurred + bright edge) instead of solid dark
-     gradients — fill/border/text colour are theme-specific, set below
-     in the light/dark sections; sizing and structure are the same
-     regardless of theme. */
-  #flipClock {
-    display: -webkit-box;
-    display: -webkit-flex;
-    display: flex;
-    -webkit-box-align: center;
-    -webkit-align-items: center;
-    align-items: center;
-    margin-top: 0.8vh;
-  }
-  .flipGroup {
-    display: -webkit-box;
-    display: -webkit-flex;
-    display: flex;
-  }
-  .flipColon {
-    font-size: 4vw;
+  #countdownDigital {
+    font-size: 6vw;
     font-weight: 800;
-    margin: 0 0.5vw;
-    -webkit-align-self: center;
-    align-self: center;
-  }
-  .flipTile {
-    position: relative;
-    width: 6.6vw;
-    height: 8.6vh;
-    margin: 0 4px;
-    font-size: 5.6vw;
-    font-weight: 800;
+    line-height: 1.1;
     font-variant-numeric: tabular-nums;
-    -webkit-perspective: 500px;
-    perspective: 500px;
-    border-radius: 14px;
-  }
-  /* Every layer shares the same half-height/overflow-clip setup so all
-     four show exactly one half of the digit, aligned identically. Each
-     is its own small blurred glass pane — .half/.flap here carry only
-     the shared structural properties; fill/border colour is set per
-     theme below. */
-  .flipTile .half, .flipTile .flap {
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid transparent;
-  }
-  .flipTile .half {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 50%;
-    overflow: hidden;
-    border-radius: 14px 14px 0 0;
-  }
-  .flipTile .half.bottomHalf {
-    border-radius: 0 0 14px 14px;
-  }
-  .flipTile .half span, .flipTile .flap span {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    height: 200%;
-    line-height: 8.6vh;
-    text-align: center;
-  }
-  .flipTile .bottomHalf span, .flipTile .flapBottom span {
-    top: -100%;
-  }
-  .flipTile .topHalf { top: 0; }
-  .flipTile .bottomHalf { bottom: 0; }
-  /* The two animated flaps sit on top of the static halves and do the
-     actual 3D rotation; the static halves underneath are what's left
-     showing once a flap has rotated out of view. */
-  .flipTile .flap {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 50%;
-    overflow: hidden;
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-  }
-  .flipTile .flapTop {
-    top: 0;
-    -webkit-transform-origin: bottom;
-    transform-origin: bottom;
-    transform: rotateX(0deg);
-    border-radius: 14px 14px 0 0;
-  }
-  .flipTile .flapBottom {
-    bottom: 0;
-    -webkit-transform-origin: top;
-    transform-origin: top;
-    transform: rotateX(90deg);
-    border-radius: 0 0 14px 14px;
-  }
-  .flipTile.flipping .flapTop {
-    -webkit-animation: flipTopFold 0.3s ease-in forwards;
-    animation: flipTopFold 0.3s ease-in forwards;
-  }
-  .flipTile.flipping .flapBottom {
-    -webkit-animation: flipBottomUnfold 0.3s ease-out 0.3s forwards;
-    animation: flipBottomUnfold 0.3s ease-out 0.3s forwards;
-  }
-  @-webkit-keyframes flipTopFold {
-    from { transform: rotateX(0deg); }
-    to { transform: rotateX(-90deg); }
-  }
-  @keyframes flipTopFold {
-    from { transform: rotateX(0deg); }
-    to { transform: rotateX(-90deg); }
-  }
-  @-webkit-keyframes flipBottomUnfold {
-    from { transform: rotateX(90deg); }
-    to { transform: rotateX(0deg); }
-  }
-  @keyframes flipBottomUnfold {
-    from { transform: rotateX(90deg); }
-    to { transform: rotateX(0deg); }
-  }
-  /* Thin hinge line across the middle, like a real flip clock's seam —
-     translucent rather than solid black now, to stay glassy. */
-  .flipTile:before {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 50%;
-    height: 1px;
-    background: rgba(0, 0, 0, 0.18);
-    z-index: 5;
+    margin-top: 0.4vh;
+    -webkit-transition: opacity 0.2s ease;
+    transition: opacity 0.2s ease;
   }
   #card {
     -webkit-box-flex: 1;
@@ -528,12 +401,7 @@
      there's nothing varied for the blur to soften. Fixed radial blobs
      (not an image) keep this cheap to render continuously on the iPad. */
   body.theme-light {
-    background:
-      radial-gradient(at 15% 15%, rgba(52, 211, 153, 0.45) 0px, transparent 55%),
-      radial-gradient(at 85% 10%, rgba(96, 165, 250, 0.40) 0px, transparent 55%),
-      radial-gradient(at 20% 85%, rgba(251, 191, 36, 0.30) 0px, transparent 55%),
-      radial-gradient(at 90% 80%, rgba(232, 121, 249, 0.28) 0px, transparent 55%),
-      #eef2f5;
+    background-color: #ffffff;
     color: #1f2937;
   }
   body.theme-light #masjidName { color: #0b7a5c; text-shadow: 0 1px 2px rgba(255,255,255,0.5); }
@@ -549,17 +417,7 @@
     box-shadow: 0 8px 32px 0 rgba(31, 41, 55, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   }
   body.theme-light #countdownLabel { color: #4b5563; }
-  body.theme-light .flipColon { color: #4b5563; }
-  body.theme-light .flipTile { color: #1f2937; }
-  body.theme-light .flipTile .topHalf, body.theme-light .flipTile .flapTop {
-    background-color: rgba(255, 255, 255, 0.45);
-    border-color: rgba(255, 255, 255, 0.75);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  }
-  body.theme-light .flipTile .bottomHalf, body.theme-light .flipTile .flapBottom {
-    background-color: rgba(255, 255, 255, 0.22);
-    border-color: rgba(255, 255, 255, 0.5);
-  }
+  body.theme-light #countdownDigital { color: #0e8f6b; }
   body.theme-light .row.head { color: #4b5563; border-bottom: 2px solid rgba(255,255,255,0.6); }
   body.theme-light .row + .row { border-top-color: rgba(31,41,55,0.08); }
   body.theme-light .row.active { background-color: rgba(255, 255, 255, 0.55); }
@@ -580,12 +438,7 @@
 
   /* ================= DARK THEME ================= */
   body.theme-dark {
-    background:
-      radial-gradient(at 15% 15%, rgba(16, 185, 129, 0.35) 0px, transparent 55%),
-      radial-gradient(at 85% 10%, rgba(59, 130, 246, 0.32) 0px, transparent 55%),
-      radial-gradient(at 20% 90%, rgba(217, 119, 6, 0.20) 0px, transparent 55%),
-      radial-gradient(at 90% 85%, rgba(139, 92, 246, 0.28) 0px, transparent 55%),
-      #0a0e14;
+    background-color: #000000;
     color: #f3f4f6;
   }
   body.theme-dark #masjidName { color: #4de3ac; }
@@ -601,17 +454,7 @@
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
   body.theme-dark #countdownLabel { color: #9aa1ac; }
-  body.theme-dark .flipColon { color: #9aa1ac; }
-  body.theme-dark .flipTile { color: #f3f4f6; }
-  body.theme-dark .flipTile .topHalf, body.theme-dark .flipTile .flapTop {
-    background-color: rgba(255, 255, 255, 0.16);
-    border-color: rgba(255, 255, 255, 0.28);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  }
-  body.theme-dark .flipTile .bottomHalf, body.theme-dark .flipTile .flapBottom {
-    background-color: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.16);
-  }
+  body.theme-dark #countdownDigital { color: #2fd39a; }
   body.theme-dark .row.head { color: #9aa1ac; border-bottom: 2px solid rgba(255,255,255,0.1); }
   body.theme-dark .row + .row { border-top-color: rgba(255,255,255,0.08); }
   body.theme-dark .row.active { background-color: rgba(255, 255, 255, 0.08); }
@@ -646,13 +489,7 @@
 
   <div id="countdownClock">
     <div id="countdownLabel">Loading&hellip;</div>
-    <div id="flipClock">
-      <div class="flipGroup" id="flipHours"></div>
-      <div class="flipColon">:</div>
-      <div class="flipGroup" id="flipMinutes"></div>
-      <div class="flipColon">:</div>
-      <div class="flipGroup" id="flipSeconds"></div>
-    </div>
+    <div id="countdownDigital">--:--:--</div>
   </div>
 
   <div id="card">
@@ -1208,98 +1045,13 @@
     }
   }
 
-  /* ---------- flip-clock countdown ---------- */
-
-  var flipTiles = [];  // 6 tiles, index order: H-tens,H-ones,M-tens,M-ones,S-tens,S-ones
-
-  function buildFlipTile(container) {
-    var tile = el("div", "flipTile");
-
-    var topHalf = el("div", "half topHalf");
-    var topHalfSpan = document.createElement("span");
-    topHalf.appendChild(topHalfSpan);
-
-    var bottomHalf = el("div", "half bottomHalf");
-    var bottomHalfSpan = document.createElement("span");
-    bottomHalf.appendChild(bottomHalfSpan);
-
-    var flapTop = el("div", "flap flapTop");
-    var flapTopSpan = document.createElement("span");
-    flapTop.appendChild(flapTopSpan);
-
-    var flapBottom = el("div", "flap flapBottom");
-    var flapBottomSpan = document.createElement("span");
-    flapBottom.appendChild(flapBottomSpan);
-
-    tile.appendChild(topHalf);
-    tile.appendChild(bottomHalf);
-    tile.appendChild(flapTop);
-    tile.appendChild(flapBottom);
-    container.appendChild(tile);
-
-    // Start all four layers showing "0" so there's no blank flash
-    // before the first real render() call fills in the true digit.
-    topHalfSpan.textContent = "0";
-    bottomHalfSpan.textContent = "0";
-    flapTopSpan.textContent = "0";
-    flapBottomSpan.textContent = "0";
-
-    return {
-      tileEl: tile,
-      topHalfSpan: topHalfSpan,
-      bottomHalfSpan: bottomHalfSpan,
-      flapTopSpan: flapTopSpan,
-      flapBottomSpan: flapBottomSpan,
-      currentDigit: "0"
-    };
-  }
-
-  function buildFlipClock() {
-    var hoursGroup = document.getElementById("flipHours");
-    var minutesGroup = document.getElementById("flipMinutes");
-    var secondsGroup = document.getElementById("flipSeconds");
-    flipTiles.push(buildFlipTile(hoursGroup));
-    flipTiles.push(buildFlipTile(hoursGroup));
-    flipTiles.push(buildFlipTile(minutesGroup));
-    flipTiles.push(buildFlipTile(minutesGroup));
-    flipTiles.push(buildFlipTile(secondsGroup));
-    flipTiles.push(buildFlipTile(secondsGroup));
-  }
-
-  function setFlipDigit(index, newDigit) {
-    var t = flipTiles[index];
-    if (!t || t.currentDigit === newDigit) { return; }
-
-    var oldDigit = t.currentDigit;
-
-    // The static halves become the new digit right away — they're only
-    // revealed once the flaps sitting on top of them finish animating
-    // out of the way, so this doesn't show early.
-    t.topHalfSpan.textContent = newDigit;
-    t.bottomHalfSpan.textContent = newDigit;
-
-    // The flaps show old-on-top / new-on-bottom, which is what actually
-    // animates: the old top folds away, then the new bottom unfolds in.
-    t.flapTopSpan.textContent = oldDigit;
-    t.flapBottomSpan.textContent = newDigit;
-
-    // Restart the CSS animation from scratch every time: removing the
-    // class, forcing a reflow (reading offsetHeight), then re-adding it
-    // is the standard way to replay a CSS animation on an element that
-    // may already have played it before — without the forced reflow the
-    // browser can just no-op the class re-add since nothing "changed".
-    t.tileEl.className = "flipTile";
-    void t.tileEl.offsetHeight;
-    t.tileEl.className = "flipTile flipping";
-
-    t.currentDigit = newDigit;
-  }
-
   function renderCountdown(target, now) {
     var label = document.getElementById("countdownLabel");
+    var digital = document.getElementById("countdownDigital");
 
     if (!target) {
       label.textContent = "Prayer times unavailable";
+      digital.textContent = "--:--:--";
       return;
     }
 
@@ -1313,14 +1065,9 @@
     var hours = Math.floor(diffSeconds / 3600);
     var minutes = Math.floor((diffSeconds % 3600) / 60);
     var seconds = diffSeconds % 60;
-    var digits = pad(hours) + pad(minutes) + pad(seconds);  // 6 characters
-
-    var i;
-    for (i = 0; i < 6; i++) {
-      setFlipDigit(i, digits.charAt(i));
-    }
 
     label.textContent = target.label + " Iqamah in";
+    digital.textContent = pad(hours) + ":" + pad(minutes) + ":" + pad(seconds);
   }
 
   function updateClock() {
@@ -1375,7 +1122,6 @@
   initTheme();
   initSettingsUI();
   initAdhanUI();
-  buildFlipClock();
 
   var cached = loadLocal();
   if (cached && cached.d) {
