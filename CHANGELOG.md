@@ -58,13 +58,17 @@ overriding — the baseline exists precisely to catch that kind of thing.
 - A **flip-clock** countdown (`#flipClock`) to the next Iqamah: 6 tiles
   (HH:MM:SS) that each play a 3D flip animation (CSS `rotateX`, two
   static halves + two animated flap layers per tile) when their digit
-  changes, once a second. Tiles are a fixed dark colour scheme regardless
-  of light/dark app theme (deliberately — that's what makes it read as
-  "flip clock" rather than plain text with a border). Caption above it
-  still reads "`<Prayer>` Iqamah in". (History: was a plain digital
-  `HH:MM:SS` string before this, and an animated analogue clock face
-  before that — see dated entries below. Don't reintroduce analogue
-  without being asked.)
+  changes, once a second. Tiles now match the same Liquid Glass material
+  as the rest of the UI — translucent, `backdrop-filter: blur(16px)`,
+  bright hairline border, theme-specific fill/text colour (top half
+  slightly more opaque than bottom, for subtle depth) — rather than the
+  original fixed solid-dark colour scheme, which looked out of place
+  once the glass redesign landed (see dated entry below). Also sized up
+  (was `4.6vw`×`6vh` tiles/`4vw` digits, now `6.6vw`×`8.6vh`/`5.6vw`).
+  Caption above it still reads "`<Prayer>` Iqamah in". (History: was a
+  plain digital `HH:MM:SS` string before this, and an animated analogue
+  clock face before that — see dated entries below. Don't reintroduce
+  analogue without being asked.)
 
 ### Appearance
 - **"Liquid Glass" look** (matching iOS 26's own material design): every
@@ -89,9 +93,11 @@ overriding — the baseline exists precisely to catch that kind of thing.
   (Android 4.4's WebView predates it) — the glass look is iPad-only by
   necessity; the old Tab 3 fallback would just show solid-ish flat
   panels instead, which is fine/expected, not a bug to fix.
-- The flip-clock tiles stay their own fixed dark colour regardless of
-  theme (unchanged) — deliberately opaque against the glass panels for
-  contrast/legibility, real flip clocks aren't glass either.
+- The flip-clock tiles are now glass too, theme-aware like every other
+  panel (see Countdown display above) — reversed from the original
+  "deliberately opaque, real flip clocks aren't glass" decision, by
+  request, once it actually looked inconsistent next to the glass
+  redesign rather than intentionally contrasting.
 - iOS "Add to Home Screen" meta tags (`apple-mobile-web-app-capable`
   etc.) so the Home Screen icon launches full-screen, no Safari chrome.
 
@@ -403,3 +409,19 @@ to describe the flattened one being reverted here). Lesson for next
 time a background-simplification request comes up: try it and actually
 look at it side-by-side with the original before assuming a
 panel-material-only glass effect will read clearly enough on its own.
+
+### 2026-08-29 — Flip-clock tiles: glass instead of solid dark, and bigger
+User didn't like the flip-clock tiles' solid black-ish look clashing
+with the surrounding Liquid Glass panels, and wanted them bigger.
+Reworked `.flipTile .half`/`.flap` from solid `linear-gradient` fills to
+the same material language as every other panel: `backdrop-filter:
+blur(16px) saturate(180%)`, theme-specific translucent fill + bright
+border (top half more opaque than bottom, a subtle nod to how a real
+split-flap card catches light differently top vs bottom), moved into
+the light/dark theme sections rather than hardcoded. The seam/hinge
+line was also softened from solid black to a faint translucent line so
+it doesn't look out of place against glass. Sizing increased across the
+board: tile `4.6vw×6vh` → `6.6vw×8.6vh`, digit font `4vw` → `5.6vw`,
+colon `3vw` → `4vw`. Verified in both themes: tiles now clearly read as
+part of the same glass system as the header/countdown box/table, still
+legible, flip animation unaffected by the material change.

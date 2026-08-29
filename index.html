@@ -104,11 +104,11 @@
     letter-spacing: 0.1em;
   }
   /* ---------- flip-clock countdown ---------- */
-  /* Tiles are a fixed dark colour scheme regardless of light/dark app
-     theme, deliberately — a flip clock reads as "flip clock" precisely
-     because the tiles are dark with light digits; matching whichever
-     theme is active would just make it look like plain text with a
-     border. Same reasoning as the adhan alert being a fixed green. */
+  /* Tiles now match the Liquid Glass material used everywhere else
+     (translucent + blurred + bright edge) instead of solid dark
+     gradients — fill/border/text colour are theme-specific, set below
+     in the light/dark sections; sizing and structure are the same
+     regardless of theme. */
   #flipClock {
     display: -webkit-box;
     display: -webkit-flex;
@@ -124,43 +124,44 @@
     display: flex;
   }
   .flipColon {
-    font-size: 3vw;
+    font-size: 4vw;
     font-weight: 800;
-    color: #6b7280;
-    margin: 0 0.4vw;
+    margin: 0 0.5vw;
     -webkit-align-self: center;
     align-self: center;
   }
   .flipTile {
     position: relative;
-    width: 4.6vw;
-    height: 6vh;
-    margin: 0 2px;
-    font-size: 4vw;
+    width: 6.6vw;
+    height: 8.6vh;
+    margin: 0 4px;
+    font-size: 5.6vw;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
-    color: #f5f5f5;
-    -webkit-perspective: 400px;
-    perspective: 400px;
-    border-radius: 8px;
-    box-shadow: 0 3px 8px 0 rgba(0, 0, 0, 0.35);
+    -webkit-perspective: 500px;
+    perspective: 500px;
+    border-radius: 14px;
   }
   /* Every layer shares the same half-height/overflow-clip setup so all
-     four show exactly one half of the digit, aligned identically. */
+     four show exactly one half of the digit, aligned identically. Each
+     is its own small blurred glass pane — .half/.flap here carry only
+     the shared structural properties; fill/border colour is set per
+     theme below. */
+  .flipTile .half, .flipTile .flap {
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid transparent;
+  }
   .flipTile .half {
     position: absolute;
     left: 0;
     right: 0;
     height: 50%;
     overflow: hidden;
-    background: -webkit-linear-gradient(top, #2b2f38 0%, #1c1f26 100%);
-    background: linear-gradient(to bottom, #2b2f38 0%, #1c1f26 100%);
-    border-radius: 8px 8px 0 0;
+    border-radius: 14px 14px 0 0;
   }
   .flipTile .half.bottomHalf {
-    background: -webkit-linear-gradient(top, #17191f 0%, #101216 100%);
-    background: linear-gradient(to bottom, #17191f 0%, #101216 100%);
-    border-radius: 0 0 8px 8px;
+    border-radius: 0 0 14px 14px;
   }
   .flipTile .half span, .flipTile .flap span {
     position: absolute;
@@ -168,7 +169,7 @@
     right: 0;
     top: 0;
     height: 200%;
-    line-height: 6vh;
+    line-height: 8.6vh;
     text-align: center;
   }
   .flipTile .bottomHalf span, .flipTile .flapBottom span {
@@ -193,18 +194,14 @@
     -webkit-transform-origin: bottom;
     transform-origin: bottom;
     transform: rotateX(0deg);
-    background: -webkit-linear-gradient(top, #2b2f38 0%, #1c1f26 100%);
-    background: linear-gradient(to bottom, #2b2f38 0%, #1c1f26 100%);
-    border-radius: 8px 8px 0 0;
+    border-radius: 14px 14px 0 0;
   }
   .flipTile .flapBottom {
     bottom: 0;
     -webkit-transform-origin: top;
     transform-origin: top;
     transform: rotateX(90deg);
-    background: -webkit-linear-gradient(top, #17191f 0%, #101216 100%);
-    background: linear-gradient(to bottom, #17191f 0%, #101216 100%);
-    border-radius: 0 0 8px 8px;
+    border-radius: 0 0 14px 14px;
   }
   .flipTile.flipping .flapTop {
     -webkit-animation: flipTopFold 0.3s ease-in forwards;
@@ -230,7 +227,8 @@
     from { transform: rotateX(90deg); }
     to { transform: rotateX(0deg); }
   }
-  /* Thin hinge line across the middle, like a real flip clock's seam */
+  /* Thin hinge line across the middle, like a real flip clock's seam —
+     translucent rather than solid black now, to stay glassy. */
   .flipTile:before {
     content: "";
     position: absolute;
@@ -238,7 +236,7 @@
     right: 0;
     top: 50%;
     height: 1px;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.18);
     z-index: 5;
   }
   #card {
@@ -551,6 +549,17 @@
     box-shadow: 0 8px 32px 0 rgba(31, 41, 55, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   }
   body.theme-light #countdownLabel { color: #4b5563; }
+  body.theme-light .flipColon { color: #4b5563; }
+  body.theme-light .flipTile { color: #1f2937; }
+  body.theme-light .flipTile .topHalf, body.theme-light .flipTile .flapTop {
+    background-color: rgba(255, 255, 255, 0.45);
+    border-color: rgba(255, 255, 255, 0.75);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+  body.theme-light .flipTile .bottomHalf, body.theme-light .flipTile .flapBottom {
+    background-color: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
   body.theme-light .row.head { color: #4b5563; border-bottom: 2px solid rgba(255,255,255,0.6); }
   body.theme-light .row + .row { border-top-color: rgba(31,41,55,0.08); }
   body.theme-light .row.active { background-color: rgba(255, 255, 255, 0.55); }
@@ -592,6 +601,17 @@
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
   body.theme-dark #countdownLabel { color: #9aa1ac; }
+  body.theme-dark .flipColon { color: #9aa1ac; }
+  body.theme-dark .flipTile { color: #f3f4f6; }
+  body.theme-dark .flipTile .topHalf, body.theme-dark .flipTile .flapTop {
+    background-color: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.28);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  body.theme-dark .flipTile .bottomHalf, body.theme-dark .flipTile .flapBottom {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.16);
+  }
   body.theme-dark .row.head { color: #9aa1ac; border-bottom: 2px solid rgba(255,255,255,0.1); }
   body.theme-dark .row + .row { border-top-color: rgba(255,255,255,0.08); }
   body.theme-dark .row.active { background-color: rgba(255, 255, 255, 0.08); }
