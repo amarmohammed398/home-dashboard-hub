@@ -354,10 +354,13 @@ Server Health's purple, same "each display gets its own colour" rule.
 - **Fallback path — manual**: the original bare git repo
   (`~/git/home-dashboard-hub.git`) + `post-receive` hook
   (`GIT_WORK_TREE=/var/www/home-dashboard-hub git checkout -f main`)
-  still exists and still works — `git push home main` from the Mac, run
-  in a real terminal (SSH auth needs the user's own password entry, not
-  something done through Claude directly). Useful if the runner service
-  is ever down.
+  still exists and still works — `git push home main` from the Mac.
+  Uses a dedicated SSH key (`~/.ssh/id_ed25519_home`, configured for
+  `Host 192.168.0.180` in `~/.ssh/config`, same pattern as the GitHub
+  key) as of 30 Aug 2026 — no password needed any more (see the dated
+  entry below for why it briefly needed one, and how that was fixed
+  properly rather than worked around). Useful if the runner service is
+  ever down.
 - Served by **Apache** (not nginx — nginx was the original plan, but the
   server already runs Apache on port 80 for other sites, notably
   `cloud.silkhomesltd.co.uk`; switching to nginx would have taken that
@@ -1702,3 +1705,41 @@ Tomorrow", "Next Collection / In 5 days". No JS logic changed, since
 was already correct; this was purely a static-label wording bug.
 Verified in local preview by re-checking all three phrasings render
 sensibly together.
+
+### 2026-08-30 — Fixed the `home` remote's SSH auth; force-synced its stale history
+Two separate problems, found while trying to push the Bin Day work to
+the manual fallback remote:
+
+1. **The `home` remote had no key-based auth at all** — pushing to it
+   relied on the `gsuaha` account's password, entered interactively.
+   That's fine when the user runs it themselves in a real terminal, but
+   means it can't be pushed to non-interactively (e.g. by Claude, or
+   any future automation) at all — `Permission denied
+   (publickey,password)` every time. Fixed properly rather than worked
+   around: generated a dedicated key pair
+   (`~/.ssh/id_ed25519_home`, same naming convention as
+   `id_ed25519_github`), added a `Host 192.168.0.180` entry to
+   `~/.ssh/config` pointing at it (`IdentitiesOnly yes`, same pattern
+   as the existing GitHub entry), and the user ran `ssh-copy-id -i
+   ~/.ssh/id_ed25519_home.pub gsuaha@192.168.0.180` themselves in their
+   own terminal (the one step that genuinely needs the account
+   password — never done by Claude directly, consistent with this
+   project's existing rule). Verified with a `BatchMode=yes` SSH
+   command completing with no prompt at all before trusting it.
+2. **Once auth worked, the push was still rejected** — `home/main` was
+   stuck on commits from very early in the project (before "Add adhan
+   playback"), because the `git filter-branch` rewrite that later
+   purged `adhan.mp3` from history (see that dated entry above) was
+   force-pushed to `origin`/GitHub at the time but never re-pushed to
+   this remote — the two histories had genuinely diverged from that
+   point, not because anyone else pushes here. Since this remote is a
+   personal deploy-only mirror (its `post-receive` hook just does
+   `git checkout -f main` into the webroot — nothing collaborative
+   depends on its history), confirmed with the user before running
+   `git push home main --force` to bring it back in line with
+   `origin`. Verified `home/main` and `origin/main` now point at the
+   identical commit, and that the live server still serves current
+   content after the force-push (the hook re-ran automatically).
+
+Net effect: `git push home main` now works non-interactively, with no
+password prompt, and both remotes' histories match again.
