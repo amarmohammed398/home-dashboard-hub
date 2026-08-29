@@ -37,18 +37,26 @@
     padding-right: calc(3vw + 60px);
   }
   /* ---------- "Liquid Glass" surfaces ----------
-     The shared look for every floating panel: a blurred, translucent
-     background (so whatever colourful gradient is behind it shows
-     through, softened), a hairline border that's brighter than the
-     fill (mimics light catching a glass edge), and an inset highlight
-     along the top edge (a soft fake specular highlight — real glass
-     reflects more light near the top). Exact fill colour/opacity is
-     theme-dependent, set below in the light/dark sections; the
-     properties here are the same regardless of theme. */
+     The glass look here comes from the panel's own material, not from
+     blurring a colourful backdrop (that only matters when the page
+     background itself is busy/varied — with a plain background there's
+     nothing behind the panel for the blur to visibly soften). What
+     actually reads as "glass" regardless of what's behind it:
+       - a translucent fill (background-color, set per theme below)
+       - a diagonal sheen (background-image here) — lighter near the
+         top-left, fading out, like light catching a curved glass
+         surface
+       - a hairline border that's brighter than the fill
+       - an inset highlight along the top edge (fake specular highlight)
+     backdrop-filter is still applied (helps if anything ever does sit
+     behind these, e.g. the settings panel opening over the table), but
+     none of the actual "is this glass" impression depends on it. */
   #header, #countdownClock, #card, #settingsPanel, #settingsBtn {
     -webkit-backdrop-filter: blur(28px) saturate(180%);
     backdrop-filter: blur(28px) saturate(180%);
     border: 1px solid transparent;
+    background-image: -webkit-linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.02) 55%);
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.02) 55%);
   }
   #header {
     display: -webkit-box;
@@ -570,13 +578,11 @@
   body.theme-light #adhanStatus.error { color: #b45309; }
 
   /* ================= DARK THEME ================= */
+  /* Plain background by request — the glass panels' own sheen/border/
+     highlight (see the shared rule above) carry the "glass" look here
+     instead of a colourful backdrop. */
   body.theme-dark {
-    background:
-      radial-gradient(at 15% 15%, rgba(16, 185, 129, 0.35) 0px, transparent 55%),
-      radial-gradient(at 85% 10%, rgba(59, 130, 246, 0.32) 0px, transparent 55%),
-      radial-gradient(at 20% 90%, rgba(217, 119, 6, 0.20) 0px, transparent 55%),
-      radial-gradient(at 90% 85%, rgba(139, 92, 246, 0.28) 0px, transparent 55%),
-      #0a0e14;
+    background-color: #10131a;
     color: #f3f4f6;
   }
   body.theme-dark #masjidName { color: #4de3ac; }
