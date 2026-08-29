@@ -65,13 +65,23 @@ overriding — the baseline exists precisely to catch that kind of thing.
 
 ### Navigation (home screen / multiple displays)
 - The app can show one of several full-screen **displays**; a home
-  screen (`#homeScreen`) picks between them. Only one display exists
-  today — Prayer Times (`#prayerScreen`, formerly just `#app`) — shown
-  as a single tile with a crescent-moon icon.
-- Switching screens (`showScreen(name)` in `index.html`) is a pure
-  show/hide of existing DOM, **never a page reload/navigation** — a
-  reload would throw away the adhan's audio-autoplay unlock (see
-  Adhan below), so every display has to coexist in one document.
+  screen (`#homeScreen`) picks between them, one tile per display. Two
+  exist today: **Prayer Times** (`#prayerScreen`, formerly just `#app`,
+  crescent-moon icon) and **Server Health** (`#serverScreen`, server-rack
+  icon, purple accent — see its own section below).
+- Displays are registered in one place, `TABLET_SCREENS` (an id →
+  element-id map) in `index.html` — adding a new display means adding
+  one entry there plus a tile in `#homeScreen`; `showScreen(name)` hides
+  every registered screen and shows only the requested one, rather than
+  an if/else chain that would grow by a branch per display.
+- Every display's own header carries a shared `.screenHeader` class
+  (not just an id) precisely so `positionMoreIcon()` can find "the
+  current screen's header" generically (scoped to whichever screen
+  `TABLET_SCREENS[currentScreen]` names) instead of hardcoding one id.
+- Switching screens (`showScreen(name)`) is a pure show/hide of existing
+  DOM, **never a page reload/navigation** — a reload would throw away
+  the Prayer Times adhan's audio-autoplay unlock (see Adhan below), so
+  every display has to coexist in one document.
 - **One bare corner icon** (top-right, ⋮, `#settingsBtn`), outside
   whichever display's glass panel is showing → opens a small popover
   (`#moreMenu`) with two rows today: **Home** (house icon) → returns to
@@ -83,19 +93,63 @@ overriding — the baseline exists precisely to catch that kind of thing.
 - Reopening the app (e.g. after an iPad restart) returns to whichever
   display was last open (`localStorage` key `cheadleMasjidLastScreen`),
   **not** the home screen — defaults to `prayer-times` if nothing's
-  saved yet, so the always-on kiosk behaviour that predates the home
-  screen is unaffected by adding one.
+  saved yet (or if the saved value doesn't name a real display, e.g.
+  after a display is ever removed), so the always-on kiosk behaviour
+  that predates the home screen is unaffected by adding one.
 - The ⋮ icon's vertical position is computed from the current display's
-  own `#header` via `getBoundingClientRect()` (`positionMoreIcon()`),
+  own `.screenHeader` via `getBoundingClientRect()` (`positionMoreIcon()`),
   re-run every time `showScreen()` switches to a non-home screen (as
   well as on `window.resize`) — this only works while that display's
   header actually exists in the DOM and is visible, which is why it's
   tied to the screen-switch, not just a one-time page-load call.
 - Browser tab / PWA title is now **"Home Dashboard Hub"** (was "Cheadle
   Masjid - Prayer Times") — reflects the app as a whole, not just its
-  first display. The Prayer Times display's own on-screen heading still
-  says "Cheadle Masjid" (that's correct — it's that display's own
-  branding, not the app's).
+  first display. Each display keeps its own on-screen branding/accent
+  colour (Prayer Times: "Cheadle Masjid", teal-emerald; Server Health:
+  "Home Server", purple) — that's correct, not an inconsistency to fix.
+
+### Server Health display
+**Status: client built and tested against a mock fixture; the
+server-side piece (the script that actually produces the data) is not
+written yet** — see the dated entry below for the full plan. Don't
+expect this to show real data on the live iPad until that's done.
+- Second tablet screen (`#serverScreen`), purple accent throughout
+  (heading, memory bar, chart lines — deliberately not the same
+  teal-emerald as Prayer Times, so the two displays read as visually
+  distinct at a glance, including from the home screen tile).
+- Polls a same-origin `server-stats.json` every 10s (`fetchServerStats()`,
+  same resilient pattern as the prayer-time fetch: falls back to the
+  last-known-good response in `localStorage` on failure, never clears
+  the screen just because one poll failed).
+- Cards: Uptime, CPU Load (+ trend chart), Memory (+ bar + trend chart),
+  Temperature (+ trend chart), Disk (per mount), Services (per-service
+  active/inactive dot), **Last Successful Deploy** (age since the
+  runner's last successful job — not just "is the runner process
+  running", which the 29 Aug DNS outage proved doesn't actually tell you
+  whether deploys are working), Containers.
+- Trend charts (`renderSparkline()`) are small hand-built inline-SVG
+  line+area charts reading a short rolling `history` array per metric
+  (`history.cpu_load`, `.memory_percent`, `.temp_c` — oldest first) —
+  no charting library, consistent with the rest of this app. Colour
+  follows the same warn/bad thresholds as the metric's own bar/text
+  (memory/temp ≥70% or ≥90%-equivalent turn amber/red); CPU load's
+  chart is deliberately left neutral since "too high" depends on core
+  count, which isn't tracked, so no threshold is invented for it.
+- Service/container status dots are **iOS systemGreen/systemRed**
+  (`#34c759`/`#ff3b30` light, `#30d158`/`#ff453a` dark) — deliberately
+  not the same green as Prayer Times' accent or this screen's purple;
+  reads as a distinct "terminal/systemd status" signal (think
+  `systemctl status`'s "active"/"failed"), universal green=good/red=bad
+  regardless of which display it's on.
+- A stale-data banner (mirroring Prayer Times' "Offline · showing last
+  update") shows if `generated_at` is more than 30s old **or** the last
+  poll failed — catches both "the collector script died" and "the
+  network request failed" as the same user-facing "don't trust this"
+  state, rather than only handling one of the two.
+- `server-stats.json` is `.gitignore`'d, same treatment as `adhan.mp3` —
+  it's server-generated state, not app code, and must never be
+  committed or wiped by a deploy (added to the rsync exclude list once
+  the server-side script exists).
 
 ### Appearance
 - **"Liquid Glass" look** (matching iOS 26's own material design): every
@@ -761,3 +815,72 @@ reload); no console errors from the removed `#homeBtn` references
 (confirmed via a full grep of `index.html` for stray `homeBtn`/
 `positionCornerIcons` mentions before testing, then again via the
 browser console after).
+
+### 2026-08-29 — Server Health display: client built (step 1 of 3)
+Second tablet screen, kicking off the smart-home-hub expansion agreed
+earlier. Spec discussed and agreed first (metrics list, data-flow
+approach, refresh cadence) before writing any code — see that
+discussion for the full reasoning; this entry covers what was actually
+built. Plan is three steps: (1) client-side screen against a mock
+fixture — **this entry**; (2) the server-side collector script +
+systemd timer + `lm-sensors` + workflow changes — not done yet; (3)
+wire the real fetch up end-to-end and verify on the live iPad/server.
+
+**Screens/navigation refactor** (needed regardless of this specific
+display, since it's the first time a second tablet screen existed):
+- `showScreen()` moved from an if/else (one branch per screen) to a
+  `TABLET_SCREENS` id → element-id registry, looped over to hide
+  everything then show the one requested. Adding a third display later
+  means one new map entry, not a new branch.
+- The shared header layout (previously `#header`'s own CSS) became a
+  `.screenHeader` class so every tablet screen can have its own header
+  element while still getting the same look, and so
+  `positionMoreIcon()` can find "the current screen's header" by
+  querying `.screenHeader` scoped to `TABLET_SCREENS[currentScreen]`
+  instead of a hardcoded id.
+- `getLastScreen()` now validates the saved screen name still exists in
+  `TABLET_SCREENS` before trusting it (falls back to `prayer-times`
+  otherwise) — otherwise a future display getting removed could leave
+  someone's `localStorage` pointing at a screen that no longer exists.
+
+**Server Health screen itself** — full details in the Server Health
+baseline section above; highlights:
+- Purple accent (heading, memory bar, chart lines) chosen specifically
+  so it doesn't share Prayer Times' teal-emerald — user asked for this
+  explicitly once both screens existed side by side and the shared
+  green made them look like the same thing. Carried through to the
+  home-screen tile icon too (scoped override,
+  `.tile[data-screen="server-health"] .tileIcon`), not just the screen
+  itself, so the tile visually previews what it opens.
+- Service/container status dots deliberately **not** purple or Prayer
+  Times' green — user asked for a distinct "Linux/systemd active/failed"
+  look, landed on iOS's own systemGreen/systemRed (`#34c759`/`#ff3b30`
+  light, `#30d158`/`#ff453a` dark): vivid, clearly different from both
+  other accents, and consistent with the app's existing iOS design
+  language rather than reaching for generic ANSI terminal colours.
+- Trend charts (CPU load, memory %, temperature) added on request for
+  "more information, and pretty" — hand-built inline-SVG line+area
+  sparklines (`renderSparkline()`) reading a rolling `history` array per
+  metric, no charting library. This is the reason `server-stats.json`'s
+  schema carries a `history` object, not just current-value fields.
+- **Bug caught by testing, fixed before it ever reached a real
+  fixture**: `formatAgo()` originally collapsed anything under a minute
+  to "just now", but the staleness check fires at 30 seconds — so a
+  feed that had actually gone stale 35 seconds ago would show "Stale
+  data · last update just now", visibly contradicting itself. Testing
+  against a mock fixture (which, unlike a real server, never advances
+  its own `generated_at`) surfaced this immediately. Fixed by making
+  `formatAgo()` second-resolution ("Xs ago") instead of collapsing
+  sub-minute values — this is exactly the kind of thing a live-updating
+  health display should be more precise about than the slower-moving
+  Prayer Times countdown was.
+
+**Tested entirely against a local mock `server-stats.json` fixture**
+(not committed — see `.gitignore`), varying it between requests to
+exercise every visual state: healthy/warn/bad memory and temperature
+(bar + chart + colour all changed together correctly), healthy/warn/bad
+deploy freshness, live vs. stale feed, light and dark theme, and the
+home-screen tile. No console errors in any state. Nothing here has
+touched the real server yet — `gsuaha-home-server` has no
+`server-stats.json`-producing script, so this display will show
+"Waiting for data…" on the actual iPad until step 2 is done.

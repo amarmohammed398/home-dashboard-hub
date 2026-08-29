@@ -4,3 +4,10 @@
 # deliberately kept out of git history so the public GitHub repo doesn't
 # distribute it. See CHANGELOG.md for the full story.
 adhan.mp3
+
+# Generated on the server every ~10s by a systemd timer (see
+# ARCHITECTURE.md's server health section), never authored by hand or
+# tracked in git — same reasoning as adhan.mp3: this is server state,
+# not app code, and a deploy must never overwrite or delete the live
+# one (also excluded from the rsync in .github/workflows/deploy.yml).
+server-stats.json

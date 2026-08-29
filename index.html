@@ -47,12 +47,18 @@
      reflects more light near the top). Exact fill colour/opacity is
      theme-dependent, set below in the light/dark sections; the
      properties here are the same regardless of theme. */
-  #header, #countdownClock, #card, #settingsPanel, #moreMenu, .tile {
+  #countdownClock, #card, #settingsPanel, #moreMenu, .tile, .screenHeader, .statCard {
     -webkit-backdrop-filter: blur(28px) saturate(180%);
     backdrop-filter: blur(28px) saturate(180%);
     border: 1px solid transparent;
   }
-  #header {
+  /* Shared by every tablet screen's own header — one class rather than
+     per-screen CSS, so a new display's header gets the same look/
+     layout for free. positionMoreIcon() also looks this class up
+     (scoped to whichever screen is currently visible) to vertically
+     center the ⋮ icon, rather than needing to know each screen's own
+     header id. */
+  .screenHeader {
     display: -webkit-box;
     display: -webkit-flex;
     display: flex;
@@ -237,10 +243,149 @@
     font-weight: 500;
   }
 
+  /* ---------- server health display ---------- */
+  #serverScreen {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex; /* showScreen() toggles style.display none/flex at runtime */
+    -webkit-box-orient: vertical;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 3vh 3vw;
+  }
+  #serverName {
+    font-size: 3.6vw;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  #serverSub {
+    font-size: 1.7vw;
+    margin-top: 0.3vh;
+    font-weight: 500;
+  }
+  #serverUpdatedLine {
+    font-size: 1.5vw;
+    font-weight: 500;
+  }
+  #statGrid {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-wrap: wrap;
+    flex-wrap: wrap;
+  }
+  .statCard {
+    -webkit-box-flex: 1;
+    -webkit-flex: 1 1 21%;
+    flex: 1 1 21%;
+    min-width: 190px;
+    margin: 0.8vh 0.8vw 0.8vh 0;
+    border-radius: 24px;
+    padding: 1.8vh 1.6vw;
+    box-sizing: border-box;
+  }
+  .statCardWide {
+    -webkit-flex-basis: 45%;
+    flex-basis: 45%;
+  }
+  .statLabel {
+    font-size: 1.1vw;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .statValue {
+    font-size: 2.4vw;
+    font-weight: 800;
+    margin-top: 0.6vh;
+    font-variant-numeric: tabular-nums;
+  }
+  .statBar {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    margin-top: 1vh;
+    overflow: hidden;
+  }
+  .statBarFill {
+    height: 100%;
+    border-radius: 999px;
+    -webkit-transition: width 0.4s ease;
+    transition: width 0.4s ease;
+  }
+  /* Trend sparkline — a small inline-SVG line+area chart built from a
+     short rolling history the server-stats.json script keeps (recent
+     samples, oldest to newest), not a charting library. `color` here
+     is what the SVG's `stroke="currentColor"`/`fill="currentColor"`
+     picks up; set per-theme below, same warn/bad override pattern as
+     the bars and status text elsewhere on this screen. Empty (no
+     history yet, or too few points to draw a line) collapses to zero
+     height rather than showing a broken/empty chart. */
+  .statChart {
+    width: 100%;
+    height: 34px;
+    margin-top: 1vh;
+  }
+  .statChart svg { display: block; width: 100%; height: 100%; }
+  /* Both shapes use fill/stroke="currentColor" (set inline on the SVG
+     markup) so a single `color` on .statChart — including its warn/
+     bad overrides below — recolors both at once; the area's opacity
+     alone is what turns a solid fill into a translucent wash. */
+  .sparklineArea { stroke: none; opacity: 0.18; }
+  .sparklineLine {
+    fill: none;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .statRow {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-pack: justify;
+    -webkit-justify-content: space-between;
+    justify-content: space-between;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    font-size: 1.5vw;
+    font-weight: 600;
+    padding: 0.5vh 0;
+  }
+  .statRow + .statRow {
+    border-top-width: 1px;
+    border-top-style: solid;
+  }
+  .statDot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 0.6vw;
+    -webkit-flex: 0 0 auto;
+    flex: 0 0 auto;
+  }
+  .statRowName {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+  }
+  #serverFooter {
+    text-align: center;
+    font-size: 1.2vw;
+    margin-top: 1.6vh;
+    font-weight: 500;
+  }
+
   /* ---------- home screen (tablet picker) ---------- */
-  /* The launcher screen: pick which "tablet" (display) to show. Only
-     one tile exists today (Prayer Times); the grid is written to take
-     more without layout changes — new tiles just wrap onto new rows. */
+  /* The launcher screen: pick which "tablet" (display) to show — new
+     tiles just wrap onto new rows, no layout changes needed. */
   #homeScreen {
     display: none; /* JS toggles this to flex via showScreen() */
     -webkit-box-orient: vertical;
@@ -565,12 +710,13 @@
   body.theme-light #masjidName { color: #0b7a5c; text-shadow: 0 1px 2px rgba(255,255,255,0.5); }
   body.theme-light #masjidSub { color: #374151; }
   body.theme-light #dateLine { color: #374151; }
-  body.theme-light #header,
+  body.theme-light .screenHeader,
   body.theme-light #countdownClock,
   body.theme-light #card,
   body.theme-light #settingsPanel,
   body.theme-light #moreMenu,
-  body.theme-light .tile {
+  body.theme-light .tile,
+  body.theme-light .statCard {
     background-color: rgba(255, 255, 255, 0.55);
     border-color: rgba(255, 255, 255, 0.7);
     box-shadow: 0 8px 32px 0 rgba(31, 41, 55, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -586,6 +732,30 @@
   body.theme-light .sub { color: #b45309; }
   body.theme-light #footer { color: #4b5563; }
   body.theme-light #footer.offline { color: #b45309; }
+  body.theme-light #serverName { color: #6d28d9; text-shadow: 0 1px 2px rgba(255,255,255,0.5); }
+  body.theme-light #serverSub, body.theme-light #serverUpdatedLine { color: #374151; }
+  body.theme-light .statLabel { color: #4b5563; }
+  body.theme-light .statValue { color: #1f2937; }
+  body.theme-light .statValue.statWarn { color: #b45309; }
+  body.theme-light .statValue.statBad { color: #dc2626; }
+  body.theme-light .statBar { background-color: rgba(31, 41, 55, 0.1); }
+  body.theme-light .statBarFill { background-color: #7c3aed; }
+  body.theme-light .statBarFill.statWarn { background-color: #b45309; }
+  body.theme-light .statBarFill.statBad { background-color: #dc2626; }
+  body.theme-light .statChart { color: #7c3aed; }
+  body.theme-light .statChart.statWarn { color: #b45309; }
+  body.theme-light .statChart.statBad { color: #dc2626; }
+  body.theme-light .statRow { color: #1f2937; }
+  body.theme-light .statRow + .statRow { border-top-color: rgba(31,41,55,0.08); }
+  /* Deliberately not the same green/red as elsewhere on this screen or
+     Prayer Times — these read as terminal/systemd status (think
+     `systemctl status`'s "active (running)" / "failed"), a distinct,
+     more vivid pair (iOS's own systemGreen/systemRed) rather than this
+     screen's muted purple or Prayer Times' teal-emerald accent. */
+  body.theme-light .statDot.on { background-color: #34c759; }
+  body.theme-light .statDot.off { background-color: #ff3b30; }
+  body.theme-light #serverFooter { color: #4b5563; }
+  body.theme-light #serverFooter.offline { color: #b45309; }
   body.theme-light #settingsBtn { color: #374151; }
   body.theme-light #settingsPanel { color: #1f2937; }
   body.theme-light #settingsPanel .panelTitle { color: #4b5563; }
@@ -598,6 +768,7 @@
   body.theme-light #homeTitle { color: #0b7a5c; }
   body.theme-light .tileLabel { color: #1f2937; }
   body.theme-light .tileIcon { color: #0e8f6b; }
+  body.theme-light .tile[data-screen="server-health"] .tileIcon { color: #7c3aed; }
   body.theme-light #moreMenu { color: #1f2937; }
   body.theme-light .moreMenuRow:active { background-color: rgba(31, 41, 55, 0.08); }
 
@@ -609,12 +780,13 @@
   body.theme-dark #masjidName { color: #4de3ac; }
   body.theme-dark #masjidSub { color: #cbd2dc; }
   body.theme-dark #dateLine { color: #cbd2dc; }
-  body.theme-dark #header,
+  body.theme-dark .screenHeader,
   body.theme-dark #countdownClock,
   body.theme-dark #card,
   body.theme-dark #settingsPanel,
   body.theme-dark #moreMenu,
-  body.theme-dark .tile {
+  body.theme-dark .tile,
+  body.theme-dark .statCard {
     background-color: rgba(22, 26, 34, 0.55);
     border-color: rgba(255, 255, 255, 0.14);
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -630,6 +802,25 @@
   body.theme-dark .sub { color: #f2b84b; }
   body.theme-dark #footer { color: #9aa1ac; }
   body.theme-dark #footer.offline { color: #f2b84b; }
+  body.theme-dark #serverName { color: #c4b5fd; }
+  body.theme-dark #serverSub, body.theme-dark #serverUpdatedLine { color: #cbd2dc; }
+  body.theme-dark .statLabel { color: #9aa1ac; }
+  body.theme-dark .statValue { color: #f3f4f6; }
+  body.theme-dark .statValue.statWarn { color: #f2b84b; }
+  body.theme-dark .statValue.statBad { color: #f87171; }
+  body.theme-dark .statBar { background-color: rgba(255, 255, 255, 0.14); }
+  body.theme-dark .statBarFill { background-color: #a78bfa; }
+  body.theme-dark .statBarFill.statWarn { background-color: #f2b84b; }
+  body.theme-dark .statBarFill.statBad { background-color: #f87171; }
+  body.theme-dark .statChart { color: #a78bfa; }
+  body.theme-dark .statChart.statWarn { color: #f2b84b; }
+  body.theme-dark .statChart.statBad { color: #f87171; }
+  body.theme-dark .statRow { color: #f3f4f6; }
+  body.theme-dark .statRow + .statRow { border-top-color: rgba(255,255,255,0.08); }
+  body.theme-dark .statDot.on { background-color: #30d158; }
+  body.theme-dark .statDot.off { background-color: #ff453a; }
+  body.theme-dark #serverFooter { color: #9aa1ac; }
+  body.theme-dark #serverFooter.offline { color: #f2b84b; }
   body.theme-dark #settingsBtn { color: #cbd2dc; }
   body.theme-dark #settingsPanel { color: #f3f4f6; }
   body.theme-dark #settingsPanel .panelTitle { color: #9aa1ac; }
@@ -642,14 +833,15 @@
   body.theme-dark #homeTitle { color: #4de3ac; }
   body.theme-dark .tileLabel { color: #f3f4f6; }
   body.theme-dark .tileIcon { color: #2fd39a; }
+  body.theme-dark .tile[data-screen="server-health"] .tileIcon { color: #a78bfa; }
   body.theme-dark #moreMenu { color: #f3f4f6; }
   body.theme-dark .moreMenuRow:active { background-color: rgba(255, 255, 255, 0.08); }
 </style>
 </head>
 <body class="theme-light">
 
-<!-- Home screen: the tablet picker. One tile today (Prayer Times);
-     more get added here as new displays are built. -->
+<!-- Home screen: the tablet picker. New tiles get added here as new
+     displays are built. -->
 <div id="homeScreen">
   <div id="homeTitle">Choose a Display</div>
   <div id="tileGrid">
@@ -659,12 +851,18 @@
       </div>
       <div class="tileLabel">Prayer Times</div>
     </div>
+    <div class="tile" data-screen="server-health">
+      <div class="tileIcon">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16c1.1 0 2 .9 2 2v3c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2zm0 8h16c1.1 0 2 .9 2 2v6c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2v-6c0-1.1.9-2 2-2zm2.5-6C5.67 5 5 5.67 5 6.5S5.67 8 6.5 8 8 7.33 8 6.5 7.33 5 6.5 5zm0 8c-.83 0-1.5.67-1.5 1.5S5.67 16 6.5 16s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"></path></svg>
+      </div>
+      <div class="tileLabel">Server Health</div>
+    </div>
   </div>
 </div>
 
 <div id="prayerScreen">
 
-  <div id="header">
+  <div id="header" class="screenHeader">
     <div>
       <div id="masjidName">Cheadle Masjid</div>
       <div id="masjidSub">Prayer Times</div>
@@ -689,6 +887,61 @@
   </div>
 
   <div id="footer">Cheadlemasjid.org &middot; last updated --:--</div>
+
+</div>
+
+<div id="serverScreen">
+
+  <div class="screenHeader">
+    <div>
+      <div id="serverName">Home Server</div>
+      <div id="serverSub">gsuaha-home-server</div>
+    </div>
+    <div id="serverMetaBlock">
+      <div id="serverUpdatedLine">Waiting for data&hellip;</div>
+    </div>
+  </div>
+
+  <div id="statGrid">
+    <div class="statCard">
+      <div class="statLabel">Uptime</div>
+      <div class="statValue" id="statUptime">&ndash;</div>
+    </div>
+    <div class="statCard">
+      <div class="statLabel">CPU Load</div>
+      <div class="statValue" id="statLoad">&ndash;</div>
+      <div class="statChart" id="statLoadChart"></div>
+    </div>
+    <div class="statCard">
+      <div class="statLabel">Memory</div>
+      <div class="statValue" id="statMemory">&ndash;</div>
+      <div class="statBar"><div class="statBarFill" id="statMemoryBar"></div></div>
+      <div class="statChart" id="statMemoryChart"></div>
+    </div>
+    <div class="statCard">
+      <div class="statLabel">Temperature</div>
+      <div class="statValue" id="statTemp">&ndash;</div>
+      <div class="statChart" id="statTempChart"></div>
+    </div>
+    <div class="statCard statCardWide">
+      <div class="statLabel">Disk</div>
+      <div id="statDisksRows"></div>
+    </div>
+    <div class="statCard statCardWide">
+      <div class="statLabel">Services</div>
+      <div id="statServicesRows"></div>
+    </div>
+    <div class="statCard">
+      <div class="statLabel">Last Successful Deploy</div>
+      <div class="statValue" id="statDeploy">&ndash;</div>
+    </div>
+    <div class="statCard statCardWide">
+      <div class="statLabel">Containers</div>
+      <div id="statContainersRows"></div>
+    </div>
+  </div>
+
+  <div id="serverFooter">Waiting for data&hellip;</div>
 
 </div>
 
@@ -831,16 +1084,32 @@
     saveTheme(next);
   }
 
-  // Vertically centers the fixed #settingsBtn icon on the header's own
-  // glass pane. Can't do this in pure CSS because the header's height
-  // is driven by its vw-sized text content, not a fixed number — so we
-  // measure it directly instead of guessing a top offset that would
-  // drift if the header's content (or the viewport) ever changes size.
-  // Only meaningful while a tablet screen (with its own #header) is
-  // showing — showScreen() re-runs this every time it switches to one.
+  // Every tablet screen (not home) registered by the name showScreen()
+  // uses, mapped to its own top-level element id. Adding a new display
+  // means adding one entry here (plus a tile in #homeScreen) — nothing
+  // about how switching itself works needs to change.
+  var TABLET_SCREENS = {
+    "prayer-times": "prayerScreen",
+    "server-health": "serverScreen"
+  };
+
+  // Vertically centers the fixed #settingsBtn icon on the current
+  // screen's own header. Can't do this in pure CSS because a header's
+  // height is driven by its vw-sized text content, not a fixed number —
+  // so we measure it directly instead of guessing a top offset that
+  // would drift if the header's content (or the viewport) changes size.
+  // Looks the header up via the shared `.screenHeader` class, scoped to
+  // whichever tablet screen is currently visible, rather than a fixed
+  // id — every tablet screen has one, but each needs its own markup/
+  // styling, so there's no single element this could hardcode to.
+  // Only meaningful while a tablet screen is showing — showScreen()
+  // re-runs this every time it switches to one.
   function positionMoreIcon() {
     var btn = document.getElementById("settingsBtn");
-    var header = document.getElementById("header");
+    var screenId = TABLET_SCREENS[currentScreen];
+    if (!screenId) { return; }
+    var header = document.querySelector("#" + screenId + " .screenHeader");
+    if (!header) { return; }
     var headerRect = header.getBoundingClientRect();
     var top = headerRect.top + headerRect.height / 2 - btn.offsetHeight / 2;
     btn.style.top = top + "px";
@@ -856,19 +1125,20 @@
   }
 
   /* ---------------- screen switching (home screen / tablets) ----------
-     The app is one or more full-screen "tablets" (currently just
-     Prayer Times) plus a home screen that picks between them. Switching
-     is a pure show/hide, never a page reload — a reload would re-lock
-     iOS's audio-autoplay unlock the adhan relies on (see the comment on
-     tick() below), so every screen has to coexist in the same document
-     and just toggle visibility. */
+     The app is one or more full-screen "tablets" (TABLET_SCREENS above)
+     plus a home screen that picks between them. Switching is a pure
+     show/hide, never a page reload — a reload would re-lock iOS's
+     audio-autoplay unlock the Prayer Times adhan relies on (see the
+     comment on tick() below), so every screen has to coexist in the
+     same document and just toggle visibility. */
 
   var SCREEN_KEY = "cheadleMasjidLastScreen";
   var currentScreen = "prayer-times";
 
   function getLastScreen() {
     try {
-      return localStorage.getItem(SCREEN_KEY) || "prayer-times";
+      var saved = localStorage.getItem(SCREEN_KEY);
+      return (saved && TABLET_SCREENS[saved]) ? saved : "prayer-times";
     } catch (e) {
       return "prayer-times";
     }
@@ -882,8 +1152,8 @@
 
   function showScreen(name) {
     var home = document.getElementById("homeScreen");
-    var prayer = document.getElementById("prayerScreen");
     var settingsBtn = document.getElementById("settingsBtn");
+    var key;
 
     // Close any open popovers so switching screens never leaves one
     // stranded open over the new screen.
@@ -892,17 +1162,23 @@
 
     currentScreen = name;
 
+    // Hide every tablet screen first, then show only the one requested
+    // (if any) — simpler and less error-prone than an if/else chain
+    // that grows by one branch per display.
+    for (key in TABLET_SCREENS) {
+      if (TABLET_SCREENS.hasOwnProperty(key)) {
+        document.getElementById(TABLET_SCREENS[key]).style.display = "none";
+      }
+    }
+
     if (name === "home") {
       home.className = "show";
-      prayer.style.display = "none";
       settingsBtn.style.display = "none";
       return;
     }
 
-    // Only one non-home screen exists today (prayer-times); future
-    // tablets add another branch here rather than an else.
     home.className = "";
-    prayer.style.display = "flex";
+    document.getElementById(TABLET_SCREENS[name]).style.display = "flex";
     settingsBtn.style.display = "flex";
     positionMoreIcon();
     saveLastScreen(name);
@@ -1226,6 +1502,293 @@
     f.className = offline ? "offline" : "";
   }
 
+  function setServerFooter(text, offline) {
+    var f = document.getElementById("serverFooter");
+    f.innerHTML = text;
+    f.className = offline ? "offline" : "";
+  }
+
+  /* ---------------- server health display ----------------
+     Second tablet screen. Unlike prayer times (a slow-moving external
+     API), this needs to feel live — a small script on the home server
+     itself writes server-stats.json every ~10s (systemd timer, not a
+     real running web service — same "no backend" spirit as the rest of
+     this app, just a periodically-rewritten static file that Apache
+     already serves for free), and this polls it the same way
+     fetchData() polls the prayer-time API, just much more often. */
+
+  var SERVER_STATS_URL = "server-stats.json";
+  var SERVER_REFRESH_MS = 10 * 1000;         // poll every 10s
+  var SERVER_STORAGE_KEY = "cheadleMasjidServerStats";
+  var SERVER_STALE_AFTER_MS = 30 * 1000;     // generated_at older than this -> stale banner
+  var DEPLOY_WARN_MS = 30 * 60 * 1000;       // last_successful_deploy older than this -> amber
+  var DEPLOY_BAD_MS = 2 * 60 * 60 * 1000;    // -> red
+
+  var serverData = null;
+  var serverFetchOk = false;
+
+  function saveServerLocal(d) {
+    try {
+      localStorage.setItem(SERVER_STORAGE_KEY, JSON.stringify(d));
+    } catch (e) { /* ignore storage errors */ }
+  }
+
+  function loadServerLocal() {
+    try {
+      var raw = localStorage.getItem(SERVER_STORAGE_KEY);
+      if (!raw) { return null; }
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function fetchServerStats() {
+    var xhr = new XMLHttpRequest();
+    var url = SERVER_STATS_URL + "?_=" + new Date().getTime();
+    xhr.open("GET", url, true);
+    xhr.timeout = 8000;
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          try {
+            var parsed = JSON.parse(xhr.responseText);
+            if (parsed) {
+              serverData = parsed;
+              serverFetchOk = true;
+              saveServerLocal(parsed);
+              renderServerStats();
+              return;
+            }
+          } catch (e) { /* fall through to failure handling */ }
+        }
+        handleServerFetchFailure();
+      }
+    };
+    xhr.onerror = handleServerFetchFailure;
+    xhr.ontimeout = handleServerFetchFailure;
+    xhr.send();
+  }
+
+  function handleServerFetchFailure() {
+    serverFetchOk = false;
+    if (!serverData) {
+      var cached = loadServerLocal();
+      if (cached) { serverData = cached; }
+    }
+    renderServerStats();
+  }
+
+  function formatUptime(seconds) {
+    if (seconds === null || seconds === undefined) { return "--"; }
+    var days = Math.floor(seconds / 86400);
+    var hours = Math.floor((seconds % 86400) / 3600);
+    var minutes = Math.floor((seconds % 3600) / 60);
+    if (days > 0) { return days + "d " + hours + "h"; }
+    if (hours > 0) { return hours + "h " + minutes + "m"; }
+    return minutes + "m";
+  }
+
+  // Turns an ISO timestamp into "Xs ago" / "Xm ago" / "Xh Ym ago" /
+  // "Xd ago". Returns null (rather than a placeholder string) so
+  // callers can tell "no timestamp at all" apart from "0s ago" and
+  // choose their own fallback wording.
+  //
+  // Deliberately second-resolution rather than collapsing anything
+  // under a minute to "just now": this display's own staleness check
+  // (SERVER_STALE_AFTER_MS) fires at 30 seconds, so a coarser "just
+  // now" would visibly contradict a "Stale data" footer for a real
+  // ~30s window every time the feed actually does go stale — caught by
+  // testing against a fixture that never advances its own
+  // `generated_at`, before this ever reached a real server.
+  function formatAgo(iso) {
+    if (!iso) { return null; }
+    var then = new Date(iso).getTime();
+    if (isNaN(then)) { return null; }
+    var diffMs = new Date().getTime() - then;
+    if (diffMs < 0) { diffMs = 0; }
+    var secs = Math.floor(diffMs / 1000);
+    if (secs < 60) { return secs + "s ago"; }
+    var mins = Math.floor(secs / 60);
+    if (mins < 60) { return mins + "m ago"; }
+    var hours = Math.floor(mins / 60);
+    var remMins = mins % 60;
+    if (hours < 24) { return hours + "h " + remMins + "m ago"; }
+    return Math.floor(hours / 24) + "d ago";
+  }
+
+  function setStatValueClass(elNode, warnMs, badMs, ageMs) {
+    elNode.className = "statValue";
+    if (ageMs === null || ageMs === undefined) { return; }
+    if (ageMs >= badMs) {
+      elNode.className = "statValue statBad";
+    } else if (ageMs >= warnMs) {
+      elNode.className = "statValue statWarn";
+    }
+  }
+
+  function setBarClass(elNode, percent) {
+    elNode.className = "statBarFill";
+    if (percent >= 90) {
+      elNode.className = "statBarFill statBad";
+    } else if (percent >= 70) {
+      elNode.className = "statBarFill statWarn";
+    }
+  }
+
+  // Draws a small inline-SVG line+area trend chart into #containerId
+  // from `values` (an array of numbers, oldest first — the rolling
+  // history server-stats.json keeps). Deliberately plain SVG built by
+  // hand, not a charting library — consistent with the rest of this
+  // app (no framework, no build step). `warnClass` lets a caller
+  // recolor the whole chart (line + area, both currentColor) the same
+  // way setBarClass() recolors a bar, e.g. for a temperature reading
+  // running hot; pass "" for charts with no meaningful threshold (CPU
+  // load's "too high" depends on core count, which isn't tracked here,
+  // so it's left neutral rather than inventing an unfounded one).
+  function renderSparkline(containerId, values, warnClass) {
+    var container = document.getElementById(containerId);
+    container.className = "statChart" + (warnClass ? " " + warnClass : "");
+
+    if (!values || values.length < 2) {
+      container.innerHTML = "";
+      return;
+    }
+
+    var width = 100, height = 32;
+    var min = Math.min.apply(null, values);
+    var max = Math.max.apply(null, values);
+    if (max === min) { max = min + 1; } // avoid a divide-by-zero on a flat line
+
+    var stepX = width / (values.length - 1);
+    var points = [];
+    var i, x, y;
+    for (i = 0; i < values.length; i++) {
+      x = i * stepX;
+      y = height - ((values[i] - min) / (max - min)) * height;
+      points.push(x.toFixed(1) + "," + y.toFixed(1));
+    }
+    var linePoints = points.join(" ");
+    var areaPoints = "0," + height + " " + linePoints + " " + width + "," + height;
+
+    container.innerHTML =
+      '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none">' +
+        '<polygon class="sparklineArea" points="' + areaPoints + '" fill="currentColor"></polygon>' +
+        '<polyline class="sparklineLine" points="' + linePoints + '" stroke="currentColor"></polyline>' +
+      '</svg>';
+  }
+
+  // Renders the Services / Containers card bodies — both are just a
+  // list of {name-ish, on/off-ish} rows, so one function handles both
+  // rather than duplicating near-identical loops.
+  function renderStatRows(containerId, items, kind) {
+    var container = document.getElementById(containerId);
+    container.innerHTML = "";
+    var i, item, rowEl, nameEl, dotEl, isOn, label, statusText;
+    for (i = 0; i < items.length; i++) {
+      item = items[i];
+      isOn = kind === "service" ? !!item.active : (item.status === "running");
+      label = kind === "service" ? item.label : item.name;
+      statusText = kind === "service" ? (isOn ? "Active" : "Inactive") : (item.status || "unknown");
+
+      rowEl = el("div", "statRow");
+      nameEl = el("div", "statRowName");
+      dotEl = document.createElement("span");
+      dotEl.className = "statDot " + (isOn ? "on" : "off");
+      nameEl.appendChild(dotEl);
+      nameEl.appendChild(document.createTextNode(label));
+      rowEl.appendChild(nameEl);
+      rowEl.appendChild(el("div", "", statusText));
+      container.appendChild(rowEl);
+    }
+    if (items.length === 0) {
+      container.appendChild(el("div", "statRow", "None reported"));
+    }
+  }
+
+  function renderServerStats() {
+    var updatedLine = document.getElementById("serverUpdatedLine");
+
+    if (!serverData) {
+      updatedLine.textContent = "Waiting for data…";
+      setServerFooter("Waiting for connection…", true);
+      return;
+    }
+
+    var d = serverData;
+
+    document.getElementById("statUptime").textContent = formatUptime(d.uptime_seconds);
+
+    var load = d.load_avg || [];
+    document.getElementById("statLoad").textContent = load.length
+      ? load.map(function (n) { return n.toFixed(2); }).join(" / ")
+      : "--";
+
+    var mem = d.memory || {};
+    var memPercent = (mem.percent !== undefined && mem.percent !== null) ? mem.percent : null;
+    document.getElementById("statMemory").textContent = (memPercent !== null)
+      ? (mem.used_mb + " / " + mem.total_mb + " MB (" + memPercent + "%)")
+      : "--";
+    var memBar = document.getElementById("statMemoryBar");
+    memBar.style.width = (memPercent !== null ? memPercent : 0) + "%";
+    setBarClass(memBar, memPercent !== null ? memPercent : 0);
+
+    var tempC = (d.temp_c !== undefined && d.temp_c !== null) ? d.temp_c : null;
+    document.getElementById("statTemp").textContent = (tempC !== null) ? tempC.toFixed(1) + "°C" : "--";
+
+    // Trend charts — a short rolling history the server script keeps
+    // (see the "server health display" comment above fetchServerStats).
+    // Missing/short history just renders nothing rather than an error;
+    // this is optional richness, not something the rest of the screen
+    // depends on.
+    var history = d.history || {};
+    renderSparkline("statLoadChart", history.cpu_load, "");
+    renderSparkline("statMemoryChart", history.memory_percent,
+      memPercent !== null && memPercent >= 90 ? "statBad" : memPercent >= 70 ? "statWarn" : "");
+    renderSparkline("statTempChart", history.temp_c,
+      tempC !== null && tempC >= 80 ? "statBad" : tempC >= 65 ? "statWarn" : "");
+
+    var diskContainer = document.getElementById("statDisksRows");
+    diskContainer.innerHTML = "";
+    var disks = d.disks || [];
+    var i, disk, rowEl;
+    for (i = 0; i < disks.length; i++) {
+      disk = disks[i];
+      rowEl = el("div", "statRow");
+      rowEl.appendChild(el("div", "", disk.mount));
+      rowEl.appendChild(el("div", "", disk.used_gb + " / " + disk.total_gb + " GB (" + disk.percent + "%)"));
+      diskContainer.appendChild(rowEl);
+    }
+    if (disks.length === 0) {
+      diskContainer.appendChild(el("div", "statRow", "None reported"));
+    }
+
+    renderStatRows("statServicesRows", d.services || [], "service");
+    renderStatRows("statContainersRows", d.containers || [], "container");
+
+    var deployEl = document.getElementById("statDeploy");
+    var deployAgoText = formatAgo(d.last_successful_deploy);
+    deployEl.textContent = deployAgoText || "Unknown";
+    var deployAgeMs = d.last_successful_deploy
+      ? (new Date().getTime() - new Date(d.last_successful_deploy).getTime())
+      : null;
+    setStatValueClass(deployEl, DEPLOY_WARN_MS, DEPLOY_BAD_MS, deployAgeMs);
+
+    var updatedAgoText = formatAgo(d.generated_at) || "unknown";
+    updatedLine.textContent = "Updated " + updatedAgoText;
+
+    var genAgeMs = d.generated_at
+      ? (new Date().getTime() - new Date(d.generated_at).getTime())
+      : null;
+    var stale = (genAgeMs === null) || (genAgeMs > SERVER_STALE_AFTER_MS) || !serverFetchOk;
+
+    if (stale) {
+      setServerFooter("Stale data &middot; last update " + updatedAgoText, true);
+    } else {
+      setServerFooter("Live &middot; updated " + updatedAgoText, false);
+    }
+  }
+
   function saveLocal(d) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ d: d, savedAt: new Date().getTime() }));
@@ -1430,6 +1993,13 @@
       }
       checkAdhanSchedule(now);
     }
+    // Re-render the server health screen's relative timestamps ("Updated
+    // Xm ago", deploy freshness) every second even between fetches — the
+    // underlying data hasn't changed, but the "ago" text has, and this
+    // is cheap since it's just re-formatting serverData, no XHR.
+    if (serverData) {
+      renderServerStats();
+    }
     // No automatic page reload: on iOS, reloading would re-lock audio
     // autoplay until someone next taps the screen, which would silently
     // stop the adhan from sounding. The day already rolls over reactively
@@ -1452,8 +2022,16 @@
   render();
   fetchData();
 
+  var cachedServer = loadServerLocal();
+  if (cachedServer) {
+    serverData = cachedServer;
+  }
+  renderServerStats();
+  fetchServerStats();
+
   setInterval(tick, 1000);
   setInterval(fetchData, REFRESH_MS);
+  setInterval(fetchServerStats, SERVER_REFRESH_MS);
 })();
 </script>
 </body>
