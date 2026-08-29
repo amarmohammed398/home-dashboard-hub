@@ -244,8 +244,11 @@ Server Health's purple, same "each display gets its own colour" rule.
 - The home address used to look up which round/day applies is
   deliberately **not stored anywhere in this repo or its docs** — only
   the resulting anonymous schedule pattern above is committed.
-- `#binNextCard` shows the next upcoming collection ("Today" /
-  "Tomorrow" / "In N days", the date, and coloured bin chips);
+- `#binNextCard` shows the next upcoming collection: a static
+  **"Next Collection"** label (not "Next Collection In" — fixed 30 Aug
+  2026, see the dated entry below, since that read as broken English
+  once combined with "Tomorrow") above the big value ("Today" /
+  "Tomorrow" / "In N days"), the date, and coloured bin chips;
   `#binCard`/`#binRows` lists the following 5 upcoming Mondays. Reuses
   the same overflow-safety CSS pattern as Server Health's `#statGrid`
   (`flex: 1; min-height: 0; overflow-y: auto`), tested at both iPad
@@ -1684,3 +1687,18 @@ assuming five rows will always fit. Also verified the computed schedule
 directly in-browser against the two known-correct dates above (31 Aug
 2026 → black+green, 21 Sept 2026 → blue+brown) before considering this
 done — matched exactly in both cases.
+
+### 2026-08-30 — Fixed awkward "Next Collection In Tomorrow" wording
+User reported the live display reading "NEXT COLLECTION IN Tomorrow" —
+the static label (`#binNextLabel`, "Next Collection In") was written
+assuming the value underneath would always be a duration ("In 5 days"),
+but two of the three cases (`"Today"`, `"Tomorrow"`) already read as a
+complete phrase on their own, so pairing them with a label ending in
+"In" produced broken English. Fixed by shortening the static label to
+just **"Next Collection"** — every case now reads correctly as a
+two-line phrase: "Next Collection / Today", "Next Collection /
+Tomorrow", "Next Collection / In 5 days". No JS logic changed, since
+`renderBinDay()`'s three-way "Today"/"Tomorrow"/"In N days" branching
+was already correct; this was purely a static-label wording bug.
+Verified in local preview by re-checking all three phrasings render
+sensibly together.
