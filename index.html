@@ -34,7 +34,6 @@
     height: 100%;
     box-sizing: border-box;
     padding: 3vh 3vw;
-    padding-right: calc(3vw + 60px);
   }
   /* ---------- "Liquid Glass" surfaces ----------
      The shared look for every floating panel: a blurred, translucent
@@ -45,7 +44,7 @@
      reflects more light near the top). Exact fill colour/opacity is
      theme-dependent, set below in the light/dark sections; the
      properties here are the same regardless of theme. */
-  #header, #countdownClock, #card, #settingsPanel, #settingsBtn {
+  #header, #countdownClock, #card, #settingsPanel {
     -webkit-backdrop-filter: blur(28px) saturate(180%);
     backdrop-filter: blur(28px) saturate(180%);
     border: 1px solid transparent;
@@ -75,7 +74,15 @@
     font-weight: 500;
   }
   #clockBlock {
-    text-align: right;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-box-pack: end;
+    -webkit-justify-content: flex-end;
+    justify-content: flex-end;
   }
   #dateLine {
     font-size: 1.9vw;
@@ -228,13 +235,14 @@
   }
 
   /* ---------- settings button + panel ---------- */
+  /* "More" entry point — a bare icon living inside the header's own
+     flex row (next to the date), not a floating overlay. This is what
+     fixes the app-wide layout symmetry: no panel needs special padding
+     reserved for a corner button any more, and this same slot scales to
+     more entries later (Home, etc.) by adding rows inside the panel it
+     opens, without the icon itself needing to grow or move. Deliberately
+     no background/border/shadow — bare icon, minimum visual weight. */
   #settingsBtn {
-    position: fixed;
-    top: 2vh;
-    right: 2vh;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
     display: -webkit-box;
     display: -webkit-flex;
     display: flex;
@@ -244,10 +252,13 @@
     -webkit-box-pack: center;
     -webkit-justify-content: center;
     justify-content: center;
+    width: 34px;
+    height: 34px;
+    margin-left: 0.6vw;
     cursor: pointer;
     z-index: 20;
   }
-  #settingsBtn svg { width: 22px; height: 22px; }
+  #settingsBtn svg { width: 20px; height: 20px; }
   #settingsPanel {
     position: fixed;
     top: 6.4vh;
@@ -445,8 +456,7 @@
   body.theme-light #header,
   body.theme-light #countdownClock,
   body.theme-light #card,
-  body.theme-light #settingsPanel,
-  body.theme-light #settingsBtn {
+  body.theme-light #settingsPanel {
     background-color: rgba(255, 255, 255, 0.55);
     border-color: rgba(255, 255, 255, 0.7);
     box-shadow: 0 8px 32px 0 rgba(31, 41, 55, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -483,8 +493,7 @@
   body.theme-dark #header,
   body.theme-dark #countdownClock,
   body.theme-dark #card,
-  body.theme-dark #settingsPanel,
-  body.theme-dark #settingsBtn {
+  body.theme-dark #settingsPanel {
     background-color: rgba(22, 26, 34, 0.55);
     border-color: rgba(255, 255, 255, 0.14);
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -521,6 +530,13 @@
     </div>
     <div id="clockBlock">
       <div id="dateLine">-</div>
+      <div id="settingsBtn" aria-label="More options">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="5" cy="12" r="2.2"></circle>
+          <circle cx="12" cy="12" r="2.2"></circle>
+          <circle cx="19" cy="12" r="2.2"></circle>
+        </svg>
+      </div>
     </div>
   </div>
 
@@ -540,13 +556,6 @@
 
   <div id="footer">Cheadlemasjid.org &middot; last updated --:--</div>
 
-</div>
-
-<div id="settingsBtn" aria-label="Settings">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="3"></circle>
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-  </svg>
 </div>
 
 <div id="settingsPanel">

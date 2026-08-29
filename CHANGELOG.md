@@ -78,9 +78,12 @@ overriding — the baseline exists precisely to catch that kind of thing.
   backdrop. That trade-off was made consciously this time, not
   overlooked.
 - Emerald (`#0e8f6b` light / `#2fd39a` dark) accent colour throughout.
-- Dark mode available via the gear icon (top-right) → Settings panel →
-  Dark mode toggle. Choice persists in `localStorage`
-  (`cheadleMasjidTheme`) across reloads.
+- Dark mode available via the **"more" (⋯) icon**, which lives inside
+  the header's own layout next to the date — not a floating overlay
+  button — → Settings panel → Dark mode toggle. Choice persists in
+  `localStorage` (`cheadleMasjidTheme`) across reloads. See the dated
+  entry below for why this moved from a fixed gear-icon circle to a bare
+  in-flow ellipsis.
 - Both themes are plain CSS classes (`body.theme-light` /
   `body.theme-dark`), not CSS custom properties — kept for compatibility
   with the old Galaxy Tab 3 fallback path (see Deployment). Note this
@@ -529,3 +532,45 @@ alongside the icon's `<span>`, and flexbox centres both against the
 cell's true height regardless of font metrics. Verified via
 `getBoundingClientRect()` rather than eyeballing a screenshot: icon's
 vertical centre now lands within 0.004px of the cell's centre.
+
+### 2026-08-29 — Settings icon moved in-flow; fixed panel asymmetry
+User noticed the settings gear made panel proportions uneven. Root
+cause: the gear was `position: fixed` floating over the header, and
+`#app` carried a permanent `padding-right: calc(3vw + 60px)` just to
+keep the header's date text clear of it — every panel's actual usable
+width was skewed right relative to left, purely to reserve space for
+one corner icon.
+
+Discussed options (moving it into the header's flow; a single
+"more"-style overflow icon that scales to future actions like a future
+Home button without adding visual clutter; a hidden long-press gesture;
+relocating to a bottom dock) — user chose the overflow-icon approach.
+
+Implemented as: bring the single icon into the header's own flex layout
+(fixes the padding/symmetry problem at the root) as a plain "more"
+icon (fixes the scalability problem):
+- `#settingsBtn` moved from a floating glass circle (44px, fixed
+  top-right, part of the shared glass-panel styling) to a bare 34px
+  icon-only element living inside `#clockBlock`, right after the date —
+  no background/border/shadow, just the icon, coloured to match the
+  date text's muted colour (deliberately minimal visual weight).
+- Icon changed from a gear (`circle` + complex cog path) to a plain
+  three-dot ellipsis (`fill="currentColor"`, three `<circle>`s) —
+  reads as "more options" rather than narrowly "settings", so it stays
+  accurate once non-settings entries (e.g. a Home button) are added to
+  the panel it opens later. No new entries added yet — the panel
+  structure (Appearance / Adhan sections) already scales to more
+  sections without changes.
+- `#app`'s `padding-right: calc(3vw + 60px)` removed entirely; padding
+  is symmetric `3vh 3vw` again.
+- `#clockBlock` became a flex row (date + icon side by side) instead of
+  `text-align: right`.
+
+No JS changes needed — `initSettingsUI()` only ever looked up
+`#settingsBtn`/`#settingsPanel` by ID and used event bubbling for
+clicks, both unaffected by the positioning/markup change.
+
+Verified via `getBoundingClientRect()` on the header, countdown box,
+and table: all three now have **identical** left/right margins
+(30.71875px each, at 1024px viewport width) — confirmed symmetric,
+not just visually eyeballed.
