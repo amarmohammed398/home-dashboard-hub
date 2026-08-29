@@ -82,7 +82,7 @@ introducing a server-side component that would need its own hosting,
 process management, and failure modes, for a problem that doesn't need
 one.
 
-## Data flow
+## Data flow: Prayer Times
 
 1. On load, the page reads any cached prayer-time data from
    `localStorage` and renders immediately (so a slow or failed network
@@ -106,6 +106,64 @@ one.
 No prayer time is ever hand-entered or hardcoded — the masjid's own site
 remains the single source of truth, which matters for correctness around
 things like Ramadan, DST changes, and one-off Iqamah adjustments.
+
+## Data flow: Server Health
+
+A different shape of problem: Prayer Times reads from an API that
+already exists (the masjid's own site); Server Health needs data about
+a machine that has no API at all — the home server itself. Rather than
+standing up a real web service just to answer "how's the server doing",
+the data flow stays a static file, same as everything else in this
+app, with a small script doing the work in the background:
+
+```
+[server-stats.timer, systemd] --every 10s--> [scripts/server-stats.sh]
+                                                        |
+                                                        v
+                                    [server-stats.json in the webroot]
+                                                        |
+                                                        v (Apache, same-origin)
+                                          [Server Health tablet screen]
+```
+
+1. `server-stats.timer` (systemd) fires `server-stats.service` every 10
+   seconds — a **oneshot** unit, not a long-running daemon: it runs
+   once, does its work, exits, and the timer fires it again later. This
+   is the same "static file, not a live backend" philosophy as the rest
+   of the app, just applied to locally-generated data instead of a
+   remote API.
+2. `scripts/server-stats.sh` reads `/proc`, `df`, `systemctl`,
+   `lm-sensors`, and (if usable) `docker ps`, assembles the result with
+   `jq`, and writes it to `server-stats.json` in the webroot — the same
+   folder `index.html` lives in, so the client's fetch is same-origin
+   (no CORS question at all, unlike the masjid API).
+3. The script also keeps a short rolling history (last ~24 samples) of
+   CPU load, memory %, and temperature in a dotfile in its own home
+   directory, persisted between runs, purely so the client can draw
+   trend sparklines rather than just a single current-value snapshot.
+4. The client polls `server-stats.json` every 10 seconds (much faster
+   than Prayer Times' 5-minute API poll — freshness matters a lot more
+   for a live health display than for prayer times that only change
+   once a day), with the same resilience pattern: fall back to the last
+   good response in `localStorage` on a failed fetch, never blank the
+   screen. A `generated_at` timestamp older than 30 seconds — meaning
+   the timer itself has stopped firing, not just a single failed
+   `fetch` — triggers a "stale data" banner, the same idea as Prayer
+   Times' "Offline" notice but catching a different failure mode.
+5. `scripts/server-stats.sh` itself is tracked in the repo and deploys
+   like any other file (`git push` → rsync into the webroot). The two
+   systemd unit files can't work that way — systemd only reads units
+   from `/etc/systemd/system/` — so they need a one-time manual install
+   (see README.md), the one piece of this feature that isn't
+   "just push and it updates."
+6. The GitHub Actions deploy workflow writes a timestamp to
+   `.last-successful-deploy` in the webroot right after a successful
+   sync, which the collector script reads and the display shows as
+   "Last Successful Deploy" — deliberately **not** the same thing as
+   "is the runner process active." The 29 Aug 2026 DNS outage (below)
+   is exactly why that distinction exists: the runner sat
+   `active (running)` the entire time it couldn't actually deploy
+   anything, which a naive process check would never have caught.
 
 ## Deployment architecture
 
@@ -290,13 +348,10 @@ yourself, which this file is itself an example of.
 ## Future displays under consideration (not commitments)
 
 Ideas for what to build into `#homeScreen` next, roughly in order of how
-little new infrastructure each one needs:
+little new infrastructure each one needs (Home server health has
+already moved from "idea" to "in progress" — see the Server Health
+section under Data flow above):
 
-- **Home server health** — CPU/RAM/disk/uptime for `gsuaha-home-server`
-  itself (and the Apache/GitHub Actions runner status). Lowest-effort
-  next display by far: it reuses the exact same pattern already built
-  for prayer times (a small JSON endpoint, polled client-side every few
-  minutes) — the only new work is writing that endpoint.
 - **Electricity / gas usage** — via a UK smart meter data source (e.g.
   Hildebrand Glow or n3rgy). If on a dynamic tariff (Octopus Agile/
   Cosy), a "current rate + cheapest window tonight" view is genuinely

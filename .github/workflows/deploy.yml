@@ -25,10 +25,28 @@ jobs:
             --exclude='.git' \
             --exclude='.github' \
             --exclude='adhan.mp3' \
+            --exclude='server-stats.json' \
+            --exclude='.last-successful-deploy' \
             ./ /var/www/cheadle-masjid-display/
         # --delete removes files from the served folder that no longer
         # exist in the repo, keeping it exactly in sync with what was
-        # pushed. adhan.mp3 is excluded on purpose — it isn't tracked in
-        # git at all (see .gitignore), so without this exclude, --delete
-        # would see it as "not in the source" and remove it from the
-        # live server on the very first run.
+        # pushed. adhan.mp3, server-stats.json, and .last-successful-
+        # deploy are all excluded on purpose — none of them are tracked
+        # in git (see .gitignore), so without these excludes, --delete
+        # would see them as "not in the source" and remove them from the
+        # live server on the very next run. The latter two are written
+        # directly on the server itself (see the next step, and the
+        # server-stats systemd timer in ARCHITECTURE.md) rather than
+        # being part of the repo at all.
+
+      - name: Record this as the last successful deploy
+        run: date -u +"%Y-%m-%dT%H:%M:%SZ" > /var/www/cheadle-masjid-display/.last-successful-deploy
+        # A plain timestamp file, read by the Server Health display's
+        # "Last Successful Deploy" card. Deliberately a separate step
+        # that only runs if the rsync above succeeded (a step failure
+        # stops the job before reaching later steps by default) — the
+        # whole point is to answer "did a deploy actually complete
+        # recently", which a process-is-running check can't tell you
+        # (see the 29 Aug 2026 DNS outage in ARCHITECTURE.md, where the
+        # runner sat active the whole time and told nobody anything was
+        # wrong).

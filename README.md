@@ -102,6 +102,78 @@ waiting for the real prayer time.
   immediately and dismisses the alert; if you don't tap, it dismisses
   itself automatically once the adhan finishes playing on its own.
 
+## Server Health display
+
+The second display: live stats for `gsuaha-home-server` itself —
+uptime, CPU load, memory, disk, temperature, key service status, the
+GitHub Actions runner's last successful deploy, and Docker containers,
+with trend charts for load/memory/temperature. Purple accent (deliberately
+different from Prayer Times' teal-emerald, so the two are visually
+distinct at a glance).
+
+Unlike Prayer Times, this needs a small piece running **on the server
+itself** to produce the data — there's still no real backend/API, just
+a script that periodically writes a plain JSON file into the same
+folder Apache already serves, same "no backend" spirit as everything
+else here.
+
+### One-time setup on the server
+
+This only needs doing once. `scripts/server-stats.sh` itself deploys
+automatically with every `git push` like any other file in this repo —
+only the systemd unit files below need manual installing, since systemd
+doesn't read units from the webroot.
+
+1. Install the two things the script relies on:
+   ```bash
+   sudo apt update && sudo apt install -y jq lm-sensors
+   sudo sensors-detect --auto
+   ```
+   `jq` builds the JSON safely; `lm-sensors` provides the temperature
+   reading (optional — the display just shows "--" without it). If you
+   want Docker container status too and `gsuaha` isn't already in the
+   `docker` group:
+   ```bash
+   sudo usermod -aG docker gsuaha
+   ```
+   (log out/in, or reboot, for a fresh group membership to take effect)
+
+2. Confirm the script actually deployed (it ships in this repo, so a
+   normal push should have already put it here):
+   ```bash
+   ls -l /var/www/cheadle-masjid-display/scripts/server-stats.sh
+   ```
+   If that's missing, push hasn't reached the server yet — check the
+   [Actions page](https://github.com/amarmohammed398/cheadle-masjid-display/actions)
+   before continuing.
+
+3. Install and start the systemd timer that runs it every 10 seconds:
+   ```bash
+   sudo cp /var/www/cheadle-masjid-display/systemd/server-stats.service /etc/systemd/system/
+   sudo cp /var/www/cheadle-masjid-display/systemd/server-stats.timer /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now server-stats.timer
+   ```
+
+4. Confirm it's actually producing data:
+   ```bash
+   systemctl status server-stats.timer --no-pager
+   cat /var/www/cheadle-masjid-display/server-stats.json
+   ```
+   The JSON should look sane (real numbers, not nulls/zeros everywhere)
+   and `generated_at` should be within the last ~10-15 seconds. If
+   `temp_c` comes back `null`, `sensors -u` probably isn't finding a
+   usable sensor — run it yourself and see what's there; the script's
+   own comment on the temperature line explains how to point it at a
+   specific one.
+
+Once that's running, reopen the app on the iPad (or just wait — it
+polls every 10s) and the Server Health tile should show live data
+instead of "Waiting for data…". If it's ever stuck on "Waiting for
+data…" or shows a "Stale data" banner, check the timer with the same
+`systemctl status`/`cat` commands above before assuming the display
+itself is broken.
+
 ## Deployment: self-hosted on your Linux server, displayed on the iPad
 
 No GitHub account needed. Your Linux box serves the page over your home

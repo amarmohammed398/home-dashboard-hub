@@ -1,0 +1,14 @@
+# See server-stats.service for the install steps — this needs the same
+# one-time manual copy to /etc/systemd/system/, it isn't picked up from
+# here automatically.
+
+[Unit]
+Description=Run server-stats.service every 10 seconds
+
+[Timer]
+OnBootSec=10s
+OnUnitActiveSec=10s
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

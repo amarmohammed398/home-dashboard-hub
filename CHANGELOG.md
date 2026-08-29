@@ -109,10 +109,13 @@ overriding — the baseline exists precisely to catch that kind of thing.
   "Home Server", purple) — that's correct, not an inconsistency to fix.
 
 ### Server Health display
-**Status: client built and tested against a mock fixture; the
-server-side piece (the script that actually produces the data) is not
-written yet** — see the dated entry below for the full plan. Don't
-expect this to show real data on the live iPad until that's done.
+**Status: client built (tested against a mock fixture) and the
+server-side collector script + systemd timer + workflow changes are
+written — none of it has been installed/enabled on the actual server
+yet.** See the dated entries below for the full plan and what's left
+(installing `lm-sensors`/`jq`, copying the systemd unit files into
+`/etc/systemd/system/`, enabling the timer). Don't expect real data on
+the live iPad until that manual install step is done.
 - Second tablet screen (`#serverScreen`), purple accent throughout
   (heading, memory bar, chart lines — deliberately not the same
   teal-emerald as Prayer Times, so the two displays read as visually
@@ -884,3 +887,72 @@ home-screen tile. No console errors in any state. Nothing here has
 touched the real server yet — `gsuaha-home-server` has no
 `server-stats.json`-producing script, so this display will show
 "Waiting for data…" on the actual iPad until step 2 is done.
+
+### 2026-08-29 — Server Health: collector script + systemd timer + deploy-marker (step 2 of 3)
+Writes the pieces step 1 was waiting on. Nothing here is installed/
+running on the actual server yet — that's a manual step (see below) —
+so this is "code exists and is verified correct," not "server health
+shows real data now."
+
+- **`scripts/server-stats.sh`**: collects uptime, load average, memory,
+  disk (root only by default — see the script's own comment for why a
+  second `/var/www` row would likely just repeat the same numbers on
+  this box), temperature (via `lm-sensors`, degrades to `null` if
+  unavailable), three services (`apache2`, `ssh`, the GitHub Actions
+  runner — glob-matched the same way the runner's own troubleshooting
+  commands did on 29 Aug), Docker containers (skipped entirely if
+  `docker` isn't usable), and the last-successful-deploy timestamp —
+  then assembles it all with `jq` into `server-stats.json`, written
+  atomically (`.tmp` file + `mv`) so the client never reads a
+  half-written file mid-update.
+  - Deliberately deployed **inside the repo** (`/var/www/cheadle-masjid-display/scripts/`
+    after a normal `git push`), not hand-placed on the server outside
+    git — editing the script later is just another push, same as
+    `index.html`. The *systemd* unit files can't work this way (systemd
+    only reads `/etc/systemd/system/`), so those need a one-time manual
+    copy — see `systemd/server-stats.service`'s own header comment.
+  - Rolling history (`history.cpu_load`/`.memory_percent`/`.temp_c`,
+    last 24 samples ≈ 4 minutes at the default 10s interval) persists
+    between runs in a dotfile in the script user's home directory, not
+    in `server-stats.json` itself across restarts — each run reads the
+    previous history, appends, trims to length, writes it back.
+  - `temp_c` is deliberately **not** appended to its history array when
+    a reading isn't available (`null`) — pushing `null` into the array
+    would break the client's sparkline math (plain arithmetic, not
+    null-aware) for every point on the chart, not just the missing one.
+    Caught and fixed during testing (see below), before this ever ran
+    against real hardware.
+- **`systemd/server-stats.service` + `.timer`**: a oneshot service run
+  every 10s by a timer, `ExecStart` pointing at the *deployed* script
+  path (`/var/www/cheadle-masjid-display/scripts/...`) — meaning this
+  commit had to reach the server via a normal deploy **before** the
+  timer could be installed and start working, not the other way round.
+- **`.github/workflows/deploy.yml`**: `server-stats.json` and the new
+  `.last-successful-deploy` marker both added to the rsync `--exclude`
+  list (same reasoning as `adhan.mp3` — neither is tracked in git, so
+  without the exclude, `--delete` would remove them from the live
+  server on the very next deploy). A new step, `Record this as the last
+  successful deploy`, writes a fresh UTC timestamp to
+  `.last-successful-deploy` right after the rsync step — this is what
+  the Server Health "Last Successful Deploy" card actually reads, and
+  it only runs if the rsync step succeeded (a failed step stops the job
+  by default), so the timestamp genuinely means "a deploy completed",
+  not just "a job started."
+
+**Verified before touching the real server**: `bash -n` on the script
+(syntax only — its own logic uses Linux-only paths like `/proc/loadavg`
+that don't exist on macOS, so it can't fully run here); the `jq` history
+and final-JSON-assembly logic tested in isolation with simulated inputs
+across seven consecutive runs (confirmed correct rolling-window
+trimming, and confirmed a null temperature reading is skipped rather
+than corrupting the array); the exact JSON the script would produce fed
+into the real client in the local preview, confirming full schema
+compatibility end-to-end (not just against the earlier hand-written
+mock fixture from step 1).
+
+**What's left (manual, on `gsuaha-home-server`, once this commit has
+deployed):** install `lm-sensors` and `jq`, run `sudo sensors-detect
+--auto`, copy the two systemd unit files into `/etc/systemd/system/`,
+`daemon-reload`, `enable --now server-stats.timer`, then confirm
+`server-stats.json` appears in the webroot and looks sane before
+trusting the iPad's display of it.

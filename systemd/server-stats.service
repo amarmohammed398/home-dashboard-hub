@@ -1,0 +1,23 @@
+# NOT deployed automatically — unlike scripts/server-stats.sh (which
+# lives in the served webroot and updates on every `git push`), systemd
+# only reads unit files from /etc/systemd/system/ (or similar system
+# paths), so this needs a one-time manual copy there. Tracked here so
+# the setup is versioned/reproducible, not because systemd reads it
+# from this location. If you ever edit this file, re-copy it to
+# /etc/systemd/system/ and run `sudo systemctl daemon-reload` — editing
+# the copy in this repo alone does nothing.
+#
+# Install:
+#   sudo cp systemd/server-stats.service /etc/systemd/system/
+#   sudo cp systemd/server-stats.timer /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now server-stats.timer
+
+[Unit]
+Description=Collect home server health stats for the Server Health tablet display
+After=network.target
+
+[Service]
+Type=oneshot
+User=gsuaha
+ExecStart=/var/www/cheadle-masjid-display/scripts/server-stats.sh
