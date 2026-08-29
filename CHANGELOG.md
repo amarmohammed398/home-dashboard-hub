@@ -33,7 +33,7 @@ overriding — the baseline exists precisely to catch that kind of thing.
 
 ---
 
-## Current baseline (as of 2026-08-28)
+## Current baseline (as of 2026-08-29)
 
 ### Data & prayer times
 - Live-fetches today's prayer times client-side from
@@ -65,9 +65,10 @@ overriding — the baseline exists precisely to catch that kind of thing.
 
 ### Appearance
 - **"Liquid Glass" look** (matching iOS 26's own material design): every
-  floating panel (`#header`, `#countdownClock`, `#card`, `#settingsPanel`,
-  `#settingsBtn`) is translucent with `backdrop-filter: blur(28px)
-  saturate(180%)` and a bright hairline border.
+  floating panel (`#header`, `#countdownClock`, `#card`, `#settingsPanel`)
+  is translucent with `backdrop-filter: blur(28px) saturate(180%)` and a
+  bright hairline border. `#settingsBtn` is deliberately **not** part of
+  this shared glass styling — it's a bare icon, not a panel (see below).
 - **Page background is a plain flat colour, no gradient**: pure white
   (`#ffffff`) in light theme, pure black (`#000000`) in dark theme — by
   explicit request (see dated entries below; this went colourful → flat
@@ -78,9 +79,9 @@ overriding — the baseline exists precisely to catch that kind of thing.
   backdrop. That trade-off was made consciously this time, not
   overlooked.
 - Emerald (`#0e8f6b` light / `#2fd39a` dark) accent colour throughout.
-- Dark mode available via the **"more" (⋯) icon**, which lives inside
-  the header's own layout next to the date — not a floating overlay
-  button — → Settings panel → Dark mode toggle. Choice persists in
+- Dark mode available via the **"more" (⋮) icon**, a bare vertical
+  three-dot icon fixed just outside the header's glass pane, top-right
+  — → Settings panel → Dark mode toggle. Choice persists in
   `localStorage` (`cheadleMasjidTheme`) across reloads. See the dated
   entry below for why this moved from a fixed gear-icon circle to a bare
   in-flow ellipsis.
@@ -574,3 +575,43 @@ Verified via `getBoundingClientRect()` on the header, countdown box,
 and table: all three now have **identical** left/right margins
 (30.71875px each, at 1024px viewport width) — confirmed symmetric,
 not just visually eyeballed.
+
+### 2026-08-29 — "More" icon: vertical dots, moved outside the header pane
+User asked for two changes to the icon from the previous entry: make
+the three dots vertical instead of horizontal, and move it outside the
+header's glass pane rather than inside it.
+
+- Icon changed from a horizontal ellipsis (three `<circle>`s in a row)
+  to a vertical one (`cx="12"`, `cy` at 5/12/19 — a stacked column
+  instead).
+- `#settingsBtn` moved back out of `#clockBlock` to a top-level,
+  `position: fixed` element — but *not* a return to the old fixed gear
+  from two entries ago, which is what originally broke panel symmetry.
+  The old version needed `#app` to reserve a special one-sided
+  `padding-right` just to keep the header clear of it. This version
+  instead sits inside the **already-existing, still-symmetric** 3vw
+  gutter that `#app`'s `padding: 3vh 3vw` reserves on both sides —
+  `right: calc(1.5vw - 14px)` centres a 28px icon in that gutter, no new
+  padding added anywhere. Confirmed via `getBoundingClientRect()`: the
+  header's left/right edges are still equidistant from the viewport
+  (35.8125px each side at 1194px width) — the icon sits entirely
+  outside that box, in the margin, without perturbing it.
+- Vertical centring against the header is done from JS, not CSS —
+  `positionSettingsBtn()` (called once on load and again on
+  `window.onresize`) reads the header's live `getBoundingClientRect()`
+  and centres the icon against it. A pure-CSS offset wasn't viable here
+  because the header's height is driven by its vw-sized text content,
+  not a fixed number. Verified the two centres land within ~0.003px of
+  each other (header centre 75.44px vs icon centre 75.4375px, at
+  1194×834).
+- `#settingsPanel`'s own position (`top: 6.4vh; right: 2vh`) is
+  independent of the button's position and needed no change — it was
+  never anchored relative to `#settingsBtn` in the first place.
+- No JS changes to `initSettingsUI()` itself (click handling, panel
+  open/close) — only the new `positionSettingsBtn()` helper was added
+  and wired into init + resize.
+
+Verified in both light and dark themes in the local preview: icon
+renders in the correct theme colour, sits visibly clear of the header's
+blurred background, opens/closes the panel correctly, and panel
+symmetry (header/countdown-box/table) is unaffected.

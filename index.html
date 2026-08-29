@@ -235,14 +235,23 @@
   }
 
   /* ---------- settings button + panel ---------- */
-  /* "More" entry point — a bare icon living inside the header's own
-     flex row (next to the date), not a floating overlay. This is what
-     fixes the app-wide layout symmetry: no panel needs special padding
-     reserved for a corner button any more, and this same slot scales to
-     more entries later (Home, etc.) by adding rows inside the panel it
-     opens, without the icon itself needing to grow or move. Deliberately
-     no background/border/shadow — bare icon, minimum visual weight. */
+  /* "More" entry point — a bare icon that floats in the margin gutter
+     outside the header's own glass pane, not nested inside it. It used
+     to live inside #clockBlock (in the header's flex row); moved back
+     out to a fixed-position icon per request, but — unlike the old
+     floating gear this replaced — it sits inside the *existing*
+     symmetric 3vw gutter that #app already reserves on both sides,
+     rather than #app growing a special one-sided padding just for it.
+     That's what keeps header/countdown-box/table all still perfectly
+     symmetric (verified via getBoundingClientRect()). Horizontal
+     position is a fixed CSS offset centred in that gutter; vertical
+     position is set from JS (positionSettingsBtn(), called on load/
+     resize) because the header's height is content-driven (vw-sized
+     text), not a fixed number CSS can center against reliably.
+     Deliberately no background/border/shadow — bare icon, minimum
+     visual weight. */
   #settingsBtn {
+    position: fixed;
     display: -webkit-box;
     display: -webkit-flex;
     display: flex;
@@ -252,13 +261,13 @@
     -webkit-box-pack: center;
     -webkit-justify-content: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
-    margin-left: 0.6vw;
+    width: 28px;
+    height: 28px;
+    right: calc(1.5vw - 14px);
     cursor: pointer;
     z-index: 20;
   }
-  #settingsBtn svg { width: 20px; height: 20px; }
+  #settingsBtn svg { width: 18px; height: 18px; }
   #settingsPanel {
     position: fixed;
     top: 6.4vh;
@@ -530,13 +539,6 @@
     </div>
     <div id="clockBlock">
       <div id="dateLine">-</div>
-      <div id="settingsBtn" aria-label="More options">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <circle cx="5" cy="12" r="2.2"></circle>
-          <circle cx="12" cy="12" r="2.2"></circle>
-          <circle cx="19" cy="12" r="2.2"></circle>
-        </svg>
-      </div>
     </div>
   </div>
 
@@ -556,6 +558,14 @@
 
   <div id="footer">Cheadlemasjid.org &middot; last updated --:--</div>
 
+</div>
+
+<div id="settingsBtn" aria-label="More options">
+  <svg viewBox="0 0 24 24" fill="currentColor">
+    <circle cx="12" cy="5" r="2.2"></circle>
+    <circle cx="12" cy="12" r="2.2"></circle>
+    <circle cx="12" cy="19" r="2.2"></circle>
+  </svg>
 </div>
 
 <div id="settingsPanel">
@@ -678,10 +688,26 @@
     saveTheme(next);
   }
 
+  // Vertically centers the fixed #settingsBtn icon on the header's own
+  // glass pane. Can't do this in pure CSS because the header's height
+  // is driven by its vw-sized text content, not a fixed number — so we
+  // measure it directly instead of guessing a top offset that would
+  // drift if the header's content (or the viewport) ever changes size.
+  function positionSettingsBtn() {
+    var btn = document.getElementById("settingsBtn");
+    var header = document.getElementById("header");
+    var headerRect = header.getBoundingClientRect();
+    var top = headerRect.top + headerRect.height / 2 - btn.offsetHeight / 2;
+    btn.style.top = top + "px";
+  }
+
   function initSettingsUI() {
     var btn = document.getElementById("settingsBtn");
     var panel = document.getElementById("settingsPanel");
     var toggle = document.getElementById("themeToggle");
+
+    positionSettingsBtn();
+    window.onresize = positionSettingsBtn;
 
     btn.onclick = function (e) {
       e.stopPropagation();
