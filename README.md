@@ -40,8 +40,9 @@ page navigation would silently break the Prayer Times adhan — see
   screen where each display appears as a tile — tap a tile to open it —
   and **Settings** (gear icon), which opens the current display's
   settings panel — for Prayer Times that's Appearance (dark mode) and
-  Adhan. The ⋮ icon itself is hidden while you're already on the home
-  screen — there's nothing to navigate to or configure from there yet.
+  Adhan. The ⋮ icon is also available **on the home screen itself**, so
+  you can flip dark mode without opening a display first — its
+  "Home" entry just doesn't show there, since you're already home.
 - Reopening the app (e.g. after the iPad restarts) goes straight back to
   whichever display you last had open — not the home screen — so the
   always-on kiosk behaviour is unaffected by adding a home screen at all.

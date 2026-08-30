@@ -93,8 +93,14 @@ overriding — the baseline exists precisely to catch that kind of thing.
   whichever display's glass panel is showing → opens a small popover
   (`#moreMenu`) with two rows today: **Home** (house icon) → returns to
   `#homeScreen`; **Settings** (gear icon) → opens that display's
-  settings panel. The icon is hidden while `#homeScreen` itself is
-  showing — nothing to navigate to or configure from there yet. (There
+  settings panel. **Also shown on `#homeScreen` itself (30 Aug 2026)** —
+  Appearance (dark mode) is app-wide and shouldn't require opening a
+  tablet display first just to reach it — where the **Home** row hides
+  itself (`showScreen()` toggles `#goHomeRow`'s display), since
+  navigating Home from Home is meaningless; **Settings** stays and opens
+  the same panel as everywhere else, with only Appearance visible since
+  every per-display section (e.g. Adhan) is scoped to a real display
+  name, and `currentScreen === "home"` matches none of them. (There
   was briefly a second, separate top-left Home icon — see the dated
   entry below for why that got folded into this menu instead.)
 - `#settingsPanel`'s content is **scoped to whichever display is
@@ -121,10 +127,15 @@ overriding — the baseline exists precisely to catch that kind of thing.
   that predates the home screen is unaffected by adding one.
 - The ⋮ icon's vertical position is computed from the current display's
   own `.screenHeader` via `getBoundingClientRect()` (`positionMoreIcon()`),
-  re-run every time `showScreen()` switches to a non-home screen (as
-  well as on `window.resize`) — this only works while that display's
-  header actually exists in the DOM and is visible, which is why it's
-  tied to the screen-switch, not just a one-time page-load call.
+  re-run every time `showScreen()` switches screens — **home screen
+  included as of 30 Aug 2026**, where it centers against `#homeTitle`
+  instead (the home screen has no `.screenHeader` bar, just a centered
+  heading — `positionMoreIcon()` branches on `currentScreen === "home"`
+  to pick which element to measure) — as well as on `window.resize`,
+  unconditionally now rather than skipping the home screen as it used
+  to. This only works while the relevant header element actually exists
+  in the DOM and is visible, which is why it's tied to the screen-switch,
+  not just a one-time page-load call.
 - Browser tab / PWA title is now **"Home Dashboard Hub"** (was "Cheadle
   Masjid - Prayer Times") — reflects the app as a whole, not just its
   first display. Each display keeps its own on-screen branding/accent
@@ -1792,3 +1803,43 @@ full on-device confirmation since the Bin Day display was added and
 since the rename — everything up to this point had only been verified
 individually (local preview, server-side `curl`/SSH checks), not as a
 single end-to-end pass on the physical hardware.
+
+### 2026-08-30 — ⋮ icon (and Settings/dark mode) now reachable from the home screen
+User asked to be able to reach dark mode from "Choose a Display"
+directly, rather than needing to open a tablet display first just to
+flip Appearance. Previously `showScreen("home")` explicitly hid
+`#settingsBtn` — reasonable back when the home screen had genuinely
+nothing to configure, but Appearance has been an app-wide setting
+(shown regardless of which display is open) since the multi-display
+navigation baseline was written, so this was really just an oversight
+that outlived its original reasoning.
+
+Three changes, all in `index.html`:
+1. `positionMoreIcon()` gained a home-screen branch — the home screen
+   has no `.screenHeader` bar (just a centered `#homeTitle`), so it
+   measures that element instead when `currentScreen === "home"`,
+   same "measure it, don't guess" approach as every other screen.
+2. `showScreen()` now sets `settingsBtn.style.display = "flex"` (and
+   calls `positionMoreIcon()`) on the `home` branch instead of hiding
+   it, and toggles `#goHomeRow`'s own display based on whether the
+   target screen *is* home — showing "Home" as an option while already
+   on Home would be meaningless clutter.
+3. `window.onresize`'s handler used to skip `positionMoreIcon()`
+   entirely while on the home screen (`if (currentScreen !== "home")`)
+   — removed, since the function now handles that screen correctly too.
+
+No changes needed to `updateSettingsPanelForScreen()` or the Settings
+panel itself — Adhan's section already keys off `currentScreen ===
+"prayer-times"`, which is simply never true while home is showing, so
+it hides correctly with zero new code; Appearance was already
+unconditional. This is exactly the "wrap per-display settings, default
+to hidden" pattern the baseline already documented working as intended.
+
+Tested by clicking through the real UI flow (not editing `style.display`
+directly, which bypasses `showScreen()`'s own state): opened the ⋮ menu
+from the home screen (only "Settings" shown, "Home" correctly absent),
+opened Settings (only Appearance visible), toggled dark mode and
+confirmed it applied instantly across the whole app including the home
+screen's own tiles, then navigated to a tablet display and confirmed
+"Home" reappears in its menu — no regression to the existing per-display
+behaviour. Checked in both portrait (834×1194) and landscape (1194×834).

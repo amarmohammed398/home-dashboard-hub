@@ -656,11 +656,15 @@
      resize/screen-switch) because the header's height is content-
      driven (vw-sized text), not a fixed number CSS can center against
      reliably. Deliberately no background/border/shadow — a bare icon,
-     minimum visual weight. Hidden while the home screen (tablet
-     picker) is showing — there's nothing for it to do there yet.
-     Home and Settings both live inside the popover this opens (see
-     #moreMenu below) rather than each being its own top-level icon —
-     one entry point, extensible for more rows later. */
+     minimum visual weight. Also shown on the home screen (tablet
+     picker) — centered against `#homeTitle` instead of a
+     `.screenHeader`, see positionMoreIcon()'s own comment — since
+     Appearance/dark mode is app-wide and shouldn't require opening a
+     tablet screen first just to reach it; only its "Home" row hides
+     itself there (see showScreen()), since navigating Home from Home
+     is meaningless. Home and Settings both live inside the popover
+     this opens (see #moreMenu below) rather than each being its own
+     top-level icon — one entry point, extensible for more rows later. */
   #settingsBtn {
     position: fixed;
     display: -webkit-box;
@@ -1418,14 +1422,22 @@
   // Looks the header up via the shared `.screenHeader` class, scoped to
   // whichever tablet screen is currently visible, rather than a fixed
   // id — every tablet screen has one, but each needs its own markup/
-  // styling, so there's no single element this could hardcode to.
-  // Only meaningful while a tablet screen is showing — showScreen()
-  // re-runs this every time it switches to one.
+  // styling, so there's no single element this could hardcode to. The
+  // home screen has no `.screenHeader` (it's a picker, not a display,
+  // so its heading is just centered text, not a full header bar) — it
+  // gets its own branch centering against `#homeTitle` instead, same
+  // "measure it, don't guess" approach. showScreen() re-runs this every
+  // time it switches screens, home included.
   function positionMoreIcon() {
     var btn = document.getElementById("settingsBtn");
-    var screenId = TABLET_SCREENS[currentScreen];
-    if (!screenId) { return; }
-    var header = document.querySelector("#" + screenId + " .screenHeader");
+    var header;
+    if (currentScreen === "home") {
+      header = document.getElementById("homeTitle");
+    } else {
+      var screenId = TABLET_SCREENS[currentScreen];
+      if (!screenId) { return; }
+      header = document.querySelector("#" + screenId + " .screenHeader");
+    }
     if (!header) { return; }
     var headerRect = header.getBoundingClientRect();
     var top = headerRect.top + headerRect.height / 2 - btn.offsetHeight / 2;
@@ -1483,6 +1495,7 @@
   function showScreen(name) {
     var home = document.getElementById("homeScreen");
     var settingsBtn = document.getElementById("settingsBtn");
+    var goHomeRow = document.getElementById("goHomeRow");
     var key;
 
     // Close any open popovers so switching screens never leaves one
@@ -1502,9 +1515,18 @@
       }
     }
 
+    // The ⋮ icon (and its Settings row) stays available on the home
+    // screen too — Appearance/dark mode is a genuinely app-wide setting,
+    // not tied to any one display, so there's no reason to make someone
+    // open a tablet screen first just to reach it. Its "Home" row is the
+    // one thing hidden here, since going Home while already on Home is
+    // meaningless.
+    goHomeRow.style.display = (name === "home") ? "none" : "";
+
     if (name === "home") {
       home.className = "show";
-      settingsBtn.style.display = "none";
+      settingsBtn.style.display = "flex";
+      positionMoreIcon();
       return;
     }
 
@@ -1524,7 +1546,7 @@
     var openSettingsRow = document.getElementById("openSettingsRow");
 
     window.onresize = function () {
-      if (currentScreen !== "home") { positionMoreIcon(); }
+      positionMoreIcon();
     };
 
     settingsBtn.onclick = function (e) {

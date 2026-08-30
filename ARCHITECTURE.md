@@ -40,9 +40,14 @@ display means adding a new branch there plus a new tile in `#homeScreen`
 
 One small **⋮ icon** floats outside the currently-open display's own
 panel, opening a menu with **Home** (always returns to the picker) and
-**Settings** (that display's own, if it has any). It's hidden on the
-home screen itself — nothing to navigate to or configure from there
-yet. Reopening the app after it's been closed (e.g. an iPad restart)
+**Settings** (Appearance is always shown, since dark mode is app-wide;
+a display's own settings, like Prayer Times' Adhan section, are shown
+only while that display is open). The icon is also shown **on the home
+screen itself** (30 Aug 2026) — Appearance shouldn't require opening a
+tablet display first just to reach it — where it centers against the
+home screen's own title instead of a `.screenHeader`, and its "Home"
+row hides itself there, since navigating Home from Home is meaningless.
+Reopening the app after it's been closed (e.g. an iPad restart)
 returns straight to whichever display was last open, not the home
 screen, so the always-on kiosk behaviour this app was already tuned for
 isn't disturbed by having a picker at all.
