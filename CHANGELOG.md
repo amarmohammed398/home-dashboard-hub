@@ -46,7 +46,13 @@ overriding — the baseline exists precisely to catch that kind of thing.
   `data.friday.asr_mithl_1` (shown as "2nd Khutbah") — this exact field
   mapping was verified against the masjid's own live screen at
   cheadlemasjid.org/prayer-times-screen-2/.
-- The next upcoming Iqamah's row is highlighted (green accent bar).
+- The next upcoming Iqamah's row is highlighted (`.row.active`) — a
+  green accent bar next to the prayer name, plus a full-row background
+  tint with a slight green hint (30 Aug 2026: changed from a plain
+  neutral grey to `rgba(14, 143, 107, 0.14)` light / `rgba(47, 211,
+  154, 0.14)` dark — the same accent green as the rest of Prayer Times,
+  just at low opacity so it still reads as "grey box," not a solid
+  green highlight).
 - If the live fetch fails, the page falls back to the last successful
   response cached in `localStorage`, with an "Offline · showing last
   update HH:MM" footer notice.
@@ -1843,3 +1849,17 @@ confirmed it applied instantly across the whole app including the home
 screen's own tiles, then navigated to a tablet display and confirmed
 "Home" reappears in its menu — no regression to the existing per-display
 behaviour. Checked in both portrait (834×1194) and landscape (1194×834).
+
+### 2026-08-30 — Next-prayer row highlight: plain grey → grey with a hint of green
+User wanted the highlighted "next prayer" row (`.row.active`) to read
+as grey with a subtle green tint, in both themes, rather than a flatly
+neutral grey box. Changed `background-color` from `rgba(255, 255, 255,
+0.55)` (light) / `rgba(255, 255, 255, 0.08)` (dark) to `rgba(14, 143,
+107, 0.14)` (light) / `rgba(47, 211, 154, 0.14)` (dark) — reusing
+Prayer Times' own existing accent green (`#0e8f6b`/`#2fd39a`, the same
+colours already used for the countdown digits and the row's little
+accent bar) rather than inventing a new colour, just at a low enough
+opacity that it still reads as "a grey box" rather than "a green box."
+Verified visually in the local preview in both themes (via
+`getComputedStyle` first, to confirm the edited value was actually
+live and not a stale cached copy) before considering it done.
