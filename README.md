@@ -13,10 +13,12 @@ A wall/stand-mounted iPad (in a picture-frame case) that shows one of
 several full-screen **displays** — a home screen lets you pick which one.
 Three exist today: **Prayer Times** (for Cheadle Masjid, built first),
 **Server Health** (live stats for the home server itself), and
-**Bin Day** (Stockport Council collection schedule). More are planned
-(energy/gas usage and others — see the "Where this could go next"
-section of [ARCHITECTURE.md](ARCHITECTURE.md) for ideas not built yet,
-and [CHANGELOG.md](CHANGELOG.md) for exactly what exists today).
+**Bin Day** (Stockport Council collection schedule). The home screen
+itself also shows a small **5-day weather strip** in the top-left
+corner. More are planned (energy/gas usage and others — see the "Where
+this could go next" section of [ARCHITECTURE.md](ARCHITECTURE.md) for
+ideas not built yet, and [CHANGELOG.md](CHANGELOG.md) for exactly what
+exists today).
 
 > **Naming note:** this project started as a single-purpose prayer-times
 > display, originally named after the masjid it displays — renamed to
@@ -204,6 +206,24 @@ re-derive the rotation from an updated council calendar and update the
 constants at the top of the Bin Day section of `index.html`
 (`BIN_ROTATION_REFERENCE` / `BIN_ROTATION`); there's no way for the app
 to detect this change on its own.
+
+## Weather strip (home screen)
+
+A small, animated 5-day forecast in the top-left corner of "Choose a
+Display" — day label, small weather icon, rain chance, and high/low
+temperature per day. Uses [Open-Meteo](https://open-meteo.com), a free
+weather API that needs no signup or API key, fetched directly from the
+browser like everything else in this app.
+
+**The forecast location is deliberately rounded to about 1km
+precision**, not the exact address — since this repo is public and has
+no backend, the location has to live in the source as plain
+coordinates, and rounding means the repo never pinpoints a specific
+house while the forecast itself is unaffected (weather doesn't resolve
+to house-level precision anyway). If you fork this for your own home,
+replace `WEATHER_LAT`/`WEATHER_LON` near the top of the weather section
+in `index.html` with your own location, rounded to 2 decimal places —
+don't commit exact coordinates.
 
 ## Deployment: self-hosted on your Linux server, displayed on the iPad
 

@@ -18,12 +18,14 @@ prayer's Begins time, and optionally sounding the adhan through the
 tablet's speaker at that moment; **Server Health**, live stats for the
 home server itself; and **Bin Day**, Stockport Council's bin collection
 schedule computed entirely from a hardcoded recurring rule, with no
-live data source at all (see "Data flow: Bin Day" below for why). More
-are planned (utility usage and others — see "Where this could go next"
-at the bottom); the app is deliberately structured so adding one means
-adding a new screen and a new home-screen tile, not rebuilding anything
-that already works. All of it runs unattended, indefinitely, updated by
-pushing code from a laptop.
+live data source at all (see "Data flow: Bin Day" below for why). The
+home screen itself also shows a small **5-day weather strip** (see
+"Data flow: Weather" below), the only piece of live data shown outside
+a full display. More are planned (utility usage and others — see
+"Where this could go next" at the bottom); the app is deliberately
+structured so adding one means adding a new screen and a new
+home-screen tile, not rebuilding anything that already works. All of it
+runs unattended, indefinitely, updated by pushing code from a laptop.
 
 ### Multi-display navigation
 
@@ -234,6 +236,50 @@ pattern, so there's no data flow at all in the usual sense:
    meaningfully clearer legal footing than the still-unresolved Prayer
    Times data-usage question above, and part of why this display was
    comfortable to hardcode and ship without further discussion.
+
+## Data flow: Weather
+
+Smaller in scope than the three full displays — a 5-day forecast strip
+in the corner of the home screen — but its own small data flow worth
+documenting, since it's a genuine trade-off between two constraints
+this app doesn't usually have to balance against each other: needing a
+real location to forecast for, while being a fully public GitHub repo
+with no backend to hide that location behind.
+
+1. `index.html` fetches directly from **Open-Meteo**
+   (`api.open-meteo.com/v1/forecast`) — free, keyless, no signup, same
+   "no backend, fetch straight from the browser" shape as the Prayer
+   Times API call. Polled every 30 minutes; a failed fetch falls back to
+   the last good response cached in `localStorage`, same resilience
+   pattern used everywhere else in this app.
+2. **The location baked into the source is deliberately not the real
+   address this was set up for.** Everything else in this app that
+   needs a real-world location (Bin Day's council round) only ever
+   commits the *result* of using an address, never the address itself.
+   Weather can't quite do that — the forecast API needs actual
+   coordinates at request time, every time, so *some* location has to
+   live in the public source. The resolution: geocode once (querying
+   only the postcode, not the full street address, for a smaller
+   footprint than even that lookup needed), then round the result to 2
+   decimal places (~1km precision) before writing it into `index.html`.
+   Weather forecasting doesn't resolve to house-level precision in the
+   first place, so nothing about the forecast's accuracy is lost — only
+   the exact address is what's kept out of a public repo.
+3. Open-Meteo's `weathercode` field returns one of ~28 WMO weather
+   codes; `weatherCategoryForCode()` collapses these down to 7 icon
+   categories the widget actually draws (clear, partly-cloudy, cloudy,
+   fog, rain, snow, thunderstorm) — deliberately coarser than the full
+   WMO table, since a 22px icon can't (and doesn't need to) distinguish
+   "light drizzle" from "heavy rain."
+4. The icons themselves are a deliberate, noted exception to this app's
+   usual monochrome `fill="currentColor"` icon convention — full colour
+   (yellow sun, grey cloud, blue rain), because colour is what makes an
+   icon this small legible as "which condition" at a glance, the same
+   reason every real weather app does this. Animated via slow CSS
+   `@keyframes`, not JS, kept deliberately subtle for an always-on wall
+   display — same reasoning as the mesh-gradient background's own slow
+   drift, and disabled together under the same `prefers-reduced-motion`
+   query.
 
 ## Deployment architecture
 

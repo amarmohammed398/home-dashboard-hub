@@ -17,3 +17,7 @@ server-stats.json
 # also excluded from the rsync so a deploy never wipes the very
 # timestamp it just wrote.
 .last-successful-deploy
+
+# macOS Finder metadata — not authored, not app code, shouldn't be
+# committed just because Finder happened to browse this folder.
+.DS_Store

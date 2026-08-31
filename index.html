@@ -34,7 +34,10 @@
     100% { background-position: 20% 90%; }
   }
   @media (prefers-reduced-motion: reduce) {
-    body.theme-light, body.theme-dark { animation: none; }
+    body.theme-light, body.theme-dark,
+    .wxSun, .wxCloud, .wxDrop, .wxFlake, .wxBolt, .wxFogLine {
+      animation: none;
+    }
   }
   /* #prayerScreen is one of several full-screen "tablets" this app can
      show (see #homeScreen below) — named for what it displays, now that
@@ -657,6 +660,150 @@
     text-align: center;
   }
 
+  /* ---------- weather strip (home screen, top-left) ---------- */
+  /* Deliberately small and quiet — this sits in the same top corner
+     gutter #settingsBtn uses on the opposite side, and shouldn't compete
+     with the home screen's own title/tiles for attention. Unlike every
+     other panel in this app, this one has NO glass card behind it (no
+     background/border/blur/shadow) — sits directly on the mesh-gradient
+     background, on request, so it reads as lightweight ambient detail
+     rather than another boxed-off panel. */
+  #weatherWidget {
+    position: fixed;
+    top: 1.6vh;
+    left: 1.5vw;
+    display: none;
+    -webkit-box-orient: horizontal;
+    -webkit-flex-direction: row;
+    flex-direction: row;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    z-index: 5;
+  }
+  #weatherWidget.show {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+  }
+  .weatherDay {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    padding: 0 0.45vw;
+  }
+  .weatherDayLabel {
+    font-size: 0.75vw;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .weatherIcon {
+    margin: 0.25vh 0;
+  }
+  .weatherIcon svg { width: 1.7vw; height: 1.7vw; min-width: 16px; min-height: 16px; }
+  .weatherRain {
+    font-size: 0.75vw;
+    font-weight: 700;
+  }
+  .weatherTemp {
+    font-size: 0.62vw;
+    font-weight: 500;
+  }
+  /* Animation hooks for the weather icons (markup built in
+     weatherIconHtml() in the script below) — see that function's own
+     comment for why these stay slow and low-amplitude. */
+  .wxSun {
+    -webkit-transform-origin: center;
+    transform-origin: center;
+    -webkit-animation: wxSunPulse 4s ease-in-out infinite;
+    animation: wxSunPulse 4s ease-in-out infinite;
+  }
+  @-webkit-keyframes wxSunPulse {
+    0%, 100% { opacity: 1; -webkit-transform: scale(1); }
+    50% { opacity: 0.82; -webkit-transform: scale(1.08); }
+  }
+  @keyframes wxSunPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.82; transform: scale(1.08); }
+  }
+  .wxCloud {
+    -webkit-animation: wxCloudDrift 6s ease-in-out infinite;
+    animation: wxCloudDrift 6s ease-in-out infinite;
+  }
+  @-webkit-keyframes wxCloudDrift {
+    0%, 100% { -webkit-transform: translateX(0); }
+    50% { -webkit-transform: translateX(1.2px); }
+  }
+  @keyframes wxCloudDrift {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(1.2px); }
+  }
+  .wxDrop {
+    -webkit-animation: wxDropFall 1.4s linear infinite;
+    animation: wxDropFall 1.4s linear infinite;
+  }
+  @-webkit-keyframes wxDropFall {
+    0% { opacity: 0; -webkit-transform: translateY(-2px); }
+    30% { opacity: 1; }
+    100% { opacity: 0; -webkit-transform: translateY(3px); }
+  }
+  @keyframes wxDropFall {
+    0% { opacity: 0; transform: translateY(-2px); }
+    30% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(3px); }
+  }
+  .wxDrop:nth-child(2) { -webkit-animation-delay: 0.25s; animation-delay: 0.25s; }
+  .wxDrop:nth-child(3) { -webkit-animation-delay: 0.5s; animation-delay: 0.5s; }
+  .wxFlake {
+    -webkit-animation: wxFlakeFall 2.6s ease-in-out infinite;
+    animation: wxFlakeFall 2.6s ease-in-out infinite;
+  }
+  @-webkit-keyframes wxFlakeFall {
+    0% { opacity: 0.3; -webkit-transform: translateY(-2px) translateX(0); }
+    50% { opacity: 1; -webkit-transform: translateY(1px) translateX(1px); }
+    100% { opacity: 0.3; -webkit-transform: translateY(3px) translateX(-1px); }
+  }
+  @keyframes wxFlakeFall {
+    0% { opacity: 0.3; transform: translateY(-2px) translateX(0); }
+    50% { opacity: 1; transform: translateY(1px) translateX(1px); }
+    100% { opacity: 0.3; transform: translateY(3px) translateX(-1px); }
+  }
+  .wxFlake:nth-child(2) { -webkit-animation-delay: 0.7s; animation-delay: 0.7s; }
+  .wxFlake:nth-child(3) { -webkit-animation-delay: 1.4s; animation-delay: 1.4s; }
+  .wxBolt {
+    -webkit-animation: wxBoltFlash 2.6s ease-in-out infinite;
+    animation: wxBoltFlash 2.6s ease-in-out infinite;
+  }
+  @-webkit-keyframes wxBoltFlash {
+    0%, 55%, 100% { opacity: 0.35; }
+    60%, 75% { opacity: 1; }
+  }
+  @keyframes wxBoltFlash {
+    0%, 55%, 100% { opacity: 0.35; }
+    60%, 75% { opacity: 1; }
+  }
+  .wxFogLine {
+    -webkit-animation: wxFogWave 4s ease-in-out infinite;
+    animation: wxFogWave 4s ease-in-out infinite;
+  }
+  @-webkit-keyframes wxFogWave {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+  @keyframes wxFogWave {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+  .wxFogLine:nth-child(2) { -webkit-animation-delay: 0.6s; animation-delay: 0.6s; }
+  .wxFogLine:nth-child(3) { -webkit-animation-delay: 1.2s; animation-delay: 1.2s; }
+
   /* ---------- settings button + panel ---------- */
   /* One bare icon floats in the margin gutter outside the header's own
      glass pane, not nested inside it. It sits inside the *existing*
@@ -1036,6 +1183,9 @@
   body.theme-light #homeTitle { color: #000000; }
   body.theme-light .tileLabel { color: #1f2937; }
   body.theme-light .tileIcon { color: #0e8f6b; }
+  body.theme-light .weatherDayLabel { color: #4b5563; }
+  body.theme-light .weatherRain { color: #0a84ff; }
+  body.theme-light .weatherTemp { color: #1f2937; }
   body.theme-light .tile[data-screen="server-health"] .tileIcon { color: #7c3aed; }
   body.theme-light .tile[data-screen="bin-day"] .tileIcon { color: #007aff; }
   body.theme-light #moreMenu { color: #1f2937; }
@@ -1132,6 +1282,9 @@
   body.theme-dark #homeTitle { color: #ffffff; }
   body.theme-dark .tileLabel { color: #f3f4f6; }
   body.theme-dark .tileIcon { color: #2fd39a; }
+  body.theme-dark .weatherDayLabel { color: #9aa1ac; }
+  body.theme-dark .weatherRain { color: #409cff; }
+  body.theme-dark .weatherTemp { color: #f3f4f6; }
   body.theme-dark .tile[data-screen="server-health"] .tileIcon { color: #a78bfa; }
   body.theme-dark .tile[data-screen="bin-day"] .tileIcon { color: #0a84ff; }
   body.theme-dark #moreMenu { color: #f3f4f6; }
@@ -1151,6 +1304,15 @@
 
 <!-- Home screen: the tablet picker. New tiles get added here as new
      displays are built. -->
+<!-- 5-day weather strip, home screen only. A fixed-position overlay
+     (like #settingsBtn/#moreMenu below) rather than a child of
+     #homeScreen's own centered layout, so it can anchor to the top-left
+     corner independent of the title/tile-grid. Shown/hidden by
+     showScreen() exactly when #homeScreen is. See WEATHER_LAT/LON's own
+     comment in the script for why the coordinates are deliberately
+     rounded, not the real address. -->
+<div id="weatherWidget"></div>
+
 <div id="homeScreen">
   <div id="homeTitle">Choose a Display</div>
   <div id="tileGrid">
@@ -1494,6 +1656,21 @@
     btn.style.top = top + "px";
   }
 
+  // Same measure-don't-guess approach as positionMoreIcon() above,
+  // applied to the weather strip's top-left position — keeps it
+  // vertically centred on "Choose a Display" itself, completing a
+  // single row (weather left, title centre, ⋮ right) rather than
+  // floating disconnected above it. Only ever relevant on the home
+  // screen, same as the widget's own visibility.
+  function positionWeatherWidget() {
+    var widget = document.getElementById("weatherWidget");
+    var title = document.getElementById("homeTitle");
+    if (!title) { return; }
+    var titleRect = title.getBoundingClientRect();
+    var top = titleRect.top + titleRect.height / 2 - widget.offsetHeight / 2;
+    widget.style.top = top + "px";
+  }
+
   // Anchors the "more" popover to settingsBtn's own live position rather
   // than a guessed offset, same reasoning as positionMoreIcon() above.
   function positionMoreMenu() {
@@ -1546,7 +1723,14 @@
     var home = document.getElementById("homeScreen");
     var settingsBtn = document.getElementById("settingsBtn");
     var goHomeRow = document.getElementById("goHomeRow");
+    var weatherWidget = document.getElementById("weatherWidget");
     var key;
+
+    // Weather strip is home-screen-only, same visibility rule as the
+    // home screen itself — toggle its own class rather than
+    // style.display directly so it stays consistent with #homeScreen's
+    // own show/hide pattern.
+    weatherWidget.className = (name === "home") ? "show" : "";
 
     // Close any open popovers so switching screens never leaves one
     // stranded open over the new screen.
@@ -1577,6 +1761,7 @@
       home.className = "show";
       settingsBtn.style.display = "flex";
       positionMoreIcon();
+      positionWeatherWidget();
       return;
     }
 
@@ -1597,6 +1782,7 @@
 
     window.onresize = function () {
       positionMoreIcon();
+      positionWeatherWidget();
     };
 
     settingsBtn.onclick = function (e) {
@@ -2432,6 +2618,205 @@
     }
   }
 
+  /* ---------------- 5-day weather (home screen, top-left) ----------------
+     Small, glanceable 5-day forecast shown only on #homeScreen. Uses
+     Open-Meteo (api.open-meteo.com) — free, keyless, no signup — fetched
+     client-side exactly like Prayer Times' own API, consistent with this
+     app's "no backend" approach everywhere.
+
+     WEATHER_LAT/LON are deliberately NOT the exact coordinates for the
+     real address this was set up for — they're rounded to 2 decimal
+     places (~1km precision at this latitude), which is already finer
+     than weather forecasting itself resolves to, but doesn't pinpoint a
+     specific house in this app's public GitHub repo. Same reasoning as
+     Bin Day only committing the anonymous schedule pattern, never the
+     literal address. If this ever needs re-deriving for a different
+     location, round a real geocoded lat/lon to 2 decimal places rather
+     than committing the precise value. */
+  var WEATHER_LAT = 53.39;
+  var WEATHER_LON = -2.22;
+  var WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=" + WEATHER_LAT +
+    "&longitude=" + WEATHER_LON +
+    "&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max" +
+    "&timezone=auto&forecast_days=5";
+  var WEATHER_REFRESH_MS = 30 * 60 * 1000; // forecasts don't change fast; 30 min keeps this well clear of hammering the API
+  var WEATHER_STORAGE_KEY = "cheadleMasjidWeather";
+
+  var weatherData = null;
+
+  function saveWeatherLocal(d) {
+    try {
+      localStorage.setItem(WEATHER_STORAGE_KEY, JSON.stringify(d));
+    } catch (e) { /* ignore storage errors */ }
+  }
+
+  function loadWeatherLocal() {
+    try {
+      var raw = localStorage.getItem(WEATHER_STORAGE_KEY);
+      if (!raw) { return null; }
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function fetchWeather() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", WEATHER_URL, true);
+    xhr.timeout = 8000;
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          try {
+            var parsed = JSON.parse(xhr.responseText);
+            if (parsed && parsed.daily) {
+              weatherData = parsed;
+              saveWeatherLocal(parsed);
+              renderWeatherWidget();
+              return;
+            }
+          } catch (e) { /* fall through to failure handling */ }
+        }
+        handleWeatherFetchFailure();
+      }
+    };
+    xhr.onerror = handleWeatherFetchFailure;
+    xhr.ontimeout = handleWeatherFetchFailure;
+    xhr.send();
+  }
+
+  function handleWeatherFetchFailure() {
+    if (!weatherData) {
+      var cached = loadWeatherLocal();
+      if (cached) { weatherData = cached; }
+    }
+    renderWeatherWidget();
+  }
+
+  // WMO weather codes (what Open-Meteo's `weathercode` field returns) —
+  // collapsed down to the handful of icon categories this widget
+  // actually draws. Full code list: https://open-meteo.com/en/docs
+  function weatherCategoryForCode(code) {
+    if (code === 0) { return "clear"; }
+    if (code === 1 || code === 2) { return "partly-cloudy"; }
+    if (code === 3) { return "cloudy"; }
+    if (code === 45 || code === 48) { return "fog"; }
+    if (code === 71 || code === 73 || code === 75 || code === 77 || code === 85 || code === 86) { return "snow"; }
+    if (code === 95 || code === 96 || code === 99) { return "thunderstorm"; }
+    return "rain"; // drizzle (51-57), rain (61-67), showers (80-82) all read the same at this size
+  }
+
+  // Full-colour, small inline SVGs — deliberately not this app's usual
+  // monochrome fill="currentColor" nav-icon style, since colour (yellow
+  // sun, grey cloud, blue rain) is what makes a ~22px icon legible as
+  // "which condition" at a glance, same reason every real weather app
+  // does this. Colours are fixed, not theme-dependent — real weather
+  // icons don't change hue between a light/dark app theme elsewhere
+  // either. Animation classes (.wxSun/.wxCloud/.wxDrop/.wxFlake/.wxBolt/
+  // .wxFogLine) are defined in the stylesheet, kept deliberately slow
+  // and low-amplitude — this sits on an always-on wall display and
+  // shouldn't be distracting, same reasoning as the background's own
+  // slow drift.
+  var WEATHER_ICON_SVG = {
+    "clear":
+      '<svg viewBox="0 0 24 24">' +
+      '<g class="wxSun"><circle cx="12" cy="12" r="5" fill="#ffb020"></circle>' +
+      '<g stroke="#ffb020" stroke-width="2" stroke-linecap="round">' +
+      '<line x1="12" y1="1.5" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22.5"></line>' +
+      '<line x1="1.5" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="22.5" y2="12"></line>' +
+      '<line x1="4.4" y1="4.4" x2="6.2" y2="6.2"></line><line x1="17.8" y1="17.8" x2="19.6" y2="19.6"></line>' +
+      '<line x1="4.4" y1="19.6" x2="6.2" y2="17.8"></line><line x1="17.8" y1="6.2" x2="19.6" y2="4.4"></line>' +
+      '</g></g></svg>',
+
+    "partly-cloudy":
+      '<svg viewBox="0 0 24 24">' +
+      '<g class="wxSun" transform="translate(3,-2)"><circle cx="12" cy="8" r="4" fill="#ffb020"></circle>' +
+      '<g stroke="#ffb020" stroke-width="1.6" stroke-linecap="round">' +
+      '<line x1="12" y1="0.5" x2="12" y2="2.3"></line><line x1="4.7" y1="4.7" x2="6" y2="6"></line>' +
+      '<line x1="19.3" y1="4.7" x2="18" y2="6"></line></g></g>' +
+      '<path class="wxCloud" fill="#9aa8b8" d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>' +
+      '</svg>',
+
+    "cloudy":
+      '<svg viewBox="0 0 24 24">' +
+      '<path class="wxCloud" fill="#9aa8b8" d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>' +
+      '</svg>',
+
+    "fog":
+      '<svg viewBox="0 0 24 24">' +
+      '<path fill="#9aa8b8" opacity="0.7" d="M18 6h-1.26A8 8 0 1 0 9 16h9a5 5 0 0 0 0-10z"></path>' +
+      '<g stroke="#9aa8b8" stroke-width="1.8" stroke-linecap="round">' +
+      '<line class="wxFogLine" x1="3" y1="19" x2="21" y2="19"></line>' +
+      '<line class="wxFogLine" x1="5" y1="22" x2="19" y2="22"></line>' +
+      '</g></svg>',
+
+    "rain":
+      '<svg viewBox="0 0 24 24">' +
+      '<path class="wxCloud" fill="#8493a6" d="M18 8h-1.26A8 8 0 1 0 9 18h9a5 5 0 0 0 0-10z"></path>' +
+      '<g stroke="#4a90e2" stroke-width="2" stroke-linecap="round">' +
+      '<line class="wxDrop" x1="8" y1="20" x2="7" y2="23"></line>' +
+      '<line class="wxDrop" x1="12" y1="20" x2="11" y2="23"></line>' +
+      '<line class="wxDrop" x1="16" y1="20" x2="15" y2="23"></line>' +
+      '</g></svg>',
+
+    "snow":
+      '<svg viewBox="0 0 24 24">' +
+      '<path class="wxCloud" fill="#8493a6" d="M18 8h-1.26A8 8 0 1 0 9 18h9a5 5 0 0 0 0-10z"></path>' +
+      '<g fill="#bcd6f0">' +
+      '<circle class="wxFlake" cx="8" cy="21" r="1.3"></circle>' +
+      '<circle class="wxFlake" cx="12" cy="22" r="1.3"></circle>' +
+      '<circle class="wxFlake" cx="16" cy="21" r="1.3"></circle>' +
+      '</g></svg>',
+
+    "thunderstorm":
+      '<svg viewBox="0 0 24 24">' +
+      '<path class="wxCloud" fill="#6b7686" d="M18 8h-1.26A8 8 0 1 0 9 18h9a5 5 0 0 0 0-10z"></path>' +
+      '<path class="wxBolt" fill="#ffcc33" d="M13 14l-4 6h3l-1 4 5-7h-3z"></path>' +
+      '</svg>'
+  };
+
+  function weatherIconHtml(category) {
+    return WEATHER_ICON_SVG[category] || WEATHER_ICON_SVG.cloudy;
+  }
+
+  function renderWeatherWidget() {
+    var container = document.getElementById("weatherWidget");
+    if (!weatherData || !weatherData.daily) {
+      container.innerHTML = "";
+      positionWeatherWidget();
+      return;
+    }
+    var daily = weatherData.daily;
+    var count = Math.min(5, daily.time.length);
+    var html = "";
+    var i, d, dayLabel, category, rain, hi, lo;
+    for (i = 0; i < count; i++) {
+      // daily.time entries are "YYYY-MM-DD" in the location's own local
+      // timezone (requested via &timezone=auto) — parsed with explicit
+      // y/m/d args, not `new Date("YYYY-MM-DD")`, since that string form
+      // is parsed as UTC midnight by every JS engine and can land on the
+      // wrong calendar day once shifted to local time for display.
+      d = new Date(
+        parseInt(daily.time[i].substr(0, 4), 10),
+        parseInt(daily.time[i].substr(5, 2), 10) - 1,
+        parseInt(daily.time[i].substr(8, 2), 10)
+      );
+      dayLabel = (i === 0) ? "Today" : DAY_NAMES[d.getDay()].substr(0, 3);
+      category = weatherCategoryForCode(daily.weathercode[i]);
+      rain = daily.precipitation_probability_max[i];
+      hi = Math.round(daily.temperature_2m_max[i]);
+      lo = Math.round(daily.temperature_2m_min[i]);
+      html += '<div class="weatherDay">' +
+        '<div class="weatherDayLabel">' + dayLabel + '</div>' +
+        '<div class="weatherIcon">' + weatherIconHtml(category) + '</div>' +
+        '<div class="weatherRain">' + rain + '%</div>' +
+        '<div class="weatherTemp">' + hi + '&deg;/' + lo + '&deg;</div>' +
+        '</div>';
+    }
+    container.innerHTML = html;
+    positionWeatherWidget();
+  }
+
   function saveLocal(d) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ d: d, savedAt: new Date().getTime() }));
@@ -2691,9 +3076,17 @@
 
   renderBinDay(new Date());
 
+  var cachedWeather = loadWeatherLocal();
+  if (cachedWeather) {
+    weatherData = cachedWeather;
+  }
+  renderWeatherWidget();
+  fetchWeather();
+
   setInterval(tick, 1000);
   setInterval(fetchData, REFRESH_MS);
   setInterval(fetchServerStats, SERVER_REFRESH_MS);
+  setInterval(fetchWeather, WEATHER_REFRESH_MS);
 })();
 </script>
 </body>

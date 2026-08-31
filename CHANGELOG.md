@@ -274,6 +274,76 @@ Server Health's purple, same "each display gets its own colour" rule.
   `tick()` and once at boot) — cheap, since it's just date math and a
   handful of `textContent`/`innerHTML` writes, not an XHR.
 
+### Weather strip (home screen, top-left)
+**Status: fully live (confirmed 30 Aug 2026).** A small 5-day forecast
+strip, `#weatherWidget`, shown only on `#homeScreen` — a fixed-position
+overlay anchored to the left gutter (mirroring `#settingsBtn`'s
+top-right gutter), independent of the home screen's own centered
+title/tile layout, hidden automatically on every tablet display via the
+same `showScreen()` visibility toggle used for the icon/menu changes
+above. **Vertically centred against `#homeTitle` itself**
+(`positionWeatherWidget()`, same measure-the-real-element approach as
+`positionMoreIcon()` — re-run on every home-screen show, every
+re-render, and `window.resize`) so it sits on the exact same line as
+"Choose a Display" and the ⋮ icon, rather than floating at a fixed
+offset disconnected from that row.
+- **Data source: Open-Meteo** (`api.open-meteo.com/v1/forecast`) — free,
+  keyless, no signup, fetched client-side with the same resilience
+  pattern as Prayer Times/Server Health (falls back to the last good
+  `localStorage` response, `cheadleMasjidWeather`, on a failed fetch;
+  never blanks the widget just because one poll failed). Polled every
+  30 minutes (`WEATHER_REFRESH_MS`) — forecasts don't change fast enough
+  to justify anything more frequent.
+- **Location is deliberately rounded to 2 decimal places (`WEATHER_LAT`/
+  `WEATHER_LON` = 53.39 / -2.22), not the real exact address** — this
+  app has no backend, so the forecast location has to live in the
+  public repo as plain coordinates; rounding to ~1km precision (already
+  finer than weather forecasting itself resolves to) means the repo
+  never pinpoints a specific house, while the forecast itself is
+  identical. Same reasoning as Bin Day only ever committing the
+  anonymous schedule pattern, never the address it was derived from —
+  and taken a step further here, since even the *lookup* itself only
+  ever sent the postcode (not the full street address) to the geocoding
+  service. If this location is ever re-derived, round a real geocode to
+  2 decimal places rather than committing the precise value.
+- **5 columns**: day label (`Today` for the first, otherwise a 3-letter
+  day name), a small animated icon, rain probability (%), and high/low
+  temperature. Icons map Open-Meteo's WMO `weathercode` field down to 7
+  categories (clear, partly-cloudy, cloudy, fog, rain, snow,
+  thunderstorm) via `weatherCategoryForCode()` — see that function for
+  the exact code-to-category mapping.
+- **Icons are small, full-colour inline SVGs** (`WEATHER_ICON_SVG`) —
+  deliberately not this app's usual monochrome `fill="currentColor"`
+  nav-icon convention, since colour (yellow sun, grey cloud, blue rain)
+  is what makes a ~16-18px icon read as "which condition" at a glance, the
+  same reason every real weather app does this. Colours are fixed, not
+  theme-dependent, matching how real weather icons don't change hue
+  between a light/dark app theme elsewhere either.
+- **Animated, deliberately slow and low-amplitude**: sun gently pulses,
+  clouds drift a couple pixels, raindrops/snowflakes fall in a loop,
+  the lightning bolt flickers — all via CSS `@keyframes`
+  (`wxSunPulse`/`wxCloudDrift`/`wxDropFall`/`wxFlakeFall`/`wxBoltFlash`/
+  `wxFogWave`), no JS-driven animation. Kept subtle on purpose: this
+  sits on an always-on wall display and shouldn't be distracting, same
+  reasoning as the mesh-gradient background's own slow drift.
+  `prefers-reduced-motion` disables all of these, same media query the
+  background drift already uses.
+- **Deliberately has no glass card at all** — every other panel in this
+  app uses the shared "Liquid Glass" treatment (translucent background,
+  blur, hairline border), but the weather strip was explicitly asked to
+  sit directly on the mesh-gradient background with no outline/card
+  around it (changed 30 Aug 2026, same day it was built — first version
+  did use the shared glass styling, sized closer to the other panels;
+  user asked for it smaller and card-less almost immediately after
+  seeing it). `#weatherWidget` was removed from all three shared glass
+  selector lists rather than overridden back to transparent, so it's
+  cleanly excluded, not a glass panel with its styling fought against.
+- Verified against the real live Open-Meteo API (not a mock) in local
+  testing, and against every one of the 7 icon categories individually
+  (forced test data, since a single real forecast rarely covers all 7
+  conditions at once) — all render distinctly and legibly at actual
+  size. Checked in both themes and both iPad orientations.
+
 ### Appearance
 - **"Liquid Glass" look** (matching iOS 26's own material design): every
   floating panel (`#header`, `#countdownClock`, `#card`, `#settingsPanel`,
@@ -1997,3 +2067,89 @@ in this resized-viewport local test, while dispatching `.click()`
 directly on the element worked reliably and is what a real tap
 triggers — treated as a tool quirk, not a real bug, consistent with
 other documented automation-tool quirks for this project.)
+
+### 2026-08-30 — Small animated 5-day weather strip on the home screen
+User asked for a small, top-left 5-day forecast on "Choose a Display" —
+5 small animated icons, a rain-probability percentage under each, and
+invited follow-up questions on the UI specifics before building. Three
+genuinely implementation-changing questions were asked before writing
+any code: how precisely the forecast location should be committed to
+the public repo (privacy), whether each day needed a label, and whether
+to add temperature alongside rain %. User chose: coordinates rounded to
+~1km precision rather than the exact address, day labels shown, and
+temperature added.
+
+Geocoded the location via Nominatim (OpenStreetMap's free geocoder),
+deliberately querying **only the postcode**, not the full street
+address — a smaller privacy footprint than the lookup even needed to
+be. Rounded the returned coordinates to 2 decimal places
+(`WEATHER_LAT`/`WEATHER_LON` = 53.39 / -2.22) before writing them
+anywhere in the repo; verified via a real Open-Meteo forecast request
+against the rounded value that the forecast is identical in practice —
+weather doesn't resolve to house-level precision, so nothing was lost
+by rounding. No literal address or postcode is committed anywhere.
+
+Chose **Open-Meteo** as the data source — free, keyless, no signup,
+fetched client-side exactly like Prayer Times' own API, keeping this
+app's "no backend, no secrets in the repo" story intact. Built:
+- `#weatherWidget`, a small fixed-position glass panel (same shared
+  styling as every other panel) anchored top-left, shown/hidden by
+  `showScreen()` exactly when `#homeScreen` is.
+- `weatherCategoryForCode()` mapping Open-Meteo's WMO weather codes down
+  to 7 icon categories (clear/partly-cloudy/cloudy/fog/rain/snow/
+  thunderstorm).
+- 7 small, hand-built, full-colour inline SVG icons (`WEATHER_ICON_SVG`)
+  — a deliberate, noted exception to this app's usual monochrome
+  `currentColor` icon convention, since colour is what makes a
+  ~16-18px icon legible as "which condition" at this size.
+- Slow, low-amplitude CSS `@keyframes` animations per icon (sun pulse,
+  cloud drift, falling rain/snow, flickering lightning, fog wave) —
+  kept deliberately subtle for an always-on wall display, same
+  reasoning as the mesh-gradient background's own slow drift, and
+  wired into the same `prefers-reduced-motion` media query.
+- `fetchWeather()`/`saveWeatherLocal()`/`loadWeatherLocal()` mirroring
+  the Server Health polling pattern exactly (falls back to cached data
+  on failure, never blanks the widget) — polled every 30 minutes.
+
+Tested against the real live Open-Meteo API (a genuine fetch, not a
+mock) and confirmed working data end-to-end; then forced all 7 icon
+categories with synthetic data (since a single real forecast rarely
+covers sun through thunderstorm at once) and zoomed in to confirm every
+icon reads distinctly at actual rendered size, not just in the abstract.
+Checked visibility toggling (shown on home, hidden on every tablet
+display), `localStorage` caching, both themes, and both iPad
+orientations before considering this done.
+
+**Immediate follow-up, same session**: user saw the first version (which
+used the shared glass-card styling, sized closer to the other panels)
+and asked for it smaller with no outline/card at all — sitting directly
+on the mesh-gradient background instead. Removed `#weatherWidget` from
+all three shared "Liquid Glass" selector lists (rather than overriding
+its background/border/blur back to transparent, which would leave a
+glass panel fighting its own styling) and shrank every size in the
+widget — icon `2.4vw`→`1.7vw` (min `22px`→`16px`), day label
+`1vw`→`0.75vw`, rain % `1vw`→`0.75vw`, temp `0.85vw`→`0.62vw` — and
+dropped the per-column divider line, which had nothing left to visually
+belong to once the card around it was gone. Re-verified in both themes
+and both orientations: icons and text still read clearly at the smaller
+size directly against the gradient (zoomed in to confirm, not just
+eyeballed at actual scale), with no legibility problems found against
+any part of the background the widget's fixed top-left position
+actually sits over.
+
+**Second immediate follow-up, same session**: user asked for the widget
+to sit vertically in line with "Choose a Display" — reasonable, since
+the ⋮ icon on this screen already vertically centres against that exact
+title (from the earlier "settings icon on the home screen" change), so
+the widget floating at its own fixed `top` offset looked disconnected
+from that row rather than part of it. Added `positionWeatherWidget()`,
+the same measure-the-real-element pattern `positionMoreIcon()` already
+uses — reads `#homeTitle`'s live `getBoundingClientRect()` and centres
+the widget's own height against it — called from `showScreen()`'s home
+branch, `renderWeatherWidget()` (content changes can change the
+widget's height), and `window.resize`, mirroring exactly where
+`positionMoreIcon()` itself is called. Verified by comparing the
+title's and widget's computed vertical centre directly (not just
+eyeballed): matched to within a fraction of a pixel in both portrait
+and landscape, and confirmed the resize handler correctly re-centres
+it after an orientation change.
