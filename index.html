@@ -1806,6 +1806,22 @@
     audio.pause();
     audio.currentTime = 0;
     hideAdhanAlert();
+    // The adhan can fire (and its full-screen alert can appear) while
+    // any display is open — checkAdhanSchedule() runs every tick
+    // regardless of currentScreen, and the alert is a z-index:100
+    // overlay above everything for exactly that reason. But dismissing
+    // it used to just hide the overlay and reveal whatever was
+    // underneath, which could leave someone staring at Server Health or
+    // Bin Day right after the adhan they came to check on. Land on
+    // Prayer Times instead, every time the alert is dismissed — whether
+    // by an explicit tap or the track finishing on its own (both paths
+    // go through this same function) — so "the adhan just played" always
+    // ends with the prayer that triggered it actually on screen. Safe to
+    // do unconditionally: the only other way this function gets called
+    // is Settings' adhan Test buttons, which are only reachable while
+    // Prayer Times is already open (Adhan settings are hidden on every
+    // other screen), so this is a same-screen no-op there.
+    showScreen("prayer-times");
     // Clear any leftover Settings-panel status text the moment playback
     // actually stops — this used to be the one place a stale "Playing
     // (Dhuhr)…" message could survive indefinitely: it was only ever

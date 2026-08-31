@@ -369,7 +369,21 @@ Server Health's purple, same "each display gets its own colour" rule.
   via Test), naming the prayer, with a pulsing speaker icon and a "Tap
   anywhere to stop" hint. Tapping it stops the audio and dismisses the
   alert; it also auto-dismisses when the adhan finishes on its own.
-  Styling is fixed/theme-independent, sits above all other UI (z-index).
+  Styling is fixed/theme-independent, sits above all other UI (z-index),
+  so a scheduled adhan fires and shows this alert **regardless of which
+  display is currently open** — `checkAdhanSchedule()` runs every tick
+  unconditionally, not gated on `currentScreen`. **Dismissing the alert
+  (either way) always navigates to Prayer Times (30 Aug 2026)** — before
+  this, dismissing it just revealed whatever screen was already
+  underneath, which could leave someone looking at Server Health or Bin
+  Day right after the prayer they came to check on; now
+  `stopAdhanAndHideAlert()` calls `showScreen("prayer-times")` as part
+  of the same cleanup. Harmless no-op for the Settings Test-button flow,
+  which can only be reached while Prayer Times is already open (Adhan
+  settings are hidden on every other screen) — the one side effect there
+  is that dismissing also closes the Settings panel if it was open,
+  since `showScreen()` always does that; not specifically worked around,
+  since it's a minor, easily-understood side effect of a deliberate fix.
 - **No "Playing (Prayer)…" status text** in Settings any more (removed
   29 Aug 2026 — see the dated entry below) — the full-screen alert
   already says which prayer is playing while it's actually playing, so
@@ -1941,3 +1955,45 @@ gradient pool — no contrast or hue-clash issues found. Confirmed via
 present in source. Every panel now visibly softens whatever colour sits
 behind it — the blur is doing real optical work app-wide, not just on
 the two overlay panels that already had it.
+
+### 2026-08-30 — Dismissing the adhan alert now always lands on Prayer Times
+User asked for the adhan to play and its full-screen alert to appear
+regardless of which display is open, and for dismissing it to leave
+you on Prayer Times specifically. The first half already worked —
+`checkAdhanSchedule()` runs unconditionally in `tick()` (gated on
+`data` being loaded, not on `currentScreen`), and `#adhanAlert` is a
+`z-index: 100` fixed overlay above every other element in the app —
+verified this directly by forcing the alert open while on Server
+Health and Bin Day and confirming it covered the full screen either
+way, before touching any code.
+
+The real gap was dismissal: `stopAdhanAndHideAlert()` only ever called
+`hideAdhanAlert()`, which just reveals whatever screen was already
+underneath — so tapping to stop an adhan that fired while looking at
+Server Health left you looking at Server Health afterward. Added a
+single `showScreen("prayer-times")` call inside
+`stopAdhanAndHideAlert()`, which both the manual tap handler and the
+audio's `ended` event already funnel through, so both the "tapped to
+stop" and "let it finish playing" paths get the same fix for free
+rather than needing to patch two places.
+
+Tested by simulating the alert appearing over both Server Health and
+Bin Day (each via a tile switch, then forcing `#adhanAlert`'s class
+open directly, since there's no real adhan.mp3/network data available
+in this local sandbox to exercise the actual schedule trigger) and
+dispatching a real click on the alert element — confirmed
+`currentScreen` and the visible DOM both end up on Prayer Times in
+both cases. Also checked the same-screen case (Settings' Adhan Test
+buttons, only reachable while already on Prayer Times): dismissing
+still works correctly, with one minor, expected side effect — it also
+closes the Settings panel if it was open, since `showScreen()` always
+does that as part of switching screens. Not worked around, since it's
+a small and easily-understood side effect of a change that's otherwise
+a clear improvement.
+
+(Testing note: the browser automation tool's synthetic mouse click at
+pixel coordinates failed to trigger the alert's bound `onclick` handler
+in this resized-viewport local test, while dispatching `.click()`
+directly on the element worked reliably and is what a real tap
+triggers — treated as a tool quirk, not a real bug, consistent with
+other documented automation-tool quirks for this project.)
