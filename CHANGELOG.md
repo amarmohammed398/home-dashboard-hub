@@ -281,15 +281,37 @@ Server Health's purple, same "each display gets its own colour" rule.
   saturate(180%)` and a bright hairline border. `#settingsBtn` and
   `#homeBtn` are deliberately **not** part of this shared glass styling —
   they're bare icons, not panels (see Navigation below).
-- **Page background is a plain flat colour, no gradient**: pure white
-  (`#ffffff`) in light theme, pure black (`#000000`) in dark theme — by
-  explicit request (see dated entries below; this went colourful → flat
-  → colourful → flat again, settle on flat this time unless asked
-  otherwise). This means the glass blur has nothing colourful behind it
-  to visibly soften — the panels still read as glass via their
-  translucency/border/shadow, just more subtly than with a busy
-  backdrop. That trade-off was made consciously this time, not
-  overlooked.
+- **Page background: animated mesh-gradient of soft colour pools (30 Aug
+  2026), replacing the earlier plain flat colour.** This is a deliberate
+  *re-opening* of the flat-background decision below (not a silent
+  reversal — the user explicitly asked to revisit it), prompted by
+  realizing the flat background meant `backdrop-filter: blur(28px)` had
+  nothing to actually blur (blurring a single flat colour returns the
+  same flat colour) — so every panel *except* `#settingsPanel`/
+  `#moreMenu` (the only two that float over other real content) was
+  getting zero real blur, just translucency+border faking the look.
+  Three large soft-edged `radial-gradient` pools per theme, echoing this
+  app's own three accent colours (teal/purple/blue) rather than a new
+  palette — pastel versions on white in light theme, deep muted glows on
+  black in dark theme — kept on an oversized (`background-size: 160%
+  160%`) canvas that slowly drifts via `background-position`
+  (`@keyframes bgDrift`, 120s ease-in-out infinite alternate) for a
+  barely-perceptible ambient motion rather than a static image; a
+  `prefers-reduced-motion` media query disables the animation. Kept
+  **universal**, not per-display, to stay simple. Still a single CSS
+  change on `body.theme-light`/`body.theme-dark` — no new DOM elements,
+  no z-index changes needed, since a background always paints behind
+  everything automatically. Verified in local preview across all three
+  displays, the home screen, both themes, and both iPad orientations —
+  contrast against every accent colour (including Server Health's own
+  purple, which shares a hue with one of the gradient pools) stayed
+  clearly legible throughout, and every panel now visibly softens the
+  colour behind it, confirming the blur is doing real optical work
+  everywhere now, not just on the two overlay panels. The flat
+  background's original reasoning (see the colourful → flat → colourful
+  → flat dated entries further below) is now superseded by this change,
+  not deleted from the record — that history is still worth reading if
+  this ever gets revisited again.
 - Emerald (`#0e8f6b` light / `#2fd39a` dark) accent colour throughout.
 - Dark mode available via **⋮ → Settings → Dark mode toggle** (see
   Navigation below for the full ⋮/Settings/Home structure). Choice
@@ -1863,3 +1885,59 @@ opacity that it still reads as "a grey box" rather than "a green box."
 Verified visually in the local preview in both themes (via
 `getComputedStyle` first, to confirm the edited value was actually
 live and not a stale cached copy) before considering it done.
+
+### 2026-08-30 — Animated mesh-gradient background, replacing the flat colour
+User asked why Settings looked like "nicer glass" than the rest of the
+app. Answer, worked out from the actual CSS rather than guessed: every
+panel shares the exact same `backdrop-filter: blur(28px) saturate(180%)`
+rule, but `#settingsPanel` and `#moreMenu` are the only two elements
+that are `position: fixed` overlays floating on top of already-rendered
+screen content — so their blur has real content behind it to soften.
+Every other panel (`#card`, `#countdownClock`, `.screenHeader`, `.tile`,
+`.statCard`, `#binNextCard`, `#binCard`) sits directly on the page's own
+background, which — since the "Liquid Glass" redesign settled on a
+plain flat colour (see that entry above) — is a single flat `#ffffff`/
+`#000000` with nothing to blur at all. Blurring one flat colour just
+returns the same flat colour, so those panels' "glass" look was
+actually 100% translucency+border+shadow, 0% real blur.
+
+User then explicitly asked to revisit the flat-background decision
+(this is a deliberate re-opening at their request, not an unprompted
+reversal of a settled choice) and asked for suggestions on a
+minimalist background that would give a stronger, more genuine iOS
+Liquid Glass look. Presented three style options (static soft mesh
+blobs, a very subtle two-tone gradient, and the same blobs animated
+with a slow drift) plus whether it should be universal or tinted per
+display; user chose the animated mesh-gradient option and asked for
+colour suggestions, deferring the universal-vs-per-display choice to
+whichever was simpler.
+
+Implemented as three large `radial-gradient` colour pools per theme,
+directly on `body.theme-light`/`body.theme-dark` — no new DOM elements,
+no z-index changes needed, since a background always paints behind
+everything automatically:
+- **Colours deliberately echo this app's own existing three accent
+  colours** (Prayer Times teal, Server Health purple, Bin Day blue)
+  rather than introducing a new palette — pastel versions
+  (`#cfe4fb`/`#e6dbf9`/`#d4f3e7`) on white in light theme, deep muted
+  glows (`#123a66`/`#3a1f68`/`#0d3b30`) on black in dark theme.
+- **Kept universal, not per-display** — simplest to build and maintain,
+  and the point (real blur payoff everywhere) doesn't need per-display
+  variation to land.
+- **Slow drift, not static**: the gradient canvas is oversized
+  (`background-size: 160% 160%`) and its `background-position` animates
+  through a 3-point `@keyframes bgDrift` cycle over 120s, `ease-in-out`,
+  `alternate` — long enough that the motion reads as ambient rather
+  than an obvious moving decoration. A `prefers-reduced-motion` query
+  disables the animation entirely.
+
+Verified in local preview: all three displays, the home screen, both
+themes, both iPad orientations (834×1194 / 1194×834). Specifically
+checked that Server Health's own purple accent (heading, memory bar)
+stayed clearly legible against a background that includes a purple
+gradient pool — no contrast or hue-clash issues found. Confirmed via
+`getComputedStyle` that the animation and gradient are actually applied
+(`animationName: "bgDrift"`, `backgroundImage` non-`"none"`), not just
+present in source. Every panel now visibly softens whatever colour sits
+behind it — the blur is doing real optical work app-wide, not just on
+the two overlay panels that already had it.

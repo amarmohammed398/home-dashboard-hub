@@ -23,6 +23,19 @@
     -webkit-transition: background-color 0.25s ease, color 0.25s ease;
     transition: background-color 0.25s ease, color 0.25s ease;
   }
+  /* Slow drift for the mesh-gradient body backgrounds (theme rules
+     below) — moves the oversized (160%) gradient canvas around within
+     itself via background-position, never revealing a hard edge. Long
+     duration + ease-in-out + alternate is what keeps this "barely
+     perceptible" rather than an obvious moving decoration. */
+  @keyframes bgDrift {
+    0%   { background-position: 0% 15%; }
+    50%  { background-position: 65% 55%; }
+    100% { background-position: 20% 90%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body.theme-light, body.theme-dark { animation: none; }
+  }
   /* #prayerScreen is one of several full-screen "tablets" this app can
      show (see #homeScreen below) — named for what it displays, now that
      "app" would be ambiguous about which screen it means. */
@@ -924,9 +937,34 @@
      glass over a flat colour barely reads as "glass" at all, since
      there's nothing varied for the blur to soften. Fixed radial blobs
      (not an image) keep this cheap to render continuously on the iPad. */
+  /* Soft, static-feeling "mesh gradient" of large blurred colour pools
+     (30 Aug 2026) — reintroduces real backdrop-filter blur payoff for
+     every glass panel, not just #settingsPanel/#moreMenu (see the
+     conversation this came from: a genuinely flat body background gives
+     blur(28px) nothing to do, so most panels' "glass" look was actually
+     just translucency+border with zero real blur happening; this fixes
+     that everywhere at once, from the one shared place all panels
+     already sit on top of). Colours deliberately echo this app's own
+     three existing accent colours (Prayer Times teal, Server Health
+     purple, Bin Day blue) rather than a new palette, so it reads as
+     "this app's own colours, softened" rather than a decorative
+     addition. This is a deliberate revisit of the earlier "flat
+     background" decision (see CHANGELOG's "Liquid Glass" redesign
+     entries) — done because the user explicitly asked to reopen it, not
+     a silent reversal of that choice. `background-size` bigger than the
+     viewport + a slow `background-position` drift (`bgDrift` keyframes
+     below) is what makes it feel alive without ever looking busy; kept
+     universal (not per-display) to stay simple to maintain. */
   body.theme-light {
     background-color: #ffffff;
     color: #1f2937;
+    background-image:
+      radial-gradient(circle at 18% 22%, #cfe4fb 0%, transparent 42%),
+      radial-gradient(circle at 82% 18%, #e6dbf9 0%, transparent 42%),
+      radial-gradient(circle at 50% 88%, #d4f3e7 0%, transparent 42%);
+    background-repeat: no-repeat;
+    background-size: 160% 160%;
+    animation: bgDrift 120s ease-in-out infinite alternate;
   }
   body.theme-light #masjidName { color: #0b7a5c; text-shadow: 0 1px 2px rgba(255,255,255,0.5); }
   body.theme-light #masjidSub { color: #374151; }
@@ -1013,9 +1051,21 @@
   body.theme-light .binChip { background-color: rgba(31, 41, 55, 0.08); color: #1f2937; }
 
   /* ================= DARK THEME ================= */
+  /* Same mesh-gradient approach as the light theme above, same three
+     accent hues, just as deep muted glows on near-black rather than
+     pastel pools on white — reads as ambient light in a dark room
+     rather than a bright decorative wash. See the light theme's own
+     comment for the full reasoning. */
   body.theme-dark {
     background-color: #000000;
     color: #f3f4f6;
+    background-image:
+      radial-gradient(circle at 18% 22%, #123a66 0%, transparent 45%),
+      radial-gradient(circle at 82% 18%, #3a1f68 0%, transparent 45%),
+      radial-gradient(circle at 50% 88%, #0d3b30 0%, transparent 45%);
+    background-repeat: no-repeat;
+    background-size: 160% 160%;
+    animation: bgDrift 120s ease-in-out infinite alternate;
   }
   body.theme-dark #masjidName { color: #4de3ac; }
   body.theme-dark #masjidSub { color: #cbd2dc; }
