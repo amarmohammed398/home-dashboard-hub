@@ -2294,3 +2294,48 @@ warn/bad colour-coding CSS classes apply the intended colours
 (`getComputedStyle`, not just eyeballed); checked the new tile and
 screen in both themes and both iPad orientations, alongside the
 existing three tiles to confirm the 4-tile grid still wraps cleanly.
+
+### 2026-08-31 — Power outage: server down, recovered, re-verified
+A real power cut took the home server offline entirely — not a DNS or
+software issue this time, confirmed by `ping` returning 100% packet
+loss (the server wasn't just slow to respond, it was fully
+unreachable). The Electricity display commit above happened to land on
+GitHub during this exact window, so its deploy job queued with no
+runner available to pick it up.
+
+User rebooted the server after restoring power and asked whether its
+IP might have changed (a fair DHCP concern). Confirmed methodically
+rather than guessed: the old IP was still unreachable at first, so
+scanned the full `/24` for open SSH/HTTP ports to find it — one
+genuine false lead worth recording (`192.168.0.209` had SSH open, but
+its login banner belonged to an unrelated device, not this server;
+stopped immediately after a clean, expected `Permission denied` rather
+than investigating further, since it plainly wasn't ours), and two
+more (a Sky router, an unidentified device with no meaningful response)
+that were also ruled out. On a second scan a few minutes later, the
+original address (`192.168.0.180`) itself was back — DHCP had simply
+re-issued the same lease once the server was fully back online, not
+assigned a new one. Confirmed via `hostname` over SSH that it was
+genuinely this server before trusting the address again, not just that
+something answered on it.
+
+**Worth doing at some point**: a static DHCP reservation for this
+server's MAC address in the router, so a reboot or power cut never
+requires re-discovering its address again. Suggested to the user, not
+yet done — a router-config change to do together when convenient, not
+something to guess at remotely.
+
+Once confirmed genuinely back (`hostname` matched, Apache/server-stats
+timer/GitHub Actions runner all `active`), found the runner had
+reconnected and resumed "Listening for Jobs" on its own, but the
+Electricity deploy that queued during the outage never actually ran —
+`.last-successful-deploy` stayed stale even a short while after the
+runner came back, and the live site still had no Electricity code in
+it. Rather than guess why the queued job didn't resume (no `gh` CLI
+available locally to inspect GitHub's own run history and confirm),
+the reliable fix was a fresh push — this entry's own commit — to
+trigger a brand-new deploy the now-listening runner would pick up
+immediately, verified the same way every deploy in this project is:
+`.last-successful-deploy`'s timestamp advancing and the live page
+actually containing the new code, not just assumed from the runner
+looking healthy.
