@@ -63,7 +63,7 @@
      reflects more light near the top). Exact fill colour/opacity is
      theme-dependent, set below in the light/dark sections; the
      properties here are the same regardless of theme. */
-  #countdownClock, #card, #settingsPanel, #moreMenu, .tile, .screenHeader, .statCard, #binNextCard, #binCard {
+  #countdownClock, #card, #settingsPanel, #moreMenu, .tile, .screenHeader, .statCard, #binNextCard, #binCard, .electricityCard {
     -webkit-backdrop-filter: blur(28px) saturate(180%);
     backdrop-filter: blur(28px) saturate(180%);
     border: 1px solid transparent;
@@ -592,6 +592,89 @@
   .binChipDot.green { background-color: #34a853; }
   .binChipDot.blue { background-color: #0a84ff; }
   .binChipDot.brown { background-color: #a1662f; }
+
+  /* ---------- Electricity screen ---------- */
+  /* Own class names (not reusing Server Health's .statCard), matching
+     this app's convention of each display keeping its own CSS
+     namespace even when the visual shape (a card grid) is similar —
+     see Bin Day's own .binRow/.binCard for the same reasoning. Grid is
+     CSS Grid with the same overflow-safety net Server Health's
+     #statGrid uses (flex:1; min-height:0; overflow-y:auto) — this
+     project learned that lesson the hard way once already, no reason
+     to risk it again just because this screen starts with one card. */
+  #electricityScreen {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 3vh 3vw;
+  }
+  #electricityGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.6vh 1.6vw;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  @media (orientation: landscape) {
+    #electricityGrid { grid-template-columns: repeat(4, 1fr); }
+  }
+  .electricityCard {
+    border-radius: 24px;
+    padding: 1.8vh 1.6vw;
+    box-sizing: border-box;
+    min-width: 0;
+  }
+  .electricityCardWide { grid-column: span 2; }
+  .electricityCardLabel {
+    font-size: 1.35vw;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .electricityCardValue {
+    font-size: 3vw;
+    font-weight: 800;
+    margin-top: 0.6vh;
+  }
+  .electricityCardSub {
+    font-size: 1.3vw;
+    font-weight: 500;
+    margin-top: 0.2vh;
+  }
+  #gridMixChips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8vh 0.8vw;
+    margin-top: 1.6vh;
+  }
+  .gridMixChip {
+    display: flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.5vh 0.9vw;
+    font-size: 1.2vw;
+    font-weight: 700;
+  }
+  .gridMixChipDot {
+    width: 0.9vw;
+    height: 0.9vw;
+    min-width: 9px;
+    min-height: 9px;
+    border-radius: 50%;
+    margin-right: 0.5vw;
+  }
+  .gridMixChipDot.wind { background-color: #4a90e2; }
+  .gridMixChipDot.nuclear { background-color: #8b5cf6; }
+  .gridMixChipDot.gas { background-color: #f2994a; }
+  .gridMixChipDot.solar { background-color: #f2c94c; }
+  .gridMixChipDot.biomass { background-color: #6b8e4e; }
+  .gridMixChipDot.coal { background-color: #48484a; }
+  .gridMixChipDot.hydro { background-color: #2fb8c6; }
+  .gridMixChipDot.imports { background-color: #9aa1ac; }
+  .gridMixChipDot.other { background-color: #b0b6bf; }
 
   /* ---------- home screen (tablet picker) ---------- */
   /* The launcher screen: pick which "tablet" (display) to show — new
@@ -1124,7 +1207,8 @@
   body.theme-light .tile,
   body.theme-light .statCard,
   body.theme-light #binNextCard,
-  body.theme-light #binCard {
+  body.theme-light #binCard,
+  body.theme-light .electricityCard {
     background-color: rgba(255, 255, 255, 0.55);
     border-color: rgba(255, 255, 255, 0.7);
     box-shadow: 0 8px 32px 0 rgba(31, 41, 55, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -1199,6 +1283,15 @@
   body.theme-light .binRow + .binRow { border-top-color: rgba(31,41,55,0.08); }
   body.theme-light .binRowDate { color: #1f2937; }
   body.theme-light .binChip { background-color: rgba(31, 41, 55, 0.08); color: #1f2937; }
+  body.theme-light .tile[data-screen="electricity"] .tileIcon { color: #a16207; }
+  body.theme-light #electricityName { color: #a16207; text-shadow: 0 1px 2px rgba(255,255,255,0.5); }
+  body.theme-light #electricitySub, body.theme-light #electricityUpdatedLine { color: #374151; }
+  body.theme-light .electricityCardLabel { color: #4b5563; }
+  body.theme-light .electricityCardValue { color: #1f2937; }
+  body.theme-light .electricityCardValue.electricityWarn { color: #b45309; }
+  body.theme-light .electricityCardValue.electricityBad { color: #dc2626; }
+  body.theme-light .electricityCardSub { color: #4b5563; }
+  body.theme-light .gridMixChip { background-color: rgba(31, 41, 55, 0.08); color: #1f2937; }
 
   /* ================= DARK THEME ================= */
   /* Same mesh-gradient approach as the light theme above, same three
@@ -1228,7 +1321,8 @@
   body.theme-dark .tile,
   body.theme-dark .statCard,
   body.theme-dark #binNextCard,
-  body.theme-dark #binCard {
+  body.theme-dark #binCard,
+  body.theme-dark .electricityCard {
     background-color: rgba(22, 26, 34, 0.55);
     border-color: rgba(255, 255, 255, 0.14);
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -1298,6 +1392,15 @@
   body.theme-dark .binRow + .binRow { border-top-color: rgba(255,255,255,0.08); }
   body.theme-dark .binRowDate { color: #f3f4f6; }
   body.theme-dark .binChip { background-color: rgba(255, 255, 255, 0.1); color: #f3f4f6; }
+  body.theme-dark .tile[data-screen="electricity"] .tileIcon { color: #fbbf24; }
+  body.theme-dark #electricityName { color: #fbbf24; }
+  body.theme-dark #electricitySub, body.theme-dark #electricityUpdatedLine { color: #cbd2dc; }
+  body.theme-dark .electricityCardLabel { color: #9aa1ac; }
+  body.theme-dark .electricityCardValue { color: #f3f4f6; }
+  body.theme-dark .electricityCardValue.electricityWarn { color: #f2b84b; }
+  body.theme-dark .electricityCardValue.electricityBad { color: #ff6b6b; }
+  body.theme-dark .electricityCardSub { color: #9aa1ac; }
+  body.theme-dark .gridMixChip { background-color: rgba(255, 255, 255, 0.1); color: #f3f4f6; }
 </style>
 </head>
 <body class="theme-light">
@@ -1333,6 +1436,12 @@
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path></svg>
       </div>
       <div class="tileLabel">Bin Day</div>
+    </div>
+    <div class="tile" data-screen="electricity">
+      <div class="tileIcon">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8z"></path></svg>
+      </div>
+      <div class="tileLabel">Electricity</div>
     </div>
   </div>
 </div>
@@ -1459,6 +1568,37 @@
   <div id="binCard">
     <div id="binCardTitle">Upcoming</div>
     <div id="binRows"></div>
+  </div>
+
+</div>
+
+<!-- Fourth display: Electricity. Starts with just a live grid
+     carbon-intensity card (National Grid ESO's free, keyless Carbon
+     Intensity API — see CARBON_URL's own comment below) since personal
+     consumption data needs a physical device (CAD/IHD) this project
+     doesn't have working yet. Built as a real CSS Grid from the start
+     (same overflow-safe pattern as Server Health's #statGrid) so future
+     cards — once meter access exists — just slot in without redoing
+     this layout, the same phased approach Server Health itself used. -->
+<div id="electricityScreen">
+
+  <div class="screenHeader">
+    <div>
+      <div id="electricityName">Electricity</div>
+      <div id="electricitySub">Grid &amp; Usage</div>
+    </div>
+    <div id="electricityMetaBlock">
+      <div id="electricityUpdatedLine">&ndash;</div>
+    </div>
+  </div>
+
+  <div id="electricityGrid">
+    <div class="electricityCard electricityCardWide">
+      <div class="electricityCardLabel">Grid Carbon Intensity</div>
+      <div class="electricityCardValue" id="gridIntensityValue">&ndash;</div>
+      <div class="electricityCardSub" id="gridIntensitySub">&ndash;</div>
+      <div id="gridMixChips"></div>
+    </div>
   </div>
 
 </div>
@@ -1623,7 +1763,8 @@
   var TABLET_SCREENS = {
     "prayer-times": "prayerScreen",
     "server-health": "serverScreen",
-    "bin-day": "binScreen"
+    "bin-day": "binScreen",
+    "electricity": "electricityScreen"
   };
 
   // Vertically centers the fixed #settingsBtn icon on the current
@@ -2817,6 +2958,131 @@
     positionWeatherWidget();
   }
 
+  /* ---------------- Electricity (fourth display) ----------------
+     Starts with exactly one live card — grid carbon intensity — since
+     the personal-consumption side needs a physical device (a CAD or a
+     working IHD) this household doesn't have working yet (Scottish
+     Power was out of stock, the old IHD from a previous house can't be
+     re-paired to a different meter, and Hildebrand's own CAD was out of
+     stock when this was built). Rather than wait on that, this screen
+     was built now with the one genuinely useful thing that needs zero
+     personal meter access at all: live regional grid data. Personal
+     usage/cost cards can slot into #electricityGrid later without
+     touching anything here, the same phased approach Server Health
+     itself used (client first, real data source second).
+
+     Data source: the UK Carbon Intensity API (carbonintensity.org.uk),
+     run by the National Energy System Operator — free, keyless, and
+     (checked directly, not assumed — a search claimed otherwise and was
+     wrong) genuinely fetchable straight from the browser: a real
+     request against it returns `access-control-allow-origin: *`. */
+  var CARBON_POSTCODE = "SK8"; // postcode DISTRICT only (the outward code before the space) — already a wide area covering many thousands of households, not identifying, and it's literally the most precise unit this API accepts anyway.
+  var CARBON_URL = "https://api.carbonintensity.org.uk/regional/postcode/" + CARBON_POSTCODE;
+  var CARBON_REFRESH_MS = 15 * 60 * 1000; // the API itself only updates on 30-min slots; 15 min keeps this comfortably fresh without polling pointlessly often
+  var CARBON_STORAGE_KEY = "cheadleMasjidCarbonIntensity";
+
+  var carbonData = null; // the region object: { dnoregion, shortname, postcode, data: [ {from, to, intensity, generationmix} ] }
+  var carbonFetchedAt = null; // ISO string, set on every successful fetch — drives the "Updated Xm ago" line the same way Server Health's own does
+
+  function saveCarbonLocal(d) {
+    try {
+      localStorage.setItem(CARBON_STORAGE_KEY, JSON.stringify({ d: d, fetchedAt: new Date().toISOString() }));
+    } catch (e) { /* ignore storage errors */ }
+  }
+
+  function loadCarbonLocal() {
+    try {
+      var raw = localStorage.getItem(CARBON_STORAGE_KEY);
+      if (!raw) { return null; }
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function fetchCarbonIntensity() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", CARBON_URL, true);
+    xhr.timeout = 8000;
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          try {
+            var parsed = JSON.parse(xhr.responseText);
+            if (parsed && parsed.data && parsed.data[0]) {
+              carbonData = parsed.data[0];
+              carbonFetchedAt = new Date().toISOString();
+              saveCarbonLocal(carbonData);
+              renderElectricityScreen();
+              return;
+            }
+          } catch (e) { /* fall through to failure handling */ }
+        }
+        handleCarbonFetchFailure();
+      }
+    };
+    xhr.onerror = handleCarbonFetchFailure;
+    xhr.ontimeout = handleCarbonFetchFailure;
+    xhr.send();
+  }
+
+  function handleCarbonFetchFailure() {
+    if (!carbonData) {
+      var cached = loadCarbonLocal();
+      if (cached) {
+        carbonData = cached.d;
+        carbonFetchedAt = cached.fetchedAt;
+      }
+    }
+    renderElectricityScreen();
+  }
+
+  // "very low" -> "Very Low" — the API's own index strings, title-cased
+  // for display rather than hardcoding a lookup table of the 5 possible
+  // values, so this keeps working even if they ever add a new one.
+  function titleCase(s) {
+    var words = s.split(" ");
+    var i;
+    for (i = 0; i < words.length; i++) {
+      words[i] = words[i].charAt(0).toUpperCase() + words[i].slice(1);
+    }
+    return words.join(" ");
+  }
+
+  function gridMixChipsHtml(mix) {
+    var sorted = mix.filter(function (m) { return m.perc > 0; })
+                     .sort(function (a, b) { return b.perc - a.perc; });
+    var html = "";
+    var i, fuel;
+    for (i = 0; i < sorted.length; i++) {
+      fuel = sorted[i].fuel;
+      html += '<span class="gridMixChip"><span class="gridMixChipDot ' + fuel + '"></span>' +
+        titleCase(fuel) + " " + sorted[i].perc + "%</span>";
+    }
+    return html;
+  }
+
+  function renderElectricityScreen() {
+    var updatedLine = document.getElementById("electricityUpdatedLine");
+    if (carbonFetchedAt) {
+      updatedLine.textContent = "Updated " + formatAgo(carbonFetchedAt);
+    }
+    if (!carbonData || !carbonData.data || !carbonData.data[0]) { return; }
+
+    var slot = carbonData.data[0];
+    var index = slot.intensity.index; // "very low" | "low" | "moderate" | "high" | "very high"
+    var valueEl = document.getElementById("gridIntensityValue");
+    valueEl.textContent = titleCase(index);
+    valueEl.className = "electricityCardValue" +
+      (index === "moderate" ? " electricityWarn" : "") +
+      ((index === "high" || index === "very high") ? " electricityBad" : "");
+
+    document.getElementById("gridIntensitySub").textContent =
+      slot.intensity.forecast + " gCO₂/kWh · " + carbonData.shortname;
+
+    document.getElementById("gridMixChips").innerHTML = gridMixChipsHtml(slot.generationmix);
+  }
+
   function saveLocal(d) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ d: d, savedAt: new Date().getTime() }));
@@ -3045,6 +3311,12 @@
     // the clock itself. Cheap: no DOM rebuild beyond a few textContent
     // writes unless the day has actually rolled over.
     renderBinDay(now);
+    // Same "Updated Xm ago" refresh reasoning as Server Health above —
+    // the grid data itself only changes every 30 minutes, but the "ago"
+    // text needs to tick every second regardless.
+    if (carbonData) {
+      renderElectricityScreen();
+    }
     // No automatic page reload: on iOS, reloading would re-lock audio
     // autoplay until someone next taps the screen, which would silently
     // stop the adhan from sounding. The day already rolls over reactively
@@ -3083,10 +3355,19 @@
   renderWeatherWidget();
   fetchWeather();
 
+  var cachedCarbon = loadCarbonLocal();
+  if (cachedCarbon) {
+    carbonData = cachedCarbon.d;
+    carbonFetchedAt = cachedCarbon.fetchedAt;
+  }
+  renderElectricityScreen();
+  fetchCarbonIntensity();
+
   setInterval(tick, 1000);
   setInterval(fetchData, REFRESH_MS);
   setInterval(fetchServerStats, SERVER_REFRESH_MS);
   setInterval(fetchWeather, WEATHER_REFRESH_MS);
+  setInterval(fetchCarbonIntensity, CARBON_REFRESH_MS);
 })();
 </script>
 </body>

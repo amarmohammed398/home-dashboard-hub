@@ -344,6 +344,75 @@ offset disconnected from that row.
   conditions at once) — all render distinctly and legibly at actual
   size. Checked in both themes and both iPad orientations.
 
+### Electricity display
+**Status: fully live (confirmed 30 Aug 2026), one card of an
+eventually-larger screen.** Fourth tablet screen (`#electricityScreen`),
+amber/gold accent (`#a16207` light / `#fbbf24` dark) — distinct from
+every other display's accent, chosen for the obvious electricity/
+lightning association without reusing the existing warn colour
+(`#b45309`/`#f2b84b`) that would otherwise be confusingly close.
+- **Personal consumption data is not available yet, and this display
+  was built anyway rather than waiting.** The intended path (n3rgy's
+  free consumer API, using a smart meter's paired In-Home Display MAC
+  address as the credential) hit a real-world dead end: Scottish Power
+  never issued this household an IHD (they were out of stock at
+  installation), an IHD from a previous address can't be re-paired to a
+  different meter (IHD-to-meter pairing is cryptographically locked
+  down — one source described the security involved as "GCHQ-level" —
+  and re-pairing is a supplier-side action, not something a consumer
+  can trigger), and Hildebrand's own CAD-only device (which would have
+  sidestepped Scottish Power's stock issue entirely) was itself out of
+  stock, with live stock signals actively contradicting each other
+  between two pages on Hildebrand's own shop. The meter itself is
+  confirmed correct for this — a Honeywell AS302P, confirmed SMETS2
+  directly from its own label — the entire blocker is the missing
+  physical HAN-pairing device, nothing about meter generation or
+  prepayment status (both explicitly confirmed not to be the problem;
+  see the dated entry below for the full research trail).
+- **What's live instead: grid carbon intensity**, needing zero personal
+  account access — the **UK Carbon Intensity API**
+  (`api.carbonintensity.org.uk`), run by the National Energy System
+  Operator. Free, keyless, and confirmed (by directly inspecting a real
+  response's headers, not by trusting a search result that claimed the
+  opposite) to return `access-control-allow-origin: *` — genuinely
+  fetchable straight from the browser, same as every other display's
+  own data source.
+- **Regional, not just national**: queried by postcode *district* only
+  (`SK8`, the outward code before the space — not the full postcode),
+  which the API itself treats as the finest unit it accepts anyway, and
+  which already covers a wide area (many thousands of households) — not
+  identifying, consistent with this project's stance on what's safe to
+  commit to a public repo. Returns the actual North West England grid
+  region (Electricity North West DNO), not a generic UK-wide average.
+- **Card shows**: the qualitative intensity index ("Very Low" through
+  "Very High", title-cased from whatever string the API returns rather
+  than a hardcoded lookup table, so a future new index value wouldn't
+  need a code change), the numeric gCO₂/kWh figure, and the live
+  generation mix (wind/nuclear/gas/solar/biomass/coal/hydro/imports/
+  other) as small coloured chips, sorted by share and filtering out
+  anything at 0%. The headline value colour-codes the same way Server
+  Health's own stat values do — plain for "very low"/"low", amber
+  (`electricityWarn`) for "moderate", red (`electricityBad`) for
+  "high"/"very high" — reusing the same warn/bad *pattern*, distinct
+  hex values from the warn/bad colours used elsewhere so as not to be
+  confused with an actual app error state.
+- **Built as a real CSS Grid from day one** (`#electricityGrid`, own
+  class names — `.electricityCard`, not reusing Server Health's
+  `.statCard`, matching this project's "each display keeps its own CSS
+  namespace" convention already established by Bin Day) with the same
+  overflow-safety net every grid in this app now uses (`flex: 1;
+  min-height: 0; overflow-y: auto`) — so personal-consumption cards can
+  slot in later, once meter access exists, without this layout needing
+  to be redone. Directly mirrors how Server Health itself was built in
+  phases (client first, real data source second).
+- Polled every 15 minutes (`CARBON_REFRESH_MS`) — the API's own data
+  only changes on 30-minute slots, so this stays comfortably fresh
+  without polling pointlessly often. Falls back to the last good
+  `localStorage` response (`cheadleMasjidCarbonIntensity`) on a failed
+  fetch, same resilience pattern as every other live display in this
+  app. "Updated Xm ago" line (`formatAgo()`, reused directly from
+  Server Health) refreshes every tick, same as Server Health's own.
+
 ### Appearance
 - **"Liquid Glass" look** (matching iOS 26's own material design): every
   floating panel (`#header`, `#countdownClock`, `#card`, `#settingsPanel`,
@@ -2153,3 +2222,75 @@ title's and widget's computed vertical centre directly (not just
 eyeballed): matched to within a fraction of a pixel in both portrait
 and landscape, and confirmed the resize handler correctly re-centres
 it after an orientation change.
+
+### 2026-08-30 — Fourth display: Electricity (built around a real hardware blocker)
+User wanted a new display for electricity, gas, and water, and asked
+for a feasibility ranking before committing to any of them. Researched
+rather than assumed throughout:
+
+- **Water**: checked United Utilities (the likely regional supplier)
+  directly — they're mid-rollout of smart water meters (2025–2030) and
+  describe customer-facing consumption sharing as a *future*
+  capability once their systems are updated. No consumer API exists
+  today. Shelved, not pursued further.
+- **Electricity/gas**: the UK's DCC (Data Communications Company)
+  infrastructure means any SMETS2 meter's consumption data is
+  reachable via **n3rgy**'s free consumer API, and gas rides the exact
+  same enrollment as electricity via a second identifier (MPRN
+  alongside MPAN) — confirmed prepayment doesn't block this at all,
+  directly from Smart DCC's own documentation.
+
+User then worked through actually setting this up in real time,
+hitting a genuine chain of real-world blockers, each one researched
+rather than guessed at:
+1. **Scottish Power never issued an IHD** (out of stock at
+   installation) — without one, there's no MAC address for n3rgy's
+   primary consent method.
+2. **Confirmed the meter itself is fine**: a photo of the actual meter
+   showed a Honeywell AS302P with "SMETS2" printed directly on its own
+   label — the right generation, not the blocker.
+3. **An old E.ON IHD from a previous address doesn't transfer** —
+   IHD-to-meter pairing is a one-time cryptographic commissioning step
+   tied to the specific meter it was set up with; re-pairing to a
+   different meter isn't a consumer-accessible action.
+4. **Hildebrand's Glow CAD (no display, radio-only) would have been
+   the clean workaround** — sidesteps Scottish Power's stock issue
+   entirely, since it pairs to the meter's HAN independently — but
+   checking their actual shop (not just a search snippet) found no
+   standalone CAD-only listing currently live, and their own site gave
+   contradictory stock signals for the combined Display+CAD bundle
+   (sold out with a deposit option on one page, "Available" on
+   another) within the same session. No genuine listing found on
+   Amazon UK either — Hildebrand's own shop is the only real channel,
+   and its state couldn't be trusted at the moment of checking.
+5. **n3rgy's "Trusted Consent" alternative** (a documented second
+   consent path for exactly this situation — bill, QR code, card
+   validation, or device serial number instead of an IHD MAC) remains
+   open, but needs the user to contact n3rgy directly; not something
+   resolvable from this side.
+
+Rather than block the whole feature on hardware that isn't available,
+identified and verified a genuinely useful piece needing **zero**
+personal account access: the UK Carbon Intensity API. Verified its CORS
+support directly (`curl -D -` against a real request, confirming
+`access-control-allow-origin: *`) after a search result claimed the
+opposite — the search was wrong, and shipping on that wrong claim would
+have meant discovering a false "can't be done client-side" blocker
+after building against it, or worse, building an unnecessary backend
+piece for a value that was actually fetchable from anywhere all along.
+
+Built the full `#electricityScreen` (tile, header, CSS Grid with the
+established overflow-safety pattern, own `.electricityCard`/
+`.gridMixChip` class namespace) around this one live card — see the
+baseline section above for the full implementation detail. Personal
+consumption/cost cards can slot into the same grid later without any
+of this being redone, once either the Hildebrand CAD or n3rgy's Trusted
+Consent route actually pans out.
+
+Tested against the real live Carbon Intensity API (regional endpoint,
+postcode district `SK8`) in local preview — confirmed correct parsing
+of intensity index, gCO₂/kWh figure, and generation mix; confirmed the
+warn/bad colour-coding CSS classes apply the intended colours
+(`getComputedStyle`, not just eyeballed); checked the new tile and
+screen in both themes and both iPad orientations, alongside the
+existing three tiles to confirm the 4-tile grid still wraps cleanly.

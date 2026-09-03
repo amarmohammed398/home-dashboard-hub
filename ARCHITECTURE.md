@@ -12,19 +12,23 @@ the way. For the granular commit-by-commit history, see
 
 An iPad mounted around the house (picture-frame case, permanent power)
 shows one of several full-screen **displays**, picked from a home
-screen. Three exist today: **Prayer Times**, the first one built —
+screen. Four exist today: **Prayer Times**, the first one built —
 Cheadle Masjid's daily prayer times, counting down live to the next
 prayer's Begins time, and optionally sounding the adhan through the
 tablet's speaker at that moment; **Server Health**, live stats for the
-home server itself; and **Bin Day**, Stockport Council's bin collection
+home server itself; **Bin Day**, Stockport Council's bin collection
 schedule computed entirely from a hardcoded recurring rule, with no
-live data source at all (see "Data flow: Bin Day" below for why). The
-home screen itself also shows a small **5-day weather strip** (see
-"Data flow: Weather" below), the only piece of live data shown outside
-a full display. More are planned (utility usage and others — see
-"Where this could go next" at the bottom); the app is deliberately
-structured so adding one means adding a new screen and a new
-home-screen tile, not rebuilding anything that already works. All of it
+live data source at all (see "Data flow: Bin Day" below for why); and
+**Electricity**, currently showing live regional grid carbon intensity,
+with personal usage data blocked on a real-world hardware gap rather
+than a design choice (see "Data flow: Electricity" below). The home
+screen itself also shows a small **5-day weather strip** (see "Data
+flow: Weather" below) — outside Electricity's own screen, the only
+other piece of live data shown outside a full display. More are
+planned (gas/water usage and others — see "Where this could go next" at
+the bottom); the app is deliberately structured so adding one means
+adding a new screen and a new home-screen tile, not rebuilding anything
+that already works. All of it
 runs unattended, indefinitely, updated by pushing code from a laptop.
 
 ### Multi-display navigation
@@ -281,6 +285,59 @@ with no backend to hide that location behind.
    drift, and disabled together under the same `prefers-reduced-motion`
    query.
 
+## Data flow: Electricity
+
+The most interesting data flow in this app not because of what's built,
+but because of what isn't yet — a real case study in a plan meeting a
+genuine real-world blocker and adapting rather than stalling.
+
+The actual goal is personal electricity (and gas) consumption data, via
+the UK's DCC (Data Communications Company) smart-meter network — every
+SMETS2 meter reports into this regardless of supplier, and **n3rgy**
+offers free consumer API access to it. Getting there needs a physical
+device already paired to the meter's local wireless network (the HAN)
+to vouch for the request — normally the supplier-issued In-Home
+Display, identified by its MAC address. This household's IHD was never
+issued (a stock shortage at installation), and the two ways around that
+— an old IHD from a previous address, or a third-party CAD device from
+Hildebrand — both turned out to be blocked for their own distinct
+reasons (IHD-to-meter pairing is a one-time, non-consumer-reversible
+step; Hildebrand's device was out of stock with contradictory signals
+on their own site about when that might change). None of this reflects
+badly on the underlying plan — the meter itself was confirmed correct
+(a Honeywell AS302P, SMETS2, verified directly from its own label) and
+prepayment status was confirmed not to be a blocker either. It's
+squarely a hardware-availability problem, being tracked (via n3rgy's
+"Trusted Consent" alternative and Hildebrand restock) rather than
+abandoned.
+
+Rather than let that block the whole display, the actual data flow
+today is:
+
+1. `index.html` fetches directly from the **UK Carbon Intensity API**
+   (`api.carbonintensity.org.uk`), run by the National Energy System
+   Operator — free, keyless, no account, no personal data of any kind.
+   Confirmed to support direct browser fetches (`access-control-allow-
+   origin: *`, checked with a real request rather than trusted from a
+   search result that claimed the opposite) — same "no backend" shape
+   as every other display here.
+2. Queried by **postcode district only** (e.g. `SK8`) rather than a
+   full postcode or address — already the finest unit the API itself
+   accepts, and it returns real regional data (the actual local
+   Distribution Network Operator region) rather than a national
+   average, so nothing is lost by not being more precise.
+3. The response's generation mix (wind/nuclear/gas/solar/etc.) is shown
+   as-is; the qualitative intensity index is title-cased from whatever
+   string the API returns rather than hardcoded against today's known
+   five values, so a future new index value wouldn't silently render
+   blank or need a code change to support.
+4. The screen (`#electricityScreen`, `#electricityGrid`) was built as a
+   real CSS grid from day one specifically so that personal-consumption
+   cards can slot in later, once meter access exists, without this
+   layout needing to be touched — the same phased-build approach
+   Server Health itself used (client built first, real data source
+   added once it existed).
+
 ## Deployment architecture
 
 The interesting engineering here isn't the frontend — it's the
@@ -481,20 +538,30 @@ yourself, which this file is itself an example of.
 ## Future displays under consideration (not commitments)
 
 Ideas for what to build into `#homeScreen` next, roughly in order of how
-little new infrastructure each one needs (Server Health and Bin Day
-have already shipped and are fully live — see their own "Data flow"
-sections above):
+little new infrastructure each one needs (Server Health, Bin Day, and
+Electricity's grid-carbon-intensity card have already shipped and are
+fully live — see their own "Data flow" sections above):
 
-- **Electricity / gas usage** — via a UK smart meter data source (e.g.
-  Hildebrand Glow or n3rgy). User is on Scottish Power, prepayment
-  plan — worth confirming what data a prepayment smart meter actually
-  exposes (some data sources assume credit-plan billing) before
-  committing design time. If a dynamic tariff ever becomes relevant, a
-  "current rate + cheapest window tonight" view would be genuinely
-  useful, not just decorative.
-- **Water usage** — depends on whether the local supplier exposes any
-  API/export at all; worth checking before committing design time to
-  the display itself.
+- **Electricity personal usage/cost** — the display already exists;
+  this is specifically the part still blocked on a physical HAN-pairing
+  device (see "Data flow: Electricity" above for the full story).
+  Revisit once either a Hildebrand CAD is back in stock or n3rgy's
+  Trusted Consent process has been worked out with them directly. If a
+  dynamic tariff ever becomes relevant at that point, a "current rate +
+  cheapest window tonight" view would be genuinely useful, not just
+  decorative.
+- **Gas usage** — rides the exact same n3rgy enrollment as electricity
+  once that's unblocked (a second identifier, MPRN, on the same
+  account) — not a separate infrastructure problem, just blocked on the
+  same hardware gap. Expect gas readings to be sparser/more delayed
+  than electricity's own once it's live — UK smart gas meters run on
+  battery, not mains power, so their comms module transmits less often.
+- **Water usage** — checked United Utilities (the likely regional
+  supplier) directly: they're mid-rollout of smart water meters
+  (2025–2030) and describe customer data-sharing as a *future*
+  capability once their systems are updated. No consumer API exists
+  today — shelved, not actively blocked on anything this project
+  controls.
 - **Ambient/screensaver mode** — a photo-frame idle state (family
   photos + a small clock) any display could fall back to after
   inactivity, distinct from the "pick a display" home screen — suits
