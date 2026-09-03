@@ -11,16 +11,14 @@
 
 A wall/stand-mounted iPad (in a picture-frame case) that shows one of
 several full-screen **displays** — a home screen lets you pick which one.
-Four exist today: **Prayer Times** (for Cheadle Masjid, built first),
-**Server Health** (live stats for the home server itself), **Bin Day**
-(Stockport Council collection schedule), and **Electricity** (currently
-just live grid carbon-intensity data — personal usage needs a piece of
-hardware this household doesn't have yet, see that section below). The
-home screen itself also shows a small **5-day weather strip** in the
-top-left corner. More are planned (gas/water usage and others — see the
-"Where this could go next" section of [ARCHITECTURE.md](ARCHITECTURE.md)
-for ideas not built yet, and [CHANGELOG.md](CHANGELOG.md) for exactly
-what exists today).
+Three exist today: **Prayer Times** (for Cheadle Masjid, built first),
+**Server Health** (live stats for the home server itself), and
+**Bin Day** (Stockport Council collection schedule). The home screen
+itself also shows a small **5-day weather strip** in the top-left
+corner. More are planned (electricity/gas/water usage and others — see
+the "Where this could go next" section of
+[ARCHITECTURE.md](ARCHITECTURE.md) for ideas not built yet, and
+[CHANGELOG.md](CHANGELOG.md) for exactly what exists today).
 
 > **Naming note:** this project started as a single-purpose prayer-times
 > display, originally named after the masjid it displays — renamed to
@@ -226,33 +224,6 @@ to house-level precision anyway). If you fork this for your own home,
 replace `WEATHER_LAT`/`WEATHER_LON` near the top of the weather section
 in `index.html` with your own location, rounded to 2 decimal places —
 don't commit exact coordinates.
-
-## Electricity display
-
-Currently shows **live grid carbon intensity** for your region — how
-clean the electricity grid is right now (a qualitative rating, the
-gCO₂/kWh figure, and the current generation mix: wind/nuclear/gas/
-solar/etc.) — via the UK's free, keyless
-[Carbon Intensity API](https://carbonintensity.org.uk), queried by
-postcode district (e.g. `SK8`, not a full postcode) so it stays
-regional without needing anything more precise.
-
-**Personal usage/cost data isn't shown yet** — that needs a physical
-device paired to your smart meter's local wireless network (either
-your supplier's own In-Home Display, or a third-party
-[Hildebrand Glow CAD](https://shop.glowmarkt.com/)), which this
-household didn't have working at the time this was built (see
-`CHANGELOG.md`'s dated entry for the full story — a genuinely
-interesting chain of real-world blockers, not a design choice). Once
-you have a working IHD/CAD and have registered with
-[n3rgy](https://www.n3rgy.com/consumer/) (free) or Hildebrand, personal
-consumption cards can be added into the same `#electricityGrid` this
-display already uses — the layout was built to support that from the
-start, nothing here needs reworking.
-
-If you fork this for your own home, replace `CARBON_POSTCODE` near the
-top of the Electricity section in `index.html` with your own postcode
-district.
 
 ## Deployment: self-hosted on your Linux server, displayed on the iPad
 

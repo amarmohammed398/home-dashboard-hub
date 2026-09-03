@@ -344,75 +344,6 @@ offset disconnected from that row.
   conditions at once) — all render distinctly and legibly at actual
   size. Checked in both themes and both iPad orientations.
 
-### Electricity display
-**Status: fully live (confirmed 30 Aug 2026), one card of an
-eventually-larger screen.** Fourth tablet screen (`#electricityScreen`),
-amber/gold accent (`#a16207` light / `#fbbf24` dark) — distinct from
-every other display's accent, chosen for the obvious electricity/
-lightning association without reusing the existing warn colour
-(`#b45309`/`#f2b84b`) that would otherwise be confusingly close.
-- **Personal consumption data is not available yet, and this display
-  was built anyway rather than waiting.** The intended path (n3rgy's
-  free consumer API, using a smart meter's paired In-Home Display MAC
-  address as the credential) hit a real-world dead end: Scottish Power
-  never issued this household an IHD (they were out of stock at
-  installation), an IHD from a previous address can't be re-paired to a
-  different meter (IHD-to-meter pairing is cryptographically locked
-  down — one source described the security involved as "GCHQ-level" —
-  and re-pairing is a supplier-side action, not something a consumer
-  can trigger), and Hildebrand's own CAD-only device (which would have
-  sidestepped Scottish Power's stock issue entirely) was itself out of
-  stock, with live stock signals actively contradicting each other
-  between two pages on Hildebrand's own shop. The meter itself is
-  confirmed correct for this — a Honeywell AS302P, confirmed SMETS2
-  directly from its own label — the entire blocker is the missing
-  physical HAN-pairing device, nothing about meter generation or
-  prepayment status (both explicitly confirmed not to be the problem;
-  see the dated entry below for the full research trail).
-- **What's live instead: grid carbon intensity**, needing zero personal
-  account access — the **UK Carbon Intensity API**
-  (`api.carbonintensity.org.uk`), run by the National Energy System
-  Operator. Free, keyless, and confirmed (by directly inspecting a real
-  response's headers, not by trusting a search result that claimed the
-  opposite) to return `access-control-allow-origin: *` — genuinely
-  fetchable straight from the browser, same as every other display's
-  own data source.
-- **Regional, not just national**: queried by postcode *district* only
-  (`SK8`, the outward code before the space — not the full postcode),
-  which the API itself treats as the finest unit it accepts anyway, and
-  which already covers a wide area (many thousands of households) — not
-  identifying, consistent with this project's stance on what's safe to
-  commit to a public repo. Returns the actual North West England grid
-  region (Electricity North West DNO), not a generic UK-wide average.
-- **Card shows**: the qualitative intensity index ("Very Low" through
-  "Very High", title-cased from whatever string the API returns rather
-  than a hardcoded lookup table, so a future new index value wouldn't
-  need a code change), the numeric gCO₂/kWh figure, and the live
-  generation mix (wind/nuclear/gas/solar/biomass/coal/hydro/imports/
-  other) as small coloured chips, sorted by share and filtering out
-  anything at 0%. The headline value colour-codes the same way Server
-  Health's own stat values do — plain for "very low"/"low", amber
-  (`electricityWarn`) for "moderate", red (`electricityBad`) for
-  "high"/"very high" — reusing the same warn/bad *pattern*, distinct
-  hex values from the warn/bad colours used elsewhere so as not to be
-  confused with an actual app error state.
-- **Built as a real CSS Grid from day one** (`#electricityGrid`, own
-  class names — `.electricityCard`, not reusing Server Health's
-  `.statCard`, matching this project's "each display keeps its own CSS
-  namespace" convention already established by Bin Day) with the same
-  overflow-safety net every grid in this app now uses (`flex: 1;
-  min-height: 0; overflow-y: auto`) — so personal-consumption cards can
-  slot in later, once meter access exists, without this layout needing
-  to be redone. Directly mirrors how Server Health itself was built in
-  phases (client first, real data source second).
-- Polled every 15 minutes (`CARBON_REFRESH_MS`) — the API's own data
-  only changes on 30-minute slots, so this stays comfortably fresh
-  without polling pointlessly often. Falls back to the last good
-  `localStorage` response (`cheadleMasjidCarbonIntensity`) on a failed
-  fetch, same resilience pattern as every other live display in this
-  app. "Updated Xm ago" line (`formatAgo()`, reused directly from
-  Server Health) refreshes every tick, same as Server Health's own.
-
 ### Appearance
 - **"Liquid Glass" look** (matching iOS 26's own material design): every
   floating panel (`#header`, `#countdownClock`, `#card`, `#settingsPanel`,
@@ -2339,3 +2270,39 @@ immediately, verified the same way every deploy in this project is:
 `.last-successful-deploy`'s timestamp advancing and the live page
 actually containing the new code, not just assumed from the runner
 looking healthy.
+
+### 2026-08-31 — Reverted the Electricity display: grid carbon intensity wasn't wanted as an interim step
+User explicitly didn't like the Electricity display as built — a
+single grid carbon-intensity card, shipped as a stand-in for personal
+consumption data while that stays blocked on the missing IHD/CAD (see
+the two dated entries above for that full story). Asked for it back
+out entirely: **"You can add this once I've got the IHD and we can
+display more useful information."** Not a case of the feature being
+broken or the research being wrong — the carbon-intensity data and
+everything found about n3rgy/Hildebrand/SMETS2 access remains accurate
+and worth keeping for later — the interim-display *approach itself*
+wasn't wanted.
+
+Removed completely and cleanly from `index.html`: the home-screen tile,
+`#electricityScreen` and its header/grid markup, the `TABLET_SCREENS`
+entry, every `.electricityCard`/`.gridMixChip`-related CSS (structural
+rules, both themes' colour rules, and its inclusion in the three shared
+"Liquid Glass" selector lists), and every carbon-intensity JS function
+(`fetchCarbonIntensity`, `renderElectricityScreen`, the save/load-local
+pair, `titleCase`, `gridMixChipsHtml`) along with their wiring into
+`tick()` and the boot sequence. Verified nothing was left behind with a
+case-insensitive search for "electricity", "carbon", and "gridmix"
+across the whole file, not just by eye — came back empty. Re-tested in
+local preview afterward: exactly three tiles again
+(prayer-times/server-health/bin-day), no console errors, weather strip
+still correctly positioned.
+
+**Current baseline above no longer has an "Electricity display"
+section** — removed rather than left describing something that no
+longer exists live; this dated entry, plus the two above it, remain
+the accurate record of what was tried and why it was undone. When this
+gets rebuilt (once the IHD/CAD situation resolves), it should lead with
+genuinely useful personal information — usage, cost, trends — not
+default back to grid carbon intensity as the opening card without
+checking with the user first; that specific framing is what didn't
+land, not the idea of an Electricity display itself.
