@@ -91,6 +91,16 @@ overriding — the baseline exists precisely to catch that kind of thing.
   (not just an id) precisely so `positionMoreIcon()` can find "the
   current screen's header" generically (scoped to whichever screen
   `TABLET_SCREENS[currentScreen]` names) instead of hardcoding one id.
+- **`#tileGrid` vertically centres its tiles in the space below the
+  title (31 Aug 2026)** — `#homeTitle` keeps its own fixed position
+  near the top (the weather strip and ⋮ icon both anchor to its exact
+  line, and shouldn't drift if the title moved), while `#tileGrid`
+  itself gets `flex: 1` (filling whatever's left of `#homeScreen`'s
+  height) plus `align-items`/`align-content: center` to centre the
+  tiles within that remaining space — not the whole home screen block.
+  Wrapping to a second row (once enough displays exist) still centres
+  correctly, since `align-content` (not just `align-items`) governs how
+  multiple wrapped flex lines are distributed.
 - Switching screens (`showScreen(name)`) is a pure show/hide of existing
   DOM, **never a page reload/navigation** — a reload would throw away
   the Prayer Times adhan's audio-autoplay unlock (see Adhan below), so
@@ -2306,3 +2316,26 @@ genuinely useful personal information — usage, cost, trends — not
 default back to grid carbon intensity as the opening card without
 checking with the user first; that specific framing is what didn't
 land, not the idea of an Electricity display itself.
+
+### 2026-08-31 — Vertically centred the home screen's tiles
+User asked for the three display tiles to sit in the vertical centre
+of "Choose a Display", rather than immediately below the title with
+empty space left underneath. Kept `#homeTitle` exactly where it already
+was — the weather strip and ⋮ icon both position themselves against
+its live line (`positionWeatherWidget()`/`positionMoreIcon()`), so
+moving the title would have dragged both of those out of their
+top-row position too, which wasn't what was asked for. Instead gave
+`#tileGrid` itself `flex: 1` (filling the remaining height inside
+`#homeScreen`'s existing flex column) plus `align-items`/
+`align-content: center`, so only the tiles centre within the leftover
+space below the title. Verified in local preview in both themes and
+both iPad orientations; also confirmed via `getBoundingClientRect()`
+that the tiles' own vertical centre lines up with the middle of the
+space actually available to them (accounting for `#homeScreen`'s
+existing bottom padding, not naively the full viewport height).
+
+User also confirmed this project is intentionally paused here until
+real progress is made on the CCTV setup (see the CCTV planning
+discussion — a DVR bridge for the existing analog cameras, Frigate as
+the storage/live-view/AI layer) — no further display work expected
+until then.
