@@ -46,13 +46,27 @@ overriding — the baseline exists precisely to catch that kind of thing.
   `data.friday.asr_mithl_1` (shown as "2nd Khutbah") — this exact field
   mapping was verified against the masjid's own live screen at
   cheadlemasjid.org/prayer-times-screen-2/.
-- The next upcoming Iqamah's row is highlighted (`.row.active`) — a
-  green accent bar next to the prayer name, plus a full-row background
-  tint with a slight green hint (30 Aug 2026: changed from a plain
-  neutral grey to `rgba(14, 143, 107, 0.14)` light / `rgba(47, 211,
-  154, 0.14)` dark — the same accent green as the rest of Prayer Times,
-  just at low opacity so it still reads as "grey box," not a solid
-  green highlight).
+- The next upcoming prayer's row is highlighted (`.row.active`) — a
+  green accent bar next to the prayer name, a full-row background tint
+  (`rgba(14, 143, 107, 0.22)` light / `rgba(47, 211, 154, 0.22)` dark —
+  boosted from an earlier `0.14` on 8 Sept 2026, see that dated entry:
+  the lower value read as basically invisible once the mesh-gradient
+  background existed behind it), plus a matching 1px border for a
+  clear edge regardless of exactly what's behind the row at any given
+  moment. `activeRowKeyFor(target)` maps `findNextTarget()`'s key onto
+  whichever row should actually be highlighted — needed because the
+  overnight case is keyed `"fajr-tomorrow"` (distinct from today's
+  `"fajr"`) but the table only ever has today's six rows, so passing
+  that key straight through never matched anything (see the 8 Sept
+  2026 dated entry — this silently broke the highlight for the entire
+  overnight window between Isha and the next Fajr, not just a
+  visibility problem). `tick()` re-syncs the highlighted row by
+  comparing against `lastRenderedActiveKey` (the key `renderRows()`
+  actually rendered last), not by checking "is any row currently
+  highlighted at all" — the older check meant the highlight could sit
+  stuck on a prayer whose Begins time had already passed, for up to
+  `REFRESH_MS` (5 minutes), even while the countdown label above it had
+  already moved on to the next prayer.
 - If the live fetch fails, the page falls back to the last successful
   response cached in `localStorage`, with an "Offline · showing last
   update HH:MM" footer notice.
@@ -2339,3 +2353,66 @@ real progress is made on the CCTV setup (see the CCTV planning
 discussion — a DVR bridge for the existing analog cameras, Frigate as
 the storage/live-view/AI layer) — no further display work expected
 until then.
+
+### 2026-09-08 — Fixed the next-prayer row highlight: two real bugs, not just faded colour
+User reported the green highlight bar on the next upcoming prayer's row
+had "disappeared" in both themes and asked for it to be investigated
+and restored, clearly visible in both. Investigated properly rather
+than assuming it was just the mesh-gradient background washing out an
+already-subtle tint (the working theory going in, given that background
+was added after the tint was last tuned) — that turned out to be only
+part of the story; there were two genuine logic bugs underneath.
+
+**Bug 1 — the overnight highlight never worked at all.**
+`findNextTarget()` keys the "nothing left today, counting down to
+tomorrow" case as `"fajr-tomorrow"`, deliberately distinct from
+today's `"fajr"` row. But `renderRows()` matches rows by exact key
+equality, and the table only ever renders today's six rows — so
+passing `"fajr-tomorrow"` straight through as the active key matched
+nothing, ever. Confirmed with a temporary `console.log` inside
+`renderRows()` itself (pure code-reading wasn't settling it — every
+call site looked correct in isolation) showing `activeKey=
+"fajr-tomorrow"` against `rowKeys=[fajr,sunrise,dhuhr,asr,maghrib,
+isha]`. This silently broke the highlight for the *entire* stretch
+between Isha and the next Fajr, every single day — a large fraction of
+the clock, not a rare edge case. Fixed with a small `activeRowKeyFor()`
+helper that strips the `-tomorrow` suffix before it's used as
+`renderRows()`'s activeKey, landing the highlight on today's Fajr row
+(the same one the "Fajr Begins in" label already refers to) — the
+underlying `target.key` itself is left untouched for anything else
+that might care about the distinction.
+
+**Bug 2 — the highlight didn't advance during the day either.**
+While testing bug 1's fix, simulated a mocked "now" of 3pm (between
+Asr and Maghrib) to check the ordinary, non-overnight path — and found
+the countdown label correctly updated to "Maghrib Begins in" while the
+table stayed highlighting Fajr from boot. `tick()`'s own optimization
+(re-render the rows only when needed, not every single second) checked
+`document.querySelectorAll(".row.active").length === 0` — "is any row
+currently highlighted" — which only ever catches the highlight being
+completely *absent*, never the highlight being *stale* (pointing at a
+prayer whose Begins time already passed). Once any row was ever
+correctly highlighted, that check would never fire again, and the
+table would only ever catch up whenever `fetchData()`'s own 5-minute
+refresh happened to call `render()` (which always rebuilds
+unconditionally) — meaning up to `REFRESH_MS` of visible mismatch
+between the countdown label and the highlighted row at every prayer
+transition, every day. Fixed by tracking `lastRenderedActiveKey` (set
+inside `renderRows()` itself, so it stays correct regardless of which
+caller — `render()` or `tick()` — last ran it) and having `tick()`
+compare the *correct* key against it, rebuilding whenever they differ,
+not just whenever nothing is highlighted at all. Re-verified with the
+same mocked-3pm approach: the highlight correctly moved from Fajr to
+Maghrib the instant the countdown label did.
+
+**Then the visibility fix**, on top of both logic fixes: even once
+correctly applied to the right row at the right time, the existing
+`rgba(…, 0.14)` tint was genuinely difficult to make out at actual
+device scale against the mesh-gradient background (confirmed by
+screenshot, not assumed) — raised to `0.22` in both themes, plus a new
+matching 1px border around the active row for a crisp edge regardless
+of exactly what colour the drifting gradient happens to show behind it
+at any given moment. Verified in both themes, both iPad orientations,
+and at actual (unzoomed) scale specifically — not just a close-up
+screenshot, since a wall-mounted display is read from across a room,
+not inspected at arm's length.

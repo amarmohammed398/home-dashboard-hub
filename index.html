@@ -186,6 +186,9 @@
   }
   .row.active {
     border-radius: 14px;
+    border-width: 1px;
+    border-style: solid;
+    box-sizing: border-box;
   }
   .row.active .cell.name:before {
     content: "";
@@ -1148,7 +1151,7 @@
   body.theme-light #countdownDigital { color: #0e8f6b; }
   body.theme-light .row.head { color: #4b5563; border-bottom: 2px solid rgba(255,255,255,0.6); }
   body.theme-light .row + .row { border-top-color: rgba(31,41,55,0.08); }
-  body.theme-light .row.active { background-color: rgba(14, 143, 107, 0.14); }
+  body.theme-light .row.active { background-color: rgba(14, 143, 107, 0.22); border-color: rgba(14, 143, 107, 0.4); }
   body.theme-light .row.active .cell.name:before { background-color: #0e8f6b; }
   body.theme-light .cell.name { color: #1f2937; }
   body.theme-light .cell.time { color: #1f2937; }
@@ -1252,7 +1255,7 @@
   body.theme-dark #countdownDigital { color: #2fd39a; }
   body.theme-dark .row.head { color: #9aa1ac; border-bottom: 2px solid rgba(255,255,255,0.1); }
   body.theme-dark .row + .row { border-top-color: rgba(255,255,255,0.08); }
-  body.theme-dark .row.active { background-color: rgba(47, 211, 154, 0.14); }
+  body.theme-dark .row.active { background-color: rgba(47, 211, 154, 0.22); border-color: rgba(47, 211, 154, 0.45); }
   body.theme-dark .row.active .cell.name:before { background-color: #2fd39a; }
   body.theme-dark .cell.name { color: #f3f4f6; }
   body.theme-dark .cell.time { color: #f3f4f6; }
@@ -1592,6 +1595,11 @@
   var data = null;
   var lastFetchOk = false;
   var lastUpdatedLabel = "--:--";
+  // Tracks whichever key renderRows() last actually highlighted, so
+  // tick() can tell "the highlight is missing" apart from "the highlight
+  // exists but is now stale" — see tick()'s own comment for why relying
+  // on "is there any .row.active at all" isn't enough on its own.
+  var lastRenderedActiveKey;
 
   /* ---------------- theme handling ---------------- */
 
@@ -2946,7 +2954,26 @@
     return null;
   }
 
+  // findNextTarget() deliberately keys the overnight case as
+  // "fajr-tomorrow", distinct from today's "fajr" — but the table only
+  // ever renders today's six rows, so passing "fajr-tomorrow" straight
+  // through as renderRows()'s activeKey never matches any row's own
+  // key, and the "next prayer" highlight silently fails to appear for
+  // the entire overnight window between Isha and the next Fajr (found
+  // 8 Sept 2026 investigating a report that the highlight had
+  // "disappeared" — it hadn't, in the sense of being deleted, but it
+  // was never actually re-appearing during exactly this stretch of
+  // every single day). Strip the suffix so the highlight lands on
+  // today's Fajr row — the same one the "Fajr Begins in" label already
+  // visually refers to — while leaving `target.key` itself untouched
+  // for anything else that might care about the distinction.
+  function activeRowKeyFor(target) {
+    if (!target) { return null; }
+    return target.key.replace(/-tomorrow$/, "");
+  }
+
   function renderRows(rows, activeKey) {
+    lastRenderedActiveKey = activeKey;
     var container = document.getElementById("rows");
     container.innerHTML = "";
     var adhanSettings = getAdhanSettings();
@@ -3022,7 +3049,7 @@
     var nowMinutes = now.getHours() * 60 + now.getMinutes();
     var rows = buildRowsModel(now);
     var target = findNextTarget(rows, nowMinutes);
-    renderRows(rows, target ? target.key : null);
+    renderRows(rows, activeRowKeyFor(target));
     renderCountdown(target, now);
 
     if (!data) {
@@ -3041,10 +3068,20 @@
       var rows = buildRowsModel(now);
       var target = findNextTarget(rows, nowMinutes);
       renderCountdown(target, now);
-      // keep active-row highlight in sync without a full row rebuild each second
-      var activeRowsNeedRebuild = document.querySelectorAll(".row.active").length === 0 && target;
-      if (activeRowsNeedRebuild) {
-        renderRows(rows, target ? target.key : null);
+      // Keep the active-row highlight in sync without a full row rebuild
+      // every second — only re-render when the *correct* key has
+      // actually changed (a prayer's Begins time just passed, so the
+      // target moved on to the next one), not just when a highlight is
+      // completely missing. Checking "is .row.active present at all"
+      // (the original approach here) misses this: once any row was
+      // highlighted, it would silently stay stuck on that same prayer
+      // for up to REFRESH_MS (5 minutes, whenever fetchData() next
+      // happens to call render() and correct it) after the real target
+      // had already moved on — the countdown label above would already
+      // say "Maghrib Begins in" while the table still highlighted Asr.
+      var expectedActiveKey = activeRowKeyFor(target);
+      if (target && expectedActiveKey !== lastRenderedActiveKey) {
+        renderRows(rows, expectedActiveKey);
       }
       checkAdhanSchedule(now);
     }
