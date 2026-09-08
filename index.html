@@ -230,6 +230,74 @@
     text-align: center;
     font-variant-numeric: tabular-nums;
   }
+  /* Per-prayer weather (added 9 Sept 2026) — a 4th column, deliberately
+     much smaller than the Begins/Iqamah text next to it (this is
+     supplementary context, not the main thing being read at a glance).
+     A narrower flex share than the other three columns since it only
+     ever holds a small icon and a couple of short numbers, not a full
+     time string. */
+  .cell.weather {
+    -webkit-box-flex: 0.9;
+    -webkit-flex: 0.9;
+    flex: 0.9;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-box-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+  }
+  .row.head .cell.weather {
+    display: block;
+    text-align: center;
+  }
+  .prayerWeatherIcon svg { width: 2.6vw; height: 2.6vw; min-width: 24px; min-height: 24px; }
+  .prayerWeatherStats {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    gap: 0.1vh 0;
+    margin-top: 0.3vh;
+    font-size: 1.5vw;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+  }
+  /* Landscape has far less vertical room per row than portrait (a wider
+     but shorter viewport), and the table's row height is driven purely
+     by content (no fixed/flex-shared row height) — so the tall vertical
+     icon-over-stats layout above, sized for portrait's spare height,
+     pushed Maghrib/Isha below the visible viewport here (this display
+     never scrolls; body/html are overflow: hidden by design). Landscape
+     instead lays the icon and stats out in one compact row, keeping
+     each prayer row close to its pre-weather-column height. */
+  @media (orientation: landscape) {
+    .cell.weather {
+      -webkit-box-orient: horizontal;
+      -webkit-flex-direction: row;
+      flex-direction: row;
+      gap: 0 0.5vw;
+    }
+    .prayerWeatherIcon svg { width: 1.6vw; height: 1.6vw; min-width: 18px; min-height: 18px; }
+    .prayerWeatherStats {
+      -webkit-flex-direction: row;
+      flex-direction: row;
+      gap: 0 0.4vw;
+      margin-top: 0;
+      font-size: 1.05vw;
+    }
+  }
   /* Small "adhan armed" indicator next to a prayer's name — a proper
      icon rather than an emoji, coloured with the app's accent so it
      reads as "this one's on" (same colour as an active toggle switch).
@@ -1155,6 +1223,9 @@
   body.theme-light .row.active .cell.name:before { background-color: #0e8f6b; }
   body.theme-light .cell.name { color: #1f2937; }
   body.theme-light .cell.time { color: #1f2937; }
+  body.theme-light .prayerWeatherRain { color: #0a84ff; }
+  body.theme-light .prayerWeatherTemp { color: #1f2937; }
+  body.theme-light .prayerWeatherWind { color: #6b7280; }
   body.theme-light .sub { color: #b45309; }
   body.theme-light #footer { color: #4b5563; }
   body.theme-light #footer.offline { color: #b45309; }
@@ -1259,6 +1330,9 @@
   body.theme-dark .row.active .cell.name:before { background-color: #2fd39a; }
   body.theme-dark .cell.name { color: #f3f4f6; }
   body.theme-dark .cell.time { color: #f3f4f6; }
+  body.theme-dark .prayerWeatherRain { color: #409cff; }
+  body.theme-dark .prayerWeatherTemp { color: #f3f4f6; }
+  body.theme-dark .prayerWeatherWind { color: #9aa1ac; }
   body.theme-dark .sub { color: #f2b84b; }
   body.theme-dark #footer { color: #9aa1ac; }
   body.theme-dark #footer.offline { color: #f2b84b; }
@@ -1377,6 +1451,7 @@
       <div class="cell name">Prayer</div>
       <div class="cell time">Begins</div>
       <div class="cell time">Iqamah</div>
+      <div class="cell weather">Weather</div>
     </div>
     <div id="rows"></div>
   </div>
@@ -2658,9 +2733,15 @@
      than committing the precise value. */
   var WEATHER_LAT = 53.39;
   var WEATHER_LON = -2.22;
+  // Both `daily` (home-screen 5-day strip) and `hourly` (per-prayer-time
+  // weather in the Prayer Times table, see below) come from this one
+  // request — Open-Meteo happily returns both blocks together, so this
+  // stays one fetch/one cache/one refresh interval rather than two.
   var WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=" + WEATHER_LAT +
     "&longitude=" + WEATHER_LON +
     "&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max" +
+    "&hourly=weathercode,temperature_2m,precipitation_probability,wind_speed_10m" +
+    "&wind_speed_unit=mph" +
     "&timezone=auto&forecast_days=5";
   var WEATHER_REFRESH_MS = 30 * 60 * 1000; // forecasts don't change fast; 30 min keeps this well clear of hammering the API
   var WEATHER_STORAGE_KEY = "cheadleMasjidWeather";
@@ -2802,11 +2883,64 @@
     return WEATHER_ICON_SVG[category] || WEATHER_ICON_SVG.cloudy;
   }
 
+  // Per-prayer-time weather (Prayer Times table, added 9 Sept 2026) —
+  // looks up the hourly forecast slot nearest a given prayer's own
+  // Begins time (already available as "minutes since midnight" via
+  // parseMinutes(), same value everything else on this screen already
+  // uses), rounding to the closest hour rather than requiring an exact
+  // match. Matches by explicit "YYYY-MM-DDTHH:00" string against
+  // today's date specifically — deliberately not a raw array index —
+  // so this stays correct regardless of how many days WEATHER_URL ends
+  // up requesting, rather than silently relying on today always being
+  // entry 0.
+  function hourlyWeatherForMinutes(mins) {
+    if (!weatherData || !weatherData.hourly || mins === null) { return null; }
+    var hourly = weatherData.hourly;
+    var now = new Date();
+    var todayStr = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate());
+    var targetHour = Math.round(mins / 60) % 24;
+    var targetTimeStr = todayStr + "T" + pad(targetHour) + ":00";
+    var idx = hourly.time.indexOf(targetTimeStr);
+    if (idx === -1) { return null; }
+    return {
+      category: weatherCategoryForCode(hourly.weathercode[idx]),
+      rain: hourly.precipitation_probability[idx],
+      temp: Math.round(hourly.temperature_2m[idx]),
+      wind: Math.round(hourly.wind_speed_10m[idx])
+    };
+  }
+
+  function prayerWeatherCellHtml(begins) {
+    var wx = hourlyWeatherForMinutes(parseMinutes(begins));
+    if (!wx) { return ""; }
+    return '<div class="prayerWeatherIcon">' + weatherIconHtml(wx.category) + '</div>' +
+      '<div class="prayerWeatherStats">' +
+      '<span class="prayerWeatherRain">' + wx.rain + '%</span>' +
+      '<span class="prayerWeatherTemp">' + wx.temp + '&deg;</span>' +
+      '<span class="prayerWeatherWind">' + wx.wind + 'mph</span>' +
+      '</div>';
+  }
+
+  // Re-paints the Prayer Times table's weather column against
+  // whatever's currently in `weatherData`, without touching the
+  // countdown/highlight logic at all — reuses the same rows and
+  // whichever key was already highlighted, since only the weather
+  // portion of each cell needs to change. Needed because weather and
+  // prayer-time data are fetched entirely independently (weather every
+  // 30 min, prayer times every 5 min) — the table would otherwise only
+  // pick up newly-arrived weather data whenever the *prayer* side next
+  // happened to re-render for its own reasons, not right away.
+  function refreshPrayerWeatherCells() {
+    if (!data) { return; }
+    renderRows(buildRowsModel(new Date()), lastRenderedActiveKey);
+  }
+
   function renderWeatherWidget() {
     var container = document.getElementById("weatherWidget");
     if (!weatherData || !weatherData.daily) {
       container.innerHTML = "";
       positionWeatherWidget();
+      refreshPrayerWeatherCells();
       return;
     }
     var daily = weatherData.daily;
@@ -2838,6 +2972,7 @@
     }
     container.innerHTML = html;
     positionWeatherWidget();
+    refreshPrayerWeatherCells();
   }
 
   function saveLocal(d) {
@@ -2977,7 +3112,7 @@
     var container = document.getElementById("rows");
     container.innerHTML = "";
     var adhanSettings = getAdhanSettings();
-    var i, r, rowEl, nameCell, beginsCell, iqamahCell, adhanKey, nameHtml;
+    var i, r, rowEl, nameCell, beginsCell, iqamahCell, weatherCell, adhanKey, nameHtml;
     for (i = 0; i < rows.length; i++) {
       r = rows[i];
       rowEl = el("div", "row" + (r.key === activeKey ? " active" : ""));
@@ -3001,6 +3136,15 @@
 
       iqamahCell = el("div", "cell time", r.iqamah ? (formatHms(r.iqamah) + (r.iqamahSub ? "<span class=\"sub\">" + r.iqamahSub + "</span>" : "")) : "&mdash;");
       rowEl.appendChild(iqamahCell);
+
+      // Weather at this row's own Begins time — see
+      // hourlyWeatherForMinutes()'s own comment for why this is looked
+      // up per-row rather than once for the whole table. Left blank
+      // (not a placeholder dash) until the weather fetch actually
+      // succeeds at least once, same "don't show anything actively
+      // wrong" instinct as everywhere else weather appears.
+      weatherCell = el("div", "cell weather", prayerWeatherCellHtml(r.begins));
+      rowEl.appendChild(weatherCell);
 
       container.appendChild(rowEl);
     }
