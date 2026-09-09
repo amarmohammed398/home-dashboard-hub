@@ -247,26 +247,43 @@
     display: -webkit-inline-box;
     display: -webkit-inline-flex;
     display: inline-flex;
+    -webkit-box-orient: vertical;
+    -webkit-flex-direction: column;
+    flex-direction: column;
     -webkit-box-align: center;
     -webkit-align-items: center;
     align-items: center;
-    gap: 0 0.22vw;
+    -webkit-box-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
     margin-right: 0.7vw;
     opacity: 0.5;
-    font-size: 1vw;
-    font-weight: 600;
+    line-height: 1;
+  }
+  /* Icon sits above the numbers, sized a bit bigger than the numbers
+     underneath it (9 Sept 2026 revision — "make the icon a bit bigger
+     and the numbers a bit smaller") — but the two together must still
+     never exceed the Begins/Iqamah text's own line height (checked via
+     getBoundingClientRect against .cell.time in both orientations, same
+     "no scroll safety net on this table" constraint as always), so
+     growing the icon came with shrinking the numbers to keep the total
+     stack within that same budget rather than actually taking more
+     room overall. */
+  .prayerWeatherInline svg { width: 1.9vw; height: 1.9vw; display: block; }
+  .prayerWeatherInlineNums {
+    display: -webkit-inline-box;
+    display: -webkit-inline-flex;
+    display: inline-flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    gap: 0 0.15vw;
+    font-size: 0.85vw;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    line-height: 1; /* caps the whole hint's height to its own text/icon
-      metrics, never taller than a single line — nothing here should add
-      vertical space to the row. */
+    line-height: 1;
   }
-  /* Sized in em, not vw/px, specifically so the icon can never exceed
-     the height of the text sitting right next to it (no separate
-     min-width/min-height floor, unlike other icons in this app — those
-     need to stay tappable/legible on their own, this is a background
-     hint that should shrink and grow with its own text). */
-  .prayerWeatherInline svg { width: 1em; height: 1em; }
   /* Small "adhan armed" indicator next to a prayer's name — a proper
      icon rather than an emoji, coloured with the app's accent so it
      reads as "this one's on" (same colour as an active toggle switch).
@@ -2915,20 +2932,25 @@
 
   // Compact inline weather hint rendered just before a prayer's name
   // (not a separate column — see the CSS comment above
-  // .prayerWeatherInline for why this moved). Icon + rain% + temp only;
-  // wind speed is deliberately left out of this compact form (still
-  // available from hourlyWeatherForMinutes() if it's ever wanted back).
-  // Rain % is always blue (.prayerWeatherInlineRain, themed via CSS);
-  // temp is coloured per-row via tempSpectrumColor() since it depends
-  // on the actual numeric value, not just the current theme.
+  // .prayerWeatherInline for why this moved). Icon on top, rain% + temp
+  // stacked underneath as one small line (9 Sept 2026 revision — the
+  // icon used to sit beside the numbers on one line; now above them,
+  // bigger, with the numbers shrunk to match, so the combined stack
+  // still fits the same height budget). Wind speed is deliberately left
+  // out of this compact form (still available from
+  // hourlyWeatherForMinutes() if it's ever wanted back). Rain % is
+  // always blue (.prayerWeatherInlineRain, themed via CSS); temp is
+  // coloured per-row via tempSpectrumColor() since it depends on the
+  // actual numeric value, not just the current theme.
   function prayerWeatherInlineHtml(begins) {
     var wx = hourlyWeatherForMinutes(parseMinutes(begins));
     if (!wx) { return ""; }
     var isDark = document.body.classList.contains("theme-dark");
     return '<span class="prayerWeatherInline">' + weatherIconHtml(wx.category) +
+      '<span class="prayerWeatherInlineNums">' +
       '<span class="prayerWeatherInlineRain">' + wx.rain + '%</span>' +
       '<span class="prayerWeatherInlineTemp" style="color:' + tempSpectrumColor(wx.temp, isDark) + '">' +
-      wx.temp + '&deg;</span></span> ';
+      wx.temp + '&deg;</span></span></span> ';
   }
 
   // Re-paints the Prayer Times table's per-row weather hints against

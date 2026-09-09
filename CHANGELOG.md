@@ -373,20 +373,20 @@ offset disconnected from that row.
   size. Checked in both themes and both iPad orientations.
 
 **Per-prayer-time weather — settled state: a small, low-opacity inline
-hint to the left of each prayer's name (added 9 Sept 2026, redesigned
-same day, refined again same day — see below for both).** Not a
-separate column: `prayerWeatherInlineHtml()` prepends
-`<span class="prayerWeatherInline">` (icon + a blue rain% span + a
-temperature span) directly into the `.cell.name` markup, before the
-prayer's name text itself, for all 6 rows (Fajr, Sunrise, Dhuhr/
+hint to the left of each prayer's name (added 9 Sept 2026, revised
+three times same day — see below for all three).** Not a separate
+column: `prayerWeatherInlineHtml()` prepends
+`<span class="prayerWeatherInline">` — icon on top, a small
+`.prayerWeatherInlineNums` line (blue rain% + spectrum-coloured temp)
+stacked underneath it — directly into the `.cell.name` markup, before
+the prayer's name text itself, for all 6 rows (Fajr, Sunrise, Dhuhr/
 Jumu'ah, Asr, Maghrib, Isha — user explicitly wanted symmetry with the
 existing table even though Isha's forecast isn't actionable for
 daytime tasks like drying washing). Deliberately discreet
-(`opacity: 0.5`, `font-size: 1vw`) — a background hint, not something
-competing with the Begins/Iqamah times for attention. Wind speed is
-not shown in this compact form (kept easy to re-add:
-`hourlyWeatherForMinutes()` still returns it, `prayerWeatherInlineHtml()`
-just doesn't render it).
+(`opacity: 0.5`) — a background hint, not something competing with the
+Begins/Iqamah times for attention. Wind speed is not shown in this
+compact form (kept easy to re-add: `hourlyWeatherForMinutes()` still
+returns it, `prayerWeatherInlineHtml()` just doesn't render it).
 - **Same API call as the home-screen strip, no new request** —
   `WEATHER_URL` asks Open-Meteo for `&hourly=weathercode,temperature_2m,
   precipitation_probability,wind_speed_10m` alongside the existing
@@ -396,13 +396,16 @@ just doesn't render it).
   available as minutes-since-midnight via the existing `parseMinutes()`
   helper) to the nearest hour and looks up that exact
   `"YYYY-MM-DDTHH:00"` slot in the hourly response.
-- **Icon height is capped to the text's own line-height** (`1em`
-  width/height, `line-height: 1` on the wrapper, no separate min-width/
-  min-height floor like this app's other icons use) — the whole hint
-  can never be taller than a single line of its own text, so it adds
-  zero vertical space to the row regardless of viewport. Confirmed via
-  `getBoundingClientRect()`: icon height and wrapper height come out
-  pixel-identical in both orientations.
+- **Icon above the numbers, icon bigger (`1.9vw`) and numbers smaller
+  (`0.85vw`) than the single-line version this replaced** — but the
+  *combined* stack (icon + numbers line, `line-height: 1` throughout,
+  no min-width/min-height floor on the icon) must never exceed the
+  Begins/Iqamah text's own line height, same constraint as always on
+  this table. Sized by measuring against `.cell.time`'s real rendered
+  height via `getBoundingClientRect()` in both orientations rather than
+  guessing vw values and hoping — confirmed the stack uses roughly
+  75–90% of that budget in both portrait and landscape, with headroom
+  to spare rather than sitting right at the edge.
 - **Rain % is always blue** (`.prayerWeatherInlineRain`,
   `#0a84ff`/`#409cff` light/dark, the same blue the home-screen strip's
   rain icon already implies). **Temperature is a continuous grey→amber→
@@ -2631,3 +2634,31 @@ rendered value (exact match); the spectrum's look confirmed across
 red, clearly distinct from rain%'s fixed blue throughout); real theme
 toggle re-renders correctly; both iPad orientations still show all 6
 rows with zero added row height. No console errors.
+
+### 2026-09-09 — Per-prayer weather hint: numbers moved under the icon
+Fourth pass on the same-day feature: *"I want the numeric numbers to be
+under the icon. Make the icon a bit bigger and the numbers a bit
+smaller. Make sure the vertical height of the icon and text is max of
+the height of the text."* Restructured `.prayerWeatherInline` from a
+single horizontal line (icon, rain%, temp all side by side) into a
+vertical stack — icon on top, a new `.prayerWeatherInlineNums` line
+(rain% + temp together) underneath — and rebalanced the two pieces'
+sizes: icon up to `1.9vw` (from being sized to match the numbers'
+height exactly), numbers down to `0.85vw`.
+
+The height constraint from the very first inline version still
+applies, just against a taller combined shape now: measured the
+*combined* icon+numbers stack against `.cell.time`'s real rendered
+height (the Begins/Iqamah text sitting right next to it) via
+`getBoundingClientRect()` in both portrait and landscape before
+settling on final sizes, rather than picking vw numbers by eye and
+assuming they'd fit — exactly the kind of check that would have caught
+the original column version's landscape overflow bug earlier if it had
+been run then. Result: the stack uses about 75–90% of the available
+line-height budget in both orientations (22.9px of a 26px budget in
+portrait, 32.8px of 37px in landscape), comfortable margin either way,
+not sitting right at the edge.
+
+Verified: all 6 rows checked programmatically against their own
+`.cell.time` height in both orientations (all pass), both themes
+visually confirmed, no console errors.
