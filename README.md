@@ -65,6 +65,26 @@ It pulls live data straight from the masjid's own website
 5 minutes, so **you never edit prayer times by hand** — the masjid keeps
 that accurate, you just keep the page's look/behaviour maintained.
 
+### The highlighted row is the current prayer, not the next one
+
+The green-tinted row shows which prayer you can pray **right now** —
+whichever one's Begins time most recently passed, not the one coming up
+next (that's what the big countdown above the table is for). Two gaps
+in the day don't have a "current" prayer at all, so nothing highlights
+then: between Sunrise and Dhuhr (Fajr's window has closed, Dhuhr's
+hasn't opened), and before Fajr each morning the highlight correctly
+stays on Isha, since Isha's own window genuinely extends until Fajr.
+
+### Automatic dark mode: Maghrib to Sunrise
+
+The display switches to dark mode on its own at Maghrib's Begins time,
+and back to light at Sunrise — no need to remember to flip it by hand
+as the day turns to evening. The manual toggle in **⋮ → Settings →
+Appearance** still works any time you want to override it (e.g. force
+light mode during the day, or dark before Maghrib) — it just holds
+until the next automatic Maghrib/Sunrise transition, then the schedule
+takes back over, the same way iOS's own automatic appearance works.
+
 ### Written in plain ES5
 
 No `fetch`, no arrow functions, no CSS variables — that was originally

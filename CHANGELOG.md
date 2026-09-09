@@ -50,27 +50,32 @@ overriding — the baseline exists precisely to catch that kind of thing.
   `data.friday.asr_mithl_1` (shown as "2nd Khutbah") — this exact field
   mapping was verified against the masjid's own live screen at
   cheadlemasjid.org/prayer-times-screen-2/.
-- The next upcoming prayer's row is highlighted (`.row.active`) — a
-  green accent bar next to the prayer name, a full-row background tint
-  (`rgba(14, 143, 107, 0.22)` light / `rgba(47, 211, 154, 0.22)` dark —
-  boosted from an earlier `0.14` on 8 Sept 2026, see that dated entry:
-  the lower value read as basically invisible once the mesh-gradient
-  background existed behind it), plus a matching 1px border for a
-  clear edge regardless of exactly what's behind the row at any given
-  moment. `activeRowKeyFor(target)` maps `findNextTarget()`'s key onto
-  whichever row should actually be highlighted — needed because the
-  overnight case is keyed `"fajr-tomorrow"` (distinct from today's
-  `"fajr"`) but the table only ever has today's six rows, so passing
-  that key straight through never matched anything (see the 8 Sept
-  2026 dated entry — this silently broke the highlight for the entire
-  overnight window between Isha and the next Fajr, not just a
-  visibility problem). `tick()` re-syncs the highlighted row by
-  comparing against `lastRenderedActiveKey` (the key `renderRows()`
-  actually rendered last), not by checking "is any row currently
-  highlighted at all" — the older check meant the highlight could sit
-  stuck on a prayer whose Begins time had already passed, for up to
-  `REFRESH_MS` (5 minutes), even while the countdown label above it had
-  already moved on to the next prayer.
+- **The row highlighted (`.row.active`) is whichever prayer you can
+  currently pray — not the next one due** (changed 10 Sept 2026, see
+  that dated entry — the countdown above the table still counts down to
+  the *next* prayer's Begins time as before; only the highlight itself
+  changed which question it answers). `activePrayerKeyFor(rows,
+  nowMinutes)` looks *backward* to whichever target's Begins time most
+  recently passed, with two boundaries handled explicitly rather than
+  falling out of "the previous target" alone: nothing highlights
+  between Sunrise and Dhuhr (Fajr's window has closed, Dhuhr's hasn't
+  opened — confirmed with the user, not assumed), and the overnight
+  highlight correctly stays on Isha right up until Fajr, since Isha's
+  window genuinely extends that far. `tick()` re-syncs the highlighted
+  row by comparing against `lastRenderedActiveKey` (the key
+  `renderRows()` actually rendered last, which can legitimately be
+  `null` during the Sunrise → Dhuhr gap), not by checking "is any row
+  currently highlighted at all" — the older check meant the highlight
+  could sit stuck on a stale key for up to `REFRESH_MS` (5 minutes)
+  after it should have changed.
+- Visually: a green accent bar next to the prayer name, a full-row
+  background tint (`rgba(14, 143, 107, 0.22)` light / `rgba(47, 211,
+  154, 0.22)` dark — boosted from an earlier `0.14` on 8 Sept 2026, see
+  that dated entry: the lower value read as basically invisible once
+  the mesh-gradient background existed behind it), plus a matching 1px
+  border for a clear edge regardless of exactly what's behind the row
+  at any given moment. Unchanged by the 10 Sept 2026 highlight-logic
+  fix — same styling, now just applied to a different row/timing.
 - If the live fetch fails, the page falls back to the last successful
   response cached in `localStorage`, with an "Offline · showing last
   update HH:MM" footer notice.
@@ -512,9 +517,23 @@ since it adds no new vertical space to the row at all.
   not deleted from the record — that history is still worth reading if
   this ever gets revisited again.
 - Emerald (`#0e8f6b` light / `#2fd39a` dark) accent colour throughout.
-- Dark mode available via **⋮ → Settings → Dark mode toggle** (see
-  Navigation below for the full ⋮/Settings/Home structure). Choice
-  persists in `localStorage` (`cheadleMasjidTheme`) across reloads.
+- **Dark mode switches automatically at Maghrib's Begins time, back to
+  light at Sunrise (added 10 Sept 2026)** — app-wide, not per-display,
+  driven by `checkAutoTheme()` every tick off the same prayer data
+  everything else here already uses. The manual toggle in **⋮ →
+  Settings → Appearance** (see Navigation below for the full
+  ⋮/Settings/Home structure) still works at any time — it holds until
+  the *next* automatic Maghrib/Sunrise transition, then the schedule
+  silently takes back over (`autoThemeOverridden`, an in-memory-only
+  flag, deliberately never persisted — a fresh page load always
+  re-trusts the schedule rather than restoring whatever override was
+  active when the app last closed). See the 10 Sept 2026 dated entry
+  for the full design (why a manual toggle and a schedule need explicit
+  coordination, not just "recompute and apply every tick"). Applying a
+  theme (auto or manual) still writes `cheadleMasjidTheme` to
+  `localStorage` — used only as a placeholder for the very first paint
+  on a cold load, before that load's own first `checkAutoTheme()` call
+  can run for real.
 - Both themes are plain CSS classes (`body.theme-light` /
   `body.theme-dark`), not CSS custom properties — kept for compatibility
   with the old Galaxy Tab 3 fallback path (see Deployment). Note this
@@ -2823,3 +2842,126 @@ live fetch; theme toggle still repaints per-prayer temperatures
 correctly now that it calls `refreshPrayerWeatherCells()` directly; no
 console errors beyond pre-existing unrelated 404 noise from the local
 test server.
+
+### 2026-09-10 — Highlight fixed: current prayer, not next prayer due
+User: *"The green highlighted prayer shouldn't be the next prayer due,
+it should be the current prayer you can pray. Fix this and make it
+also is fine on dark mode. If you're unsure what I'm asking for or
+confused ask me and I can help clarify."*
+
+Before building anything, asked one clarifying question rather than
+guessing: right now Sunrise is never a highlight target (only Fajr/
+Dhuhr/Asr/Maghrib/Isha are, via each row's `target: true`), so shifting
+to "current prayer" naturally means Fajr would stay highlighted all the
+way until Dhuhr begins — including the stretch after Sunrise, when
+Fajr's window has technically closed and it can no longer actually be
+prayed. Two options were put to the user: keep Fajr lit through that
+gap (simplest, always-something-highlighted), or highlight nothing once
+Fajr's window has genuinely closed and Dhuhr's hasn't opened yet. User
+chose **nothing highlighted during that gap** — precision over always
+having something lit.
+
+Replaced `activeRowKeyFor(target)` — which just relabelled
+`findNextTarget()`'s own countdown target, hence the bug (two minutes
+after Fajr began, with Fajr very much still prayable, the table
+highlighted Dhuhr) — with `activePrayerKeyFor(rows, nowMinutes)`, which
+looks *backward*: whichever target's Begins time most recently passed
+is the one whose window is open now. Two boundaries needed explicit
+handling rather than falling out of "the previous target" alone:
+- **Sunrise → Dhuhr gap**: returns `null` (no highlight) specifically
+  when nowMinutes is past Sunrise but before Dhuhr's Begins — per the
+  user's chosen answer above.
+- **Overnight, before Fajr**: returns `"isha"` — Isha's valid window
+  genuinely extends until the *next* Fajr, past midnight, so between
+  midnight and this morning's Fajr, last night's Isha is still
+  correctly "current." (The Isha row visible in today's table shows
+  *tonight's* still-upcoming time, not last night's already-passed one
+  — the same category of overnight ambiguity `findNextTarget()`'s own
+  `"fajr-tomorrow"` key already has to handle for the countdown side —
+  judged an acceptable, pre-existing category of imprecision rather
+  than something new this fix introduced.)
+
+The countdown itself (`renderCountdown()`, still driven by
+`findNextTarget()`) is completely unchanged — it still counts down to
+the *next* prayer's Begins time exactly as before. Only the table's
+`.row.active` highlight changed which question it answers. `render()`
+and `tick()` both updated to call `activePrayerKeyFor(rows,
+nowMinutes)` instead of `activeRowKeyFor(target)`; `tick()`'s "did the
+active key actually change" comparison against `lastRenderedActiveKey`
+no longer gates on `target` being truthy, since the new function can
+correctly return `null` on its own (the Sunrise gap) without that
+meaning "nothing to compute."
+
+**Dark mode** — the user asked to confirm the highlight "is also fine
+on dark mode." The existing `.row.active` styling (boosted to `0.22`
+opacity plus a matching border on 8 Sept 2026, see that dated entry)
+was already correct and needed no changes — re-verified visually with
+the new logic applied to real prayer times in both themes, since the
+row that gets highlighted is different now even though the CSS isn't.
+
+Verified with `Date`-mocking across a full day cycle using the day's
+real live prayer times (Fajr 05:09, Sunrise 06:34, Dhuhr 13:07, Asr
+14:35, Maghrib 19:38, Isha 21:03): correct row highlighted (or none)
+at 05:15, 06:45, 13:15, 14:40, 19:45, 21:10, and 02:00 — all seven
+checkpoints matched expectations exactly, including the two edge cases
+(no highlight 06:45, Isha still highlighted 02:00). Both themes and
+both iPad orientations checked visually. No console errors beyond
+pre-existing unrelated 404 noise from the local test server.
+
+### 2026-09-10 — Automatic dark mode: Maghrib to Sunrise
+User: *"I want the system to automatically go to dark mode when its
+maghrib time until sunrise. And when its sunrise it should then
+automatically go to light mode until maghrib time again. Does this make
+sense?"*
+
+Confirmed it made sense, then asked one clarifying question before
+building: should the existing manual dark-mode toggle still be able to
+override the schedule (snapping back to automatic at the next
+transition), or should the toggle stop mattering entirely once this is
+automatic? User chose **manual override holds until the next automatic
+transition** — same model as iOS's own auto-appearance switch.
+
+This needed more than "compute the right theme and apply it every
+tick," which would have silently undone a manual choice within a
+second of it being made. Design, in `checkAutoTheme(nowMinutes)`
+(called from both `render()` and `tick()`, so it reacts within a second
+of the exact Maghrib/Sunrise moment, and also corrects itself the
+instant prayer data first loads):
+- `desiredAutoTheme(nowMinutes)` returns `"dark"` when
+  `nowMinutes >= maghribMins || nowMinutes < sunriseMins`, `"light"`
+  otherwise, or `null` if Maghrib/Sunrise aren't loaded yet. Spans
+  midnight with no special-casing needed — once "today" rolls over
+  (handled reactively elsewhere in this app), `sunriseMins` is already
+  the new day's sunrise.
+- `lastAutoTheme` tracks which side of that boundary was last seen,
+  purely to detect the *instant* a boundary is crossed.
+- `autoThemeOverridden` is a plain boolean, set `true` by `toggleTheme()`
+  on every manual tap, and reset to `false` only when
+  `desiredAutoTheme()`'s result actually changes from what it was —
+  i.e. exactly at the next Maghrib or Sunrise transition, whichever
+  comes first. Deliberately **not** persisted to `localStorage`: a
+  fresh page load always re-trusts the schedule rather than restoring
+  whatever override happened to be active when the app was last closed.
+- `initTheme()` now runs *after* the boot sequence loads cached prayer
+  data from `localStorage` (previously it ran first) specifically so
+  the very first theme applied on a cold load can already be the
+  correct automatic one, rather than a placeholder that gets corrected
+  a moment later — falls back to the last saved theme (or light) only
+  on a genuinely first-ever load with no cache at all yet.
+
+Verified with `Date`-mocking: theme correctly followed the schedule
+across all the same checkpoints as the highlight fix above (light
+during the day, dark from Maghrib, still dark overnight, back to light
+after Sunrise). Override behaviour specifically verified as a
+before/after sequence rather than assumed from reading the code: set
+time to a light-period hour, manually forced dark via the real Settings
+toggle (not by editing `body.className` directly, which would bypass
+`toggleTheme()` and prove nothing), confirmed it held dark through a
+second same-period timestamp, confirmed it was still dark immediately
+after crossing into a dark-period timestamp, then — the actual proof —
+jumped to a *light*-period timestamp after that and confirmed the
+theme correctly flipped back to light on its own, which could only
+happen if the override had genuinely been cleared at the intervening
+transition rather than merely coinciding with what automatic already
+wanted. No console errors beyond pre-existing unrelated 404 noise from
+the local test server.

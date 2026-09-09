@@ -106,13 +106,17 @@ one.
    failed request doesn't clear the display — it just shows an "Offline
    · showing last update HH:MM" notice and keeps using the last good
    data.
-4. A `setInterval` tick, once a second, recomputes: which row is "next",
-   the countdown digits, and whether any enabled prayer's adhan should
-   fire right now — all derived fresh from the current data + current
-   time, nothing is pre-scheduled with timers set in advance. This means
-   the display self-corrects if the tablet's clock drifts or the tab
-   was backgrounded and resumed; it never gets into a stale state that
-   needs a reload to fix.
+4. A `setInterval` tick, once a second, recomputes: which row is
+   currently highlighted, the countdown digits (counting down to the
+   *next* prayer's Begins — a deliberately different question from
+   which row is highlighted, see "Key engineering problems solved"
+   below), whether any enabled prayer's adhan should fire right now, and
+   whether the automatic Maghrib/Sunrise dark-mode switch should fire —
+   all derived fresh from the current data + current time, nothing is
+   pre-scheduled with timers set in advance. This means the display
+   self-corrects if the tablet's clock drifts or the tab was
+   backgrounded and resumed; it never gets into a stale state that needs
+   a reload to fix.
 
 No prayer time is ever hand-entered or hardcoded — the masjid's own site
 remains the single source of truth, which matters for correctness around
@@ -453,6 +457,35 @@ the *process* of finding and fixing them is the actual engineering:
   its job" are different claims, and confirming which layer actually
   failed (process vs. name resolution vs. network reachability) before
   touching anything avoids fixing the wrong thing.
+- **"Next" and "current" look almost identical but aren't the same
+  question.** The table's highlight originally just relabelled the
+  countdown's own target (the next prayer's Begins time) — so two
+  minutes after Fajr began, with Fajr very much still prayable, the
+  table highlighted Dhuhr instead. Fixing this properly meant looking
+  *backward* (whichever prayer's Begins time most recently passed)
+  instead of forward, which in turn surfaced two boundaries a naive
+  "previous target" doesn't handle on its own: Fajr's own valid window
+  closes at Sunrise, not at Dhuhr's Begins (so the gap between them
+  genuinely has no "current" prayer at all — confirmed with the user
+  rather than assumed, since "keep the previous row lit" was an equally
+  plausible reading), and Isha's window genuinely extends past midnight
+  to the *next* Fajr, so the overnight highlight has to keep pointing at
+  Isha even though the Isha row visible in today's table displays
+  tonight's still-upcoming time, not last night's already-passed one.
+- **Scheduling something that also needs to be manually overridable.**
+  Automatic dark mode (Maghrib → Sunrise) couldn't just be "compute the
+  right theme and apply it every tick" without breaking the existing
+  manual Settings toggle — naively doing that would silently undo a
+  manual choice within a second of it being made. The fix tracks which
+  side of the Maghrib/Sunrise boundary was last seen, purely to detect
+  the *instant* a boundary is crossed; a manual toggle sets a one boolean
+  flag that suppresses automatic control, and crossing a boundary is the
+  only thing that clears it — so a manual override holds for as long as
+  the user's chosen period lasts, then the schedule silently resumes at
+  the next transition, same model as iOS's own auto-appearance switch.
+  Deliberately not persisted to `localStorage`: a fresh page load always
+  re-trusts the schedule rather than restoring whatever override
+  happened to be active when the app was last open.
 
 ## Frontend implementation notes
 

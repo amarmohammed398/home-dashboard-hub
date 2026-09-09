@@ -1634,9 +1634,71 @@
     refreshPrayerWeatherCells();
   }
 
+  // Automatic Maghrib -> Sunrise dark mode (added 10 Sept 2026 — user
+  // request: dark from Maghrib's own Begins time until Sunrise, light
+  // the rest of the day, app-wide). `lastAutoTheme` tracks which side
+  // of that boundary was last seen, purely to detect the *instant* a
+  // boundary is crossed — that's the one moment a manual override
+  // resets, not every tick. `autoThemeOverridden` is deliberately
+  // in-memory only, never persisted to localStorage: tapping the
+  // Settings toggle holds that choice until the next automatic
+  // transition (confirmed with the user — same model as iOS's own
+  // auto-appearance switch, not assumed), but a fresh page load always
+  // starts by trusting the schedule again rather than whatever override
+  // happened to be active when the app was last open.
+  var lastAutoTheme = null;
+  var autoThemeOverridden = false;
+
+  // null specifically means "don't know yet" (no prayer data loaded),
+  // not "light" — checkAutoTheme() and initTheme() both treat that as
+  // "nothing to decide" rather than picking a theme from incomplete
+  // data.
+  function desiredAutoTheme(nowMinutes) {
+    if (!data) { return null; }
+    var maghribMins = parseMinutes(data.maghrib_begins);
+    var sunriseMins = parseMinutes(data.sunrise);
+    if (maghribMins === null || sunriseMins === null) { return null; }
+    // Spans midnight with no special-casing needed: once "today" rolls
+    // over (handled reactively elsewhere in this app — see the Day
+    // rollover note), `sunriseMins` is already the new day's sunrise,
+    // so this stays correct straight through the night.
+    return (nowMinutes >= maghribMins || nowMinutes < sunriseMins) ? "dark" : "light";
+  }
+
+  function checkAutoTheme(nowMinutes) {
+    var desired = desiredAutoTheme(nowMinutes);
+    if (!desired) { return; }
+    if (desired !== lastAutoTheme) {
+      // Crossed (or just discovered, e.g. on first load) a boundary —
+      // reset any manual override regardless of whether the theme is
+      // actually about to change as a result.
+      lastAutoTheme = desired;
+      autoThemeOverridden = false;
+    }
+    if (autoThemeOverridden) { return; }
+    var isDark = document.body.className.indexOf("theme-dark") !== -1;
+    if ((desired === "dark") !== isDark) {
+      applyTheme(desired);
+      saveTheme(desired);
+    }
+  }
+
   function initTheme() {
-    var saved = getSavedTheme();
-    applyTheme(saved === "dark" ? "dark" : "light");
+    // Compute the correct automatic theme immediately if prayer data is
+    // already cached (the common case — the boot sequence below loads
+    // the local cache before calling this) so there's no flash of the
+    // wrong theme before the first fetch resolves. Only a genuinely
+    // first-ever load with no cache at all falls back to whatever was
+    // last saved, or light — checkAutoTheme() corrects it for real as
+    // soon as fetchData() succeeds.
+    var now = new Date();
+    var desired = desiredAutoTheme(now.getHours() * 60 + now.getMinutes());
+    if (desired) {
+      lastAutoTheme = desired;
+      applyTheme(desired);
+    } else {
+      applyTheme(getSavedTheme() === "dark" ? "dark" : "light");
+    }
   }
 
   function toggleTheme() {
@@ -1644,6 +1706,10 @@
     var next = isDark ? "light" : "dark";
     applyTheme(next);
     saveTheme(next);
+    // Holds until the next automatic Maghrib/Sunrise transition (see
+    // checkAutoTheme()) — a deliberate, user-confirmed choice, not a
+    // permanent opt-out of the schedule.
+    autoThemeOverridden = true;
   }
 
   // Every tablet screen (not home) registered by the name showScreen()
@@ -3054,22 +3120,58 @@
     return null;
   }
 
-  // findNextTarget() deliberately keys the overnight case as
-  // "fajr-tomorrow", distinct from today's "fajr" — but the table only
-  // ever renders today's six rows, so passing "fajr-tomorrow" straight
-  // through as renderRows()'s activeKey never matches any row's own
-  // key, and the "next prayer" highlight silently fails to appear for
-  // the entire overnight window between Isha and the next Fajr (found
-  // 8 Sept 2026 investigating a report that the highlight had
-  // "disappeared" — it hadn't, in the sense of being deleted, but it
-  // was never actually re-appearing during exactly this stretch of
-  // every single day). Strip the suffix so the highlight lands on
-  // today's Fajr row — the same one the "Fajr Begins in" label already
-  // visually refers to — while leaving `target.key` itself untouched
-  // for anything else that might care about the distinction.
-  function activeRowKeyFor(target) {
-    if (!target) { return null; }
-    return target.key.replace(/-tomorrow$/, "");
+  // The highlighted row is the prayer you can *currently* pray, not the
+  // one coming up next (changed 10 Sept 2026 — user: "The green
+  // highlighted prayer shouldn't be the next prayer due, it should be
+  // the current prayer you can pray"). Previously this just relabelled
+  // findNextTarget()'s own result (the upcoming countdown target), which
+  // meant e.g. two minutes after Fajr began, with Fajr very much still
+  // prayable, the table highlighted Dhuhr instead — technically "next"
+  // but not "current." This looks *backward* instead: whichever
+  // target's Begins time most recently passed is the one whose window
+  // is open right now. `target`'s own countdown behaviour (what
+  // renderCountdown() shows) is unrelated and unchanged — this only
+  // decides which row gets `.active`.
+  //
+  // Two boundaries don't fall out of "the previous target" alone,
+  // because Sunrise sits between Fajr and Dhuhr as a real row with a
+  // real Begins time but `target: false` (it's never itself prayed):
+  // - Fajr's own valid window closes at Sunrise, not at Dhuhr's Begins.
+  //   Between Sunrise and Dhuhr, Fajr's window has closed and Dhuhr's
+  //   hasn't opened — nothing is currently prayable, so nothing
+  //   highlights (confirmed with the user rather than assumed, since a
+  //   plausible alternative was to keep Fajr lit through that gap).
+  // - Isha's window genuinely extends until the *next* Fajr, past
+  //   midnight — so between midnight and today's Fajr, last night's
+  //   Isha is still correctly "current," even though the Isha row
+  //   visible in today's table displays tonight's still-upcoming time,
+  //   not last night's already-passed one (the same category of
+  //   overnight ambiguity findNextTarget()'s own "fajr-tomorrow" key
+  //   already has to handle for the countdown side).
+  function activePrayerKeyFor(rows, nowMinutes) {
+    var i, r, fajrMins, sunriseMins, mins, activeKey;
+    for (i = 0; i < rows.length; i++) {
+      if (rows[i].key === "fajr") { fajrMins = parseMinutes(rows[i].begins); }
+      if (rows[i].key === "sunrise") { sunriseMins = parseMinutes(rows[i].begins); }
+    }
+    if (fajrMins === null || fajrMins === undefined || nowMinutes < fajrMins) {
+      return "isha"; // overnight: still within last night's Isha window
+    }
+    if (sunriseMins !== null && sunriseMins !== undefined && nowMinutes < sunriseMins) {
+      return "fajr"; // within Fajr's own window
+    }
+    activeKey = null;
+    for (i = 0; i < rows.length; i++) {
+      r = rows[i];
+      if (!r.target || r.key === "fajr") { continue; }
+      mins = parseMinutes(r.begins);
+      if (mins !== null && mins <= nowMinutes) {
+        activeKey = r.key;
+      } else {
+        break; // rows are chronological — once one hasn't begun, neither have the rest
+      }
+    }
+    return activeKey; // null during the Sunrise -> Dhuhr gap
   }
 
   function renderRows(rows, activeKey) {
@@ -3157,8 +3259,9 @@
     var nowMinutes = now.getHours() * 60 + now.getMinutes();
     var rows = buildRowsModel(now);
     var target = findNextTarget(rows, nowMinutes);
-    renderRows(rows, activeRowKeyFor(target));
+    renderRows(rows, activePrayerKeyFor(rows, nowMinutes));
     renderCountdown(target, now);
+    checkAutoTheme(nowMinutes);
 
     if (!data) {
       setFooter("Waiting for connection&hellip;", true);
@@ -3187,11 +3290,15 @@
       // happens to call render() and correct it) after the real target
       // had already moved on — the countdown label above would already
       // say "Maghrib Begins in" while the table still highlighted Asr.
-      var expectedActiveKey = activeRowKeyFor(target);
-      if (target && expectedActiveKey !== lastRenderedActiveKey) {
+      // Not gated on `target` any more — activePrayerKeyFor() doesn't
+      // need it (and can legitimately return null, e.g. the Sunrise ->
+      // Dhuhr gap), so gating on it here would just skip a real change.
+      var expectedActiveKey = activePrayerKeyFor(rows, nowMinutes);
+      if (expectedActiveKey !== lastRenderedActiveKey) {
         renderRows(rows, expectedActiveKey);
       }
       checkAdhanSchedule(now);
+      checkAutoTheme(nowMinutes);
     }
     // Re-render the server health screen's relative timestamps ("Updated
     // Xm ago", deploy freshness) every second even between fetches — the
@@ -3215,15 +3322,19 @@
   }
 
   // Boot
+  // Prayer data (from cache, if any) is loaded before initTheme() runs
+  // specifically so the very first theme applied can already be the
+  // correct automatic Maghrib/Sunrise one, rather than a placeholder
+  // that immediately gets corrected a moment later.
+  var cached = loadLocal();
+  if (cached && cached.d) {
+    data = cached.d;
+  }
   initTheme();
   initNavigationUI();
   initSettingsUI();
   initAdhanUI();
 
-  var cached = loadLocal();
-  if (cached && cached.d) {
-    data = cached.d;
-  }
   render();
   fetchData();
 
