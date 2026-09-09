@@ -374,16 +374,17 @@ offset disconnected from that row.
 
 **Per-prayer-time weather — settled state: a small, low-opacity inline
 hint to the left of each prayer's name (added 9 Sept 2026, redesigned
-same day — see below).** Not a separate column: `prayerWeatherInlineHtml()`
-prepends `<span class="prayerWeatherInline">` (small icon + `rain% temp°`
-text, `opacity: 0.5`, `font-size: 1vw`) directly into the `.cell.name`
-markup, before the prayer's name text itself, for all 6 rows (Fajr,
-Sunrise, Dhuhr/Jumu'ah, Asr, Maghrib, Isha — user explicitly wanted
-symmetry with the existing table even though Isha's forecast isn't
-actionable for daytime tasks like drying washing). Deliberately
-discreet — a background hint, not something competing with the
-Begins/Iqamah times for attention — per explicit user request. Wind
-speed is not shown in this compact form (kept easy to re-add:
+same day, refined again same day — see below for both).** Not a
+separate column: `prayerWeatherInlineHtml()` prepends
+`<span class="prayerWeatherInline">` (icon + a blue rain% span + a
+temperature span) directly into the `.cell.name` markup, before the
+prayer's name text itself, for all 6 rows (Fajr, Sunrise, Dhuhr/
+Jumu'ah, Asr, Maghrib, Isha — user explicitly wanted symmetry with the
+existing table even though Isha's forecast isn't actionable for
+daytime tasks like drying washing). Deliberately discreet
+(`opacity: 0.5`, `font-size: 1vw`) — a background hint, not something
+competing with the Begins/Iqamah times for attention. Wind speed is
+not shown in this compact form (kept easy to re-add:
 `hourlyWeatherForMinutes()` still returns it, `prayerWeatherInlineHtml()`
 just doesn't render it).
 - **Same API call as the home-screen strip, no new request** —
@@ -395,6 +396,37 @@ just doesn't render it).
   available as minutes-since-midnight via the existing `parseMinutes()`
   helper) to the nearest hour and looks up that exact
   `"YYYY-MM-DDTHH:00"` slot in the hourly response.
+- **Icon height is capped to the text's own line-height** (`1em`
+  width/height, `line-height: 1` on the wrapper, no separate min-width/
+  min-height floor like this app's other icons use) — the whole hint
+  can never be taller than a single line of its own text, so it adds
+  zero vertical space to the row regardless of viewport. Confirmed via
+  `getBoundingClientRect()`: icon height and wrapper height come out
+  pixel-identical in both orientations.
+- **Rain % is always blue** (`.prayerWeatherInlineRain`,
+  `#0a84ff`/`#409cff` light/dark, the same blue the home-screen strip's
+  rain icon already implies). **Temperature is a continuous grey→amber→
+  red spectrum** (`tempSpectrumColor()`), reusing this app's existing
+  Server Health warn/bad colour tokens as the two hot-end stops
+  (`#b45309`→`#dc2626`-family light, `#f2b84b`→`#f87171`-family dark)
+  rather than inventing new hues — stays grey through ordinary UK
+  temperatures (≤12°C), only warms up as it climbs past the low 20s,
+  fully red by 30°C. Linearly interpolated and clamped, computed
+  per-row from the row's actual numeric temperature (can't be pure CSS,
+  unlike every other themed colour in this app) and baked into an
+  inline `style="color:..."` on the temp span at render time. Verified
+  the interpolation arithmetic by hand against a live rendered value
+  (matched exactly) and visually across the full temperature range via
+  temporary DOM overrides (grey at 8°C through red at 30°C, smooth and
+  clearly distinguishable from the rain%'s fixed blue at every point).
+- `applyTheme()` now calls `refreshPrayerWeatherCells()` after
+  switching the body's theme class — needed because the temperature
+  colour is baked in at render time, not pure CSS, so without this a
+  theme toggle would leave temperatures showing the *previous* theme's
+  palette until some unrelated next re-render. Verified by toggling
+  dark mode via the real Settings switch (not just editing
+  `body.className` directly) and confirming the temp colour repainted
+  immediately in the new theme's stops.
 - Verified against real live Open-Meteo data (distinct icon/rain%/temp
   per row, matching each prayer's actual hour), both themes, both iPad
   orientations; no console errors introduced.
@@ -2552,3 +2584,50 @@ section above (now split into "settled state" and "first version,
 replaced" parts) for full before/after detail — the column version's
 code no longer exists in `index.html`, kept here and there only as
 documented history.
+
+### 2026-09-09 — Per-prayer weather hint: capped height, rain in blue, temperature spectrum
+Third pass on the same-day feature: *"I like it but I want the
+information to be compact vertically but keeping the height to max the
+height of the text. Make sure to add the blue for rain percentage and
+the temperature should be a spectrum of reds and oranges if the
+temperature gets high otherwise just keep it at grey."* Two changes:
+
+**Height capped to the text itself.** The icon previously had its own
+`min-width`/`min-height: 14px` floor, independent of the actual text
+size next to it (`8.34px` at the time) — meaning the icon could be, and
+was, taller than its own text, adding a sliver of extra height to the
+row. Switched the icon to `width/height: 1em` (no floor at all) plus
+`line-height: 1` on the wrapper, so it's mathematically pinned to
+whatever the text's own line-height is — confirmed via
+`getBoundingClientRect()` that icon height and wrapper height come out
+identical, in both orientations, unlike before.
+
+**Colour split into a fixed blue and a data-driven spectrum.** Rain %
+and temperature used to share one plain themed-text colour; split into
+`.prayerWeatherInlineRain` (always blue, reusing the existing
+`#0a84ff`/`#409cff` tokens) and `.prayerWeatherInlineTemp`, whose
+colour now comes from a new `tempSpectrumColor(tempC, isDark)` helper —
+a genuine continuous interpolation (not a few hard-edged buckets)
+across three stops per theme: grey at ≤12°C (ordinary UK weather),
+through this app's existing amber "warn" colour around the low-to-mid
+20s, to its existing red "bad" colour by 30°C. Reused Server Health's
+`.statWarn`/`.statBad` hues rather than inventing a new palette, so a
+"getting hot" reading uses the same colour language as everywhere else
+in the app. Since this needs the actual numeric temperature (not just
+the current theme), it's computed per-row and written as an inline
+`style="color:..."` at render time — the one colour in this app that
+isn't pure CSS. That in turn meant `applyTheme()` needed a
+`refreshPrayerWeatherCells()` call added: without it, flipping the
+theme switch left every temperature showing the old theme's colour
+until some unrelated next re-render happened to touch the table.
+Caught by testing the *real* Settings toggle rather than only editing
+`body.className` directly (this app's usual quick-test shortcut, which
+would have masked the bug since it never runs through `applyTheme()`
+at all).
+
+Verified: interpolation arithmetic checked by hand against a live
+rendered value (exact match); the spectrum's look confirmed across
+8°C→30°C via temporary DOM colour overrides (smoothly grey → amber →
+red, clearly distinct from rain%'s fixed blue throughout); real theme
+toggle re-renders correctly; both iPad orientations still show all 6
+rows with zero added row height. No console errors.
