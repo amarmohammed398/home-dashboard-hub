@@ -15,18 +15,17 @@ shows one of several full-screen **displays**, picked from a home
 screen. Three exist today: **Prayer Times**, the first one built —
 Cheadle Masjid's daily prayer times, counting down live to the next
 prayer's Begins time, and optionally sounding the adhan through the
-tablet's speaker at that moment; **Server Health**, live stats for the
-home server itself; and **Bin Day**, Stockport Council's bin collection
-schedule computed entirely from a hardcoded recurring rule, with no
-live data source at all (see "Data flow: Bin Day" below for why). The
-home screen itself also shows a small **5-day weather strip** (see
-"Data flow: Weather" below), the only piece of live data shown outside
-a full display. More are planned (electricity/gas/water usage and
-others — see "Where this could go next" at the bottom); the app is
-deliberately structured so adding one means adding a new screen and a
-new home-screen tile, not rebuilding anything that already works. All
-of it runs unattended, indefinitely, updated by pushing code from a
-laptop.
+tablet's speaker at that moment (each row also carries a small live
+weather hint for that exact prayer's Begins time — see "Data flow:
+Weather" below); **Server Health**, live stats for the home server
+itself; and **Bin Day**, Stockport Council's bin collection schedule
+computed entirely from a hardcoded recurring rule, with no live data
+source at all (see "Data flow: Bin Day" below for why). More are
+planned (electricity/gas/water usage and others — see "Where this could
+go next" at the bottom); the app is deliberately structured so adding
+one means adding a new screen and a new home-screen tile, not
+rebuilding anything that already works. All of it runs unattended,
+indefinitely, updated by pushing code from a laptop.
 
 ### Multi-display navigation
 
@@ -240,19 +239,27 @@ pattern, so there's no data flow at all in the usual sense:
 
 ## Data flow: Weather
 
-Smaller in scope than the three full displays — a 5-day forecast strip
-in the corner of the home screen — but its own small data flow worth
-documenting, since it's a genuine trade-off between two constraints
-this app doesn't usually have to balance against each other: needing a
-real location to forecast for, while being a fully public GitHub repo
-with no backend to hide that location behind.
+Smaller in scope than the three full displays — a per-prayer weather
+hint inside the Prayer Times table, not a display of its own — but its
+own small data flow worth documenting, since it's a genuine trade-off
+between two constraints this app doesn't usually have to balance
+against each other: needing a real location to forecast for, while
+being a fully public GitHub repo with no backend to hide that location
+behind. (An earlier version also showed a small 5-day forecast strip on
+the home screen; removed at the user's request once the per-prayer hint
+existed and covered the same underlying need more usefully — see
+CHANGELOG.md's 9 Sept 2026 dated entries if that history matters.)
 
 1. `index.html` fetches directly from **Open-Meteo**
    (`api.open-meteo.com/v1/forecast`) — free, keyless, no signup, same
    "no backend, fetch straight from the browser" shape as the Prayer
    Times API call. Polled every 30 minutes; a failed fetch falls back to
    the last good response cached in `localStorage`, same resilience
-   pattern used everywhere else in this app.
+   pattern used everywhere else in this app. Only the hourly forecast is
+   requested (`&forecast_days=1`) — each row in the Prayer Times table
+   looks up the hourly slot nearest that prayer's own Begins time,
+   rather than showing one generic "today's forecast" for the whole
+   screen.
 2. **The location baked into the source is deliberately not the real
    address this was set up for.** Everything else in this app that
    needs a real-world location (Bin Day's council round) only ever
@@ -267,20 +274,30 @@ with no backend to hide that location behind.
    first place, so nothing about the forecast's accuracy is lost — only
    the exact address is what's kept out of a public repo.
 3. Open-Meteo's `weathercode` field returns one of ~28 WMO weather
-   codes; `weatherCategoryForCode()` collapses these down to 7 icon
-   categories the widget actually draws (clear, partly-cloudy, cloudy,
-   fog, rain, snow, thunderstorm) — deliberately coarser than the full
-   WMO table, since a 22px icon can't (and doesn't need to) distinguish
-   "light drizzle" from "heavy rain."
+   codes; `weatherCategoryForCode()` collapses these down to 9 icon
+   categories (clear, clear-night, partly-cloudy, partly-cloudy-night,
+   cloudy, fog, rain, snow, thunderstorm) — deliberately coarser than
+   the full WMO table, since a small icon can't (and doesn't need to)
+   distinguish "light drizzle" from "heavy rain." The day/night split
+   exists because a WMO code alone never encodes time of day (a clear
+   night and a clear afternoon report the identical code) — Open-Meteo's
+   separate `is_day` field is what tells the two apart, which matters
+   here specifically because a prayer like Isha is always after dark.
 4. The icons themselves are a deliberate, noted exception to this app's
    usual monochrome `fill="currentColor"` icon convention — full colour
-   (yellow sun, grey cloud, blue rain), because colour is what makes an
-   icon this small legible as "which condition" at a glance, the same
-   reason every real weather app does this. Animated via slow CSS
-   `@keyframes`, not JS, kept deliberately subtle for an always-on wall
-   display — same reasoning as the mesh-gradient background's own slow
-   drift, and disabled together under the same `prefers-reduced-motion`
-   query.
+   (yellow sun, grey moon, grey cloud, blue rain), because colour is
+   what makes an icon this small legible as "which condition" at a
+   glance, the same reason every real weather app does this. Animated
+   via slow CSS `@keyframes`, not JS, kept deliberately subtle for an
+   always-on wall display — same reasoning as the mesh-gradient
+   background's own slow drift, and disabled together under the same
+   `prefers-reduced-motion` query.
+5. Temperature is coloured on a continuous grey→amber→red spectrum
+   (`tempSpectrumColor()`) rather than one flat colour — reuses the same
+   amber/red tokens Server Health already uses for its warn/bad states,
+   so "this is a hot reading" reads consistently wherever it shows up in
+   the app, rather than introducing a second colour language for the
+   same idea.
 
 ## Deployment architecture
 

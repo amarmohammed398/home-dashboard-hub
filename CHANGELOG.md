@@ -42,9 +42,9 @@ overriding — the baseline exists precisely to catch that kind of thing.
 - Table shows, in order: Fajr, Sunrise, Dhuhr (or **Jumu'ah** on
   Fridays), Asr, Maghrib, Isha — Begins + Iqamah columns. Each row's
   name also carries a small, low-opacity weather hint inline to its
-  left (added 9 Sept 2026, see the "Weather strip" section below and
-  that date's two dated entries) — icon, rain probability, and
-  temperature at that prayer's own Begins time.
+  left (added 9 Sept 2026, see the "Weather (per-prayer hint)" section
+  below and that date's several dated entries) — icon, rain probability,
+  and temperature at that prayer's own Begins time.
 - On Fridays, the Dhuhr row is replaced by a Jumu'ah row using
   `data.friday.zuhr_jamah` (shown as "1st Khutbah") and
   `data.friday.asr_mithl_1` (shown as "2nd Khutbah") — this exact field
@@ -111,8 +111,8 @@ overriding — the baseline exists precisely to catch that kind of thing.
   `TABLET_SCREENS[currentScreen]` names) instead of hardcoding one id.
 - **`#tileGrid` vertically centres its tiles in the space below the
   title (31 Aug 2026)** — `#homeTitle` keeps its own fixed position
-  near the top (the weather strip and ⋮ icon both anchor to its exact
-  line, and shouldn't drift if the title moved), while `#tileGrid`
+  near the top (the ⋮ icon anchors to its exact line, and shouldn't
+  drift if the title moved), while `#tileGrid`
   itself gets `flex: 1` (filling whatever's left of `#homeScreen`'s
   height) plus `align-items`/`align-content: center` to centre the
   tiles within that remaining space — not the whole home screen block.
@@ -302,82 +302,33 @@ Server Health's purple, same "each display gets its own colour" rule.
   `tick()` and once at boot) — cheap, since it's just date math and a
   handful of `textContent`/`innerHTML` writes, not an XHR.
 
-### Weather strip (home screen, top-left)
-**Status: fully live (confirmed 30 Aug 2026).** A small 5-day forecast
-strip, `#weatherWidget`, shown only on `#homeScreen` — a fixed-position
-overlay anchored to the left gutter (mirroring `#settingsBtn`'s
-top-right gutter), independent of the home screen's own centered
-title/tile layout, hidden automatically on every tablet display via the
-same `showScreen()` visibility toggle used for the icon/menu changes
-above. **Vertically centred against `#homeTitle` itself**
-(`positionWeatherWidget()`, same measure-the-real-element approach as
-`positionMoreIcon()` — re-run on every home-screen show, every
-re-render, and `window.resize`) so it sits on the exact same line as
-"Choose a Display" and the ⋮ icon, rather than floating at a fixed
-offset disconnected from that row.
-- **Data source: Open-Meteo** (`api.open-meteo.com/v1/forecast`) — free,
-  keyless, no signup, fetched client-side with the same resilience
-  pattern as Prayer Times/Server Health (falls back to the last good
-  `localStorage` response, `cheadleMasjidWeather`, on a failed fetch;
-  never blanks the widget just because one poll failed). Polled every
-  30 minutes (`WEATHER_REFRESH_MS`) — forecasts don't change fast enough
-  to justify anything more frequent.
-- **Location is deliberately rounded to 2 decimal places (`WEATHER_LAT`/
-  `WEATHER_LON` = 53.39 / -2.22), not the real exact address** — this
-  app has no backend, so the forecast location has to live in the
-  public repo as plain coordinates; rounding to ~1km precision (already
-  finer than weather forecasting itself resolves to) means the repo
-  never pinpoints a specific house, while the forecast itself is
-  identical. Same reasoning as Bin Day only ever committing the
-  anonymous schedule pattern, never the address it was derived from —
-  and taken a step further here, since even the *lookup* itself only
-  ever sent the postcode (not the full street address) to the geocoding
-  service. If this location is ever re-derived, round a real geocode to
-  2 decimal places rather than committing the precise value.
-- **5 columns**: day label (`Today` for the first, otherwise a 3-letter
-  day name), a small animated icon, rain probability (%), and high/low
-  temperature — high and low each coloured on the same grey→amber→red
-  spectrum as the per-prayer hint below (added 9 Sept 2026, see that
-  dated entry), rather than one flat colour. Icons map Open-Meteo's WMO
-  `weathercode` field down to 9 categories (clear, clear-night,
-  partly-cloudy, partly-cloudy-night, cloudy, fog, rain, snow,
-  thunderstorm) via `weatherCategoryForCode()` — see that function for
-  the exact code-to-category mapping. **This daily strip always shows
-  the daytime variant** (`clear`/`partly-cloudy`, never the `-night`
-  ones) since a whole day has no single time-of-day to judge — only the
-  per-prayer hourly hint below, which knows an exact hour, uses the
-  night variants.
-- **Icons are small, full-colour inline SVGs** (`WEATHER_ICON_SVG`) —
-  deliberately not this app's usual monochrome `fill="currentColor"`
-  nav-icon convention, since colour (yellow sun, grey cloud, blue rain)
-  is what makes a ~16-18px icon read as "which condition" at a glance, the
-  same reason every real weather app does this. Colours are fixed, not
-  theme-dependent, matching how real weather icons don't change hue
-  between a light/dark app theme elsewhere either.
-- **Animated, deliberately slow and low-amplitude**: sun gently pulses,
-  clouds drift a couple pixels, raindrops/snowflakes fall in a loop,
-  the lightning bolt flickers — all via CSS `@keyframes`
-  (`wxSunPulse`/`wxCloudDrift`/`wxDropFall`/`wxFlakeFall`/`wxBoltFlash`/
-  `wxFogWave`), no JS-driven animation. Kept subtle on purpose: this
-  sits on an always-on wall display and shouldn't be distracting, same
-  reasoning as the mesh-gradient background's own slow drift.
-  `prefers-reduced-motion` disables all of these, same media query the
-  background drift already uses.
-- **Deliberately has no glass card at all** — every other panel in this
-  app uses the shared "Liquid Glass" treatment (translucent background,
-  blur, hairline border), but the weather strip was explicitly asked to
-  sit directly on the mesh-gradient background with no outline/card
-  around it (changed 30 Aug 2026, same day it was built — first version
-  did use the shared glass styling, sized closer to the other panels;
-  user asked for it smaller and card-less almost immediately after
-  seeing it). `#weatherWidget` was removed from all three shared glass
-  selector lists rather than overridden back to transparent, so it's
-  cleanly excluded, not a glass panel with its styling fought against.
-- Verified against the real live Open-Meteo API (not a mock) in local
-  testing, and against every one of the 7 icon categories individually
-  (forced test data, since a single real forecast rarely covers all 7
-  conditions at once) — all render distinctly and legibly at actual
-  size. Checked in both themes and both iPad orientations.
+### Weather (per-prayer hint)
+**Status: fully live (as of 9 Sept 2026), lives inside the Prayer Times
+table only — there is no home-screen weather element any more.** The
+original version of this feature (30 Aug 2026 – 9 Sept 2026) was a
+small animated 5-day forecast strip, `#weatherWidget`, in the top-left
+corner of the home screen — **removed 9 Sept 2026 at explicit user
+request** ("Remove the weather on the home display"). Fully deleted,
+not just hidden: `#weatherWidget` and its HTML comment, every
+`.weatherDay`/`.weatherDayLabel`/`.weatherIcon`/`.weatherRain`/
+`.weatherTemp` CSS rule (both themes), `positionWeatherWidget()` and
+every call to it, `showScreen()`'s widget-visibility toggle, and
+`renderWeatherWidget()` itself (its one remaining real job — repainting
+the per-prayer hints when new weather data lands — was folded back into
+direct `refreshPrayerWeatherCells()` calls at each of its former call
+sites). `WEATHER_URL` also dropped its now-unused `&daily=...` params
+and `forecast_days` (5 → 1, since nothing reads beyond today once the
+strip is gone) — confirmed via live `curl` that `forecast_days=1` still
+returns the full current day (00:00–23:00), including hours already
+past, which the per-prayer lookups depend on. **One real bug caught
+during this removal**: `fetchWeather()`'s success check tested
+`parsed.daily` to decide whether a fetch had actually worked — with
+`&daily=...` gone, that condition could never be true again, which
+would have made every future fetch look like a failure and silently
+fall back to cache/blank forever; changed to check `parsed.hourly`
+instead, which is what the app actually uses now. Full write-up in the
+9 Sept 2026 dated entry — if this ever needs to come back, that's where
+to start, not a fresh rebuild.
 
 **Per-prayer-time weather — settled state: a small, low-opacity inline
 hint to the left of each prayer's name (added 9 Sept 2026, revised four
@@ -394,11 +345,47 @@ daytime tasks like drying washing). Deliberately discreet
 Begins/Iqamah times for attention. Wind speed is not shown in this
 compact form (kept easy to re-add: `hourlyWeatherForMinutes()` still
 returns it, `prayerWeatherInlineHtml()` just doesn't render it).
-- **Same API call as the home-screen strip, no new request** —
-  `WEATHER_URL` asks Open-Meteo for `&hourly=weathercode,temperature_2m,
-  precipitation_probability,wind_speed_10m` alongside the existing
-  `&daily=...` params, confirmed live that both combine in one request.
-  `&wind_speed_unit=mph` added for UK-appropriate units.
+- **Data source: Open-Meteo** (`api.open-meteo.com/v1/forecast`) — free,
+  keyless, no signup, fetched client-side with the same resilience
+  pattern as Prayer Times/Server Health (falls back to the last good
+  `localStorage` response, `cheadleMasjidWeather`, on a failed fetch;
+  never shows a stale/wrong icon just because one poll failed). Polled
+  every 30 minutes (`WEATHER_REFRESH_MS`) via `&hourly=weathercode,
+  temperature_2m,precipitation_probability,wind_speed_10m,is_day`, plus
+  `&wind_speed_unit=mph` for UK-appropriate units.
+- **Location is deliberately rounded to 2 decimal places (`WEATHER_LAT`/
+  `WEATHER_LON` = 53.39 / -2.22), not the real exact address** — this
+  app has no backend, so the forecast location has to live in the
+  public repo as plain coordinates; rounding to ~1km precision (already
+  finer than weather forecasting itself resolves to) means the repo
+  never pinpoints a specific house, while the forecast itself is
+  identical. Same reasoning as Bin Day only ever committing the
+  anonymous schedule pattern, never the address it was derived from —
+  and taken a step further here, since even the *lookup* itself only
+  ever sent the postcode (not the full street address) to the geocoding
+  service. If this location is ever re-derived, round a real geocode to
+  2 decimal places rather than committing the precise value.
+- **Icons are small, full-colour inline SVGs** (`WEATHER_ICON_SVG`) —
+  deliberately not this app's usual monochrome `fill="currentColor"`
+  nav-icon convention, since colour (yellow sun, grey cloud, blue rain)
+  is what makes a small icon read as "which condition" at a glance, the
+  same reason every real weather app does this. Colours are fixed, not
+  theme-dependent, matching how real weather icons don't change hue
+  between a light/dark app theme elsewhere either. Open-Meteo's WMO
+  `weathercode` field collapses down to 9 categories (clear, clear-night,
+  partly-cloudy, partly-cloudy-night, cloudy, fog, rain, snow,
+  thunderstorm) via `weatherCategoryForCode()` — see that function for
+  the exact code-to-category mapping, and the day/night bullet below for
+  why there are twice as many as the original 7.
+- **Animated, deliberately slow and low-amplitude**: sun/moon pulse or
+  glow, clouds drift a couple pixels, raindrops/snowflakes fall in a
+  loop, the lightning bolt flickers — all via CSS `@keyframes`
+  (`wxSunPulse`/`wxMoonGlow`/`wxCloudDrift`/`wxDropFall`/`wxFlakeFall`/
+  `wxBoltFlash`/`wxFogWave`), no JS-driven animation. Kept subtle on
+  purpose: this sits on an always-on wall display and shouldn't be
+  distracting, same reasoning as the mesh-gradient background's own slow
+  drift. `prefers-reduced-motion` disables all of these, same media
+  query the background drift already uses.
 - `hourlyWeatherForMinutes(mins)` rounds a prayer's Begins time (already
   available as minutes-since-midnight via the existing `parseMinutes()`
   helper) to the nearest hour and looks up that exact
@@ -438,8 +425,8 @@ returns it, `prayerWeatherInlineHtml()` just doesn't render it).
   75–90% of that budget in both portrait and landscape, with headroom
   to spare rather than sitting right at the edge.
 - **Rain % is always blue** (`.prayerWeatherInlineRain`,
-  `#0a84ff`/`#409cff` light/dark, the same blue the home-screen strip's
-  rain icon already implies). **Temperature is a continuous grey→amber→
+  `#0a84ff`/`#409cff` light/dark — the same colour rain always reads as
+  everywhere in this app). **Temperature is a continuous grey→amber→
   red spectrum** (`tempSpectrumColor()`), reusing this app's existing
   Server Health warn/bad colour tokens as the two hot-end stops
   (`#b45309`→`#dc2626`-family light, `#f2b84b`→`#f87171`-family dark)
@@ -2768,3 +2755,71 @@ both new night icons visually confirmed correct after the transform
 fix; both orientations re-checked against the existing row-height
 budget (unaffected, icon-only change); no console errors beyond
 pre-existing unrelated 404 noise from this local test server.
+
+### 2026-09-09 — Removed the home-screen weather strip
+User: *"Remove the weather on the home display and check to make sure
+all the documentation and the project is up to date."* The per-prayer
+weather hint inside the Prayer Times table (this same day's other
+entries) is unaffected — this only removed the separate 5-day forecast
+strip that used to sit in the home screen's top-left corner.
+
+**Removed cleanly, not just hidden** — matching how the Electricity
+display was fully reverted back on 31 Aug 2026, verified with the same
+discipline: a case-insensitive sweep for every remaining reference
+after the edits, not just removing the obvious pieces and assuming
+nothing was missed.
+- `<div id="weatherWidget">` and its explanatory HTML comment, gone from
+  the markup entirely.
+- CSS: `#weatherWidget`/`#weatherWidget.show`, `.weatherDay`,
+  `.weatherDayLabel`, `.weatherIcon`, `.weatherRain`, `.weatherTemp`,
+  and their four theme-specific colour rules — all removed. The shared
+  `.wxSun`/`.wxMoon`/`.wxCloud`/etc. animation classes stayed, since the
+  per-prayer hint's icons still use them.
+- JS: `positionWeatherWidget()` and all three call sites (`showScreen()`,
+  `window.onresize`, and inside the widget's own render function) —
+  removed. `showScreen()`'s `weatherWidget.className = ...` toggle —
+  removed. `renderWeatherWidget()` itself — removed entirely; its one
+  remaining real job (repainting per-prayer hints once new weather data
+  lands) was already just a call to `refreshPrayerWeatherCells()`, so
+  every one of its own call sites (`applyTheme()`, `fetchWeather()`'s
+  success path, `handleWeatherFetchFailure()`, and app init) now calls
+  `refreshPrayerWeatherCells()` directly instead — one less layer of
+  indirection, not just a smaller version of the same function.
+- `WEATHER_URL`: dropped `&daily=weathercode,temperature_2m_max,
+  temperature_2m_min,precipitation_probability_max` entirely (nothing
+  reads `weatherData.daily` any more) and reduced `forecast_days` from
+  `5` to `1`, since `hourlyWeatherForMinutes()` only ever looks up
+  today's date regardless of how many days are requested. Confirmed via
+  a live `curl` against the real API first that `forecast_days=1` still
+  returns the full current day, `00:00` through `23:00` — including
+  hours already in the past — since the per-prayer hints for early
+  prayers (Fajr, say, looked up at 8pm) depend on that.
+
+**One real bug caught by this removal, not introduced by it**:
+`fetchWeather()`'s success handler checked `if (parsed && parsed.daily)`
+to decide whether a response actually counted as a successful fetch.
+With `&daily=...` gone, `parsed.daily` can never exist in a real
+response again — left unchanged, this condition would have been false
+on every single fetch from now on, silently routing every successful
+200 response into the failure/fallback path instead, forever. Caught by
+reading the function fully rather than only touching the lines that
+looked directly related to the strip; changed to check `parsed.hourly`,
+which is what this app actually consumes now. Verified live: cleared
+`localStorage`, confirmed a fresh fetch populates `weatherData.hourly`
+(24 entries, no `daily` key) and the Prayer Times table renders
+correctly from it, not from a silently-stale cache.
+
+Also updated stale prose left behind in this same file's own baseline
+section and in README.md/ARCHITECTURE.md, which both still described
+the removed strip in present tense and didn't mention the per-prayer
+hint at all (a real documentation gap, not something this removal
+created) — see the rewritten "Weather (per-prayer hint)" sections in
+both.
+
+Verified: home screen confirmed weather-strip-free in both themes and
+orientations (no leftover DOM node, no layout gap); Prayer Times table
+still shows correct per-row icons/rain%/temp end-to-end against a fresh
+live fetch; theme toggle still repaints per-prayer temperatures
+correctly now that it calls `refreshPrayerWeatherCells()` directly; no
+console errors beyond pre-existing unrelated 404 noise from the local
+test server.

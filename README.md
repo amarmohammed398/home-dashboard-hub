@@ -11,12 +11,12 @@
 
 A wall/stand-mounted iPad (in a picture-frame case) that shows one of
 several full-screen **displays** — a home screen lets you pick which one.
-Three exist today: **Prayer Times** (for Cheadle Masjid, built first),
-**Server Health** (live stats for the home server itself), and
-**Bin Day** (Stockport Council collection schedule). The home screen
-itself also shows a small **5-day weather strip** in the top-left
-corner. More are planned (electricity/gas/water usage and others — see
-the "Where this could go next" section of
+Three exist today: **Prayer Times** (for Cheadle Masjid, built first —
+each prayer's row also carries a small live weather hint, see "Weather
+(per-prayer hint)" below), **Server Health** (live stats for the home
+server itself), and **Bin Day** (Stockport Council collection
+schedule). More are planned (electricity/gas/water usage and others —
+see the "Where this could go next" section of
 [ARCHITECTURE.md](ARCHITECTURE.md) for ideas not built yet, and
 [CHANGELOG.md](CHANGELOG.md) for exactly what exists today).
 
@@ -207,13 +207,23 @@ constants at the top of the Bin Day section of `index.html`
 (`BIN_ROTATION_REFERENCE` / `BIN_ROTATION`); there's no way for the app
 to detect this change on its own.
 
-## Weather strip (home screen)
+## Weather (per-prayer hint)
 
-A small, animated 5-day forecast in the top-left corner of "Choose a
-Display" — day label, small weather icon, rain chance, and high/low
-temperature per day. Uses [Open-Meteo](https://open-meteo.com), a free
-weather API that needs no signup or API key, fetched directly from the
-browser like everything else in this app.
+Each row of the Prayer Times table carries a small, deliberately subtle
+weather hint next to the prayer's name — a small icon (sun, moon,
+cloud, rain, etc., correctly swapping to a moon at night rather than
+always showing the daytime icon), rain chance, and temperature, all for
+that exact prayer's own Begins time rather than a generic "today's
+forecast." The temperature is coloured on a grey→amber→red scale that
+only warms up once it's actually getting hot, so a glance at colour
+alone hints at the day's warmest moments. Uses
+[Open-Meteo](https://open-meteo.com), a free weather API that needs no
+signup or API key, fetched directly from the browser like everything
+else in this app.
+
+(An earlier version of this also showed a small 5-day forecast strip on
+the home screen — removed 9 Sept 2026 at the user's request; see
+CHANGELOG.md's dated entry if it's ever wanted back.)
 
 **The forecast location is deliberately rounded to about 1km
 precision**, not the exact address — since this repo is public and has
