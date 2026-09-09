@@ -336,10 +336,17 @@ offset disconnected from that row.
   2 decimal places rather than committing the precise value.
 - **5 columns**: day label (`Today` for the first, otherwise a 3-letter
   day name), a small animated icon, rain probability (%), and high/low
-  temperature. Icons map Open-Meteo's WMO `weathercode` field down to 7
-  categories (clear, partly-cloudy, cloudy, fog, rain, snow,
+  temperature — high and low each coloured on the same grey→amber→red
+  spectrum as the per-prayer hint below (added 9 Sept 2026, see that
+  dated entry), rather than one flat colour. Icons map Open-Meteo's WMO
+  `weathercode` field down to 9 categories (clear, clear-night,
+  partly-cloudy, partly-cloudy-night, cloudy, fog, rain, snow,
   thunderstorm) via `weatherCategoryForCode()` — see that function for
-  the exact code-to-category mapping.
+  the exact code-to-category mapping. **This daily strip always shows
+  the daytime variant** (`clear`/`partly-cloudy`, never the `-night`
+  ones) since a whole day has no single time-of-day to judge — only the
+  per-prayer hourly hint below, which knows an exact hour, uses the
+  night variants.
 - **Icons are small, full-colour inline SVGs** (`WEATHER_ICON_SVG`) —
   deliberately not this app's usual monochrome `fill="currentColor"`
   nav-icon convention, since colour (yellow sun, grey cloud, blue rain)
@@ -373,8 +380,8 @@ offset disconnected from that row.
   size. Checked in both themes and both iPad orientations.
 
 **Per-prayer-time weather — settled state: a small, low-opacity inline
-hint to the left of each prayer's name (added 9 Sept 2026, revised
-three times same day — see below for all three).** Not a separate
+hint to the left of each prayer's name (added 9 Sept 2026, revised four
+times same day — see below for all four).** Not a separate
 column: `prayerWeatherInlineHtml()` prepends
 `<span class="prayerWeatherInline">` — icon on top, a small
 `.prayerWeatherInlineNums` line (blue rain% + spectrum-coloured temp)
@@ -396,6 +403,30 @@ returns it, `prayerWeatherInlineHtml()` just doesn't render it).
   available as minutes-since-midnight via the existing `parseMinutes()`
   helper) to the nearest hour and looks up that exact
   `"YYYY-MM-DDTHH:00"` slot in the hourly response.
+- **Icon reflects actual day/night, not just WMO sky condition** (added
+  9 Sept 2026) — `weatherCategoryForCode(code, isDay)` branches "clear"
+  and "partly-cloudy" into `clear-night`/`partly-cloudy-night` moon
+  variants whenever Open-Meteo's own `is_day` hourly field says it's
+  after dark, since a WMO code alone only ever describes sky condition,
+  never time of day (a genuinely clear night reports the exact same
+  code 0 as a clear afternoon). Added specifically because Isha — always
+  after dark — was showing a sun icon. `hourly.is_day` is guarded
+  (`hourly.is_day ? hourly.is_day[idx] : undefined`) since a response
+  cached in `localStorage` from before this change won't have that
+  field at all; without the guard, a stale cache would throw reading
+  `undefined[idx]` and break the whole table's render, not just show
+  the wrong icon. The moon glyph reuses the exact path already used for
+  the Prayer Times home-screen tile, filled in rather than a new shape;
+  `partly-cloudy-night`'s moon-behind-cloud composition mirrors
+  `partly-cloudy`'s sun-behind-cloud one, positioned by scaling and
+  translating that path to sit centred where the sun sits in the
+  daytime version (got this wrong on the first attempt — `translate(1,
+  -3) scale(0.6)` scaled the shape *toward* the origin as well as
+  shrinking it, pushing almost the whole crescent off the top of the
+  viewBox; fixed by solving for the translate that keeps the shape's
+  own centre at the sun's on-canvas position after scaling, confirmed
+  by rendering both night icons enlarged in isolation rather than
+  trusting the transform math alone).
 - **Icon above the numbers, icon bigger (`1.9vw`) and numbers smaller
   (`0.85vw`) than the single-line version this replaced** — but the
   *combined* stack (icon + numbers line, `line-height: 1` throughout,
@@ -2662,3 +2693,78 @@ not sitting right at the edge.
 Verified: all 6 rows checked programmatically against their own
 `.cell.time` height in both orientations (all pass), both themes
 visually confirmed, no console errors.
+
+### 2026-09-09 — Weather icons now know day from night; temp spectrum on the home strip too
+User: *"test on ipad and make sure icons make sense. like a sun can't
+be showing during isha? and the orange/red temp spectrum should be
+applied to the home display temperature digits."* Two fixes:
+
+**Real bug: a WMO weather code alone doesn't encode time of day.**
+Code 0 ("clear") is the same whether it's 2pm or 2am — this app was
+picking the sun icon for it either way, so Isha (always after dark)
+could genuinely show a sunny icon on a clear night. Confirmed live
+against real data for today's date: hour 21 (Isha's rounded hour) came
+back `weathercode: 0, is_day: 0` — a real, currently-live case of the
+bug, not a hypothetical. Fixed by adding `is_day` to the `&hourly=...`
+request and threading it through `weatherCategoryForCode(code, isDay)`,
+which now returns `clear-night`/`partly-cloudy-night` instead of their
+daytime equivalents whenever `is_day === 0`. Verified against real live
+data: Fajr and Maghrib (both `partly-cloudy-night` — cloud with the
+sun/moon peeking through) and Isha (`clear-night`) all now show a moon;
+Sunrise (`partly-cloudy`, `is_day: 1`) still correctly shows a sun.
+The home-screen daily strip is deliberately **not** touched by this —
+a whole day has no single time-of-day, so it keeps always showing the
+daytime icon, exactly as before.
+
+New moon icons reuse the exact crescent path already used for the
+Prayer Times home-screen tile (`M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0
+21 12.79z`), filled in rather than drawn fresh. Getting
+`partly-cloudy-night`'s composition right took two attempts: the first
+transform (`translate(1,-3) scale(0.6)`) scaled the shape toward the
+SVG origin as well as shrinking it, which pushed almost the entire
+crescent off the top edge of the viewBox — invisible, not just
+misplaced, confirmed by rendering both new icons enlarged in an
+isolated preview rather than trusting the transform arithmetic on its
+own. Fixed by solving for the translate that keeps the shape's own
+centre at the same on-canvas point the daytime version's sun circle
+already sits at, after the same scale factor. Also guarded
+`hourly.is_day` being read at all (`hourly.is_day ? hourly.is_day[idx]
+: undefined`), since a `localStorage`-cached response from before this
+change won't have that field — without the guard, that stale-cache
+case would throw on `undefined[idx]` and break the whole table's
+render instead of just showing the pre-existing (correct, if
+day-only) icon behaviour until the next successful fetch.
+
+**Home-screen temperature spectrum.** The daily strip's high/low
+(`.weatherTemp`) used one flat themed colour; now each of hi and lo is
+coloured independently via the same `tempSpectrumColor()` already built
+for the per-prayer hint, since a day's high and low can sit in very
+different bands. `applyTheme()` was already re-rendering the prayer
+table's temperatures on a theme switch; simplified it to call
+`renderWeatherWidget()` instead of `refreshPrayerWeatherCells()`
+directly — the former already calls the latter on every path (including
+before any weather data has loaded), so one call now keeps both the
+home strip and the prayer table's data-driven colours in sync with
+theme switches, rather than needing two separate calls kept in step by
+hand.
+
+**"Test on iPad"**: this repo has no native app/Xcode project, so
+there's no build for the iOS Simulator to launch — attempted anyway,
+and the simulator control tool itself reported no full Xcode install
+on this machine (`xcode-select` points at the CLI tools only), so it
+couldn't be used even for a plain Safari-in-simulator check. Continued
+testing the same way this project always has: the Browser pane at the
+iPad Pro 11"'s real two viewport sizes (834×1194 portrait, 1194×834
+landscape), both themes. **If genuine on-device iPad testing is ever
+wanted, that needs a real Xcode install (`sudo xcode-select -s
+/Applications/Xcode.app/Contents/Developer` after installing Xcode
+itself from the App Store) — flagged to the user rather than silently
+substituted.**
+
+Verified: real live data confirmed the icon fix end-to-end (moon for
+Fajr/Maghrib/Isha, sun for Sunrise); home-strip temperature colours
+checked numerically per-span and via a real theme-toggle re-render;
+both new night icons visually confirmed correct after the transform
+fix; both orientations re-checked against the existing row-height
+budget (unaffected, icon-only change); no console errors beyond
+pre-existing unrelated 404 noise from this local test server.

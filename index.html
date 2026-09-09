@@ -35,7 +35,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     body.theme-light, body.theme-dark,
-    .wxSun, .wxCloud, .wxDrop, .wxFlake, .wxBolt, .wxFogLine {
+    .wxSun, .wxMoon, .wxCloud, .wxDrop, .wxFlake, .wxBolt, .wxFogLine {
       animation: none;
     }
   }
@@ -804,6 +804,21 @@
   @keyframes wxSunPulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.82; transform: scale(1.08); }
+  }
+  /* Moon glows rather than pulsing in size like the sun does — a
+     slower, subtler opacity fade reads as "night" better than the
+     sun's scale-up, which would look like it's flashing at this size. */
+  .wxMoon {
+    -webkit-animation: wxMoonGlow 5s ease-in-out infinite;
+    animation: wxMoonGlow 5s ease-in-out infinite;
+  }
+  @-webkit-keyframes wxMoonGlow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.75; }
+  }
+  @keyframes wxMoonGlow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.75; }
   }
   .wxCloud {
     -webkit-animation: wxCloudDrift 6s ease-in-out infinite;
@@ -1681,12 +1696,16 @@
     // overwrite className to just "on"/"", which stripped that base class
     // and made the switch collapse to an invisible, untappable sliver.
     toggle.className = theme === "dark" ? "toggleSwitch on" : "toggleSwitch";
-    // The per-prayer temperature spectrum colour is baked into an
-    // inline style at render time (it depends on the actual temp value,
-    // not just the theme, so it can't be pure CSS) — re-render the rows
-    // so a theme switch immediately repaints it in the new theme's
-    // palette instead of waiting for the next unrelated refresh/rebuild.
-    refreshPrayerWeatherCells();
+    // Both the home-screen strip's high/low digits and the per-prayer
+    // hint's temperature are coloured by tempSpectrumColor() baked into
+    // an inline style at render time (they depend on the actual temp
+    // value, not just the theme, so neither can be pure CSS) —
+    // re-render both so a theme switch immediately repaints them in the
+    // new theme's palette instead of waiting for the next unrelated
+    // refresh/rebuild. renderWeatherWidget() already calls
+    // refreshPrayerWeatherCells() itself on every path (including when
+    // there's no weather data yet), so this one call covers both.
+    renderWeatherWidget();
   }
 
   function initTheme() {
@@ -2727,7 +2746,7 @@
   var WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=" + WEATHER_LAT +
     "&longitude=" + WEATHER_LON +
     "&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max" +
-    "&hourly=weathercode,temperature_2m,precipitation_probability,wind_speed_10m" +
+    "&hourly=weathercode,temperature_2m,precipitation_probability,wind_speed_10m,is_day" +
     "&wind_speed_unit=mph" +
     "&timezone=auto&forecast_days=5";
   var WEATHER_REFRESH_MS = 30 * 60 * 1000; // forecasts don't change fast; 30 min keeps this well clear of hammering the API
@@ -2787,9 +2806,21 @@
   // WMO weather codes (what Open-Meteo's `weathercode` field returns) —
   // collapsed down to the handful of icon categories this widget
   // actually draws. Full code list: https://open-meteo.com/en/docs
-  function weatherCategoryForCode(code) {
-    if (code === 0) { return "clear"; }
-    if (code === 1 || code === 2) { return "partly-cloudy"; }
+  // `isDay` (Open-Meteo's own `is_day` hourly field, 1/0) swaps the two
+  // sun-shaped categories for moon equivalents at night — added 9 Sept
+  // 2026 after the per-prayer hint was showing a sun icon for Isha
+  // (correctly clear/partly-cloudy by WMO code, but well after dark).
+  // Cloud/fog/rain/snow/thunderstorm icons don't have a night variant
+  // in real weather apps either, so only "clear" and "partly-cloudy"
+  // branch on it. `isDay` is omitted entirely by the home-screen daily
+  // strip's call (a whole day has no single time-of-day), which
+  // deliberately keeps showing day icons there, same as before this
+  // change — `undefined === 0` is false, so that call path is
+  // unaffected.
+  function weatherCategoryForCode(code, isDay) {
+    var isNight = isDay === 0;
+    if (code === 0) { return isNight ? "clear-night" : "clear"; }
+    if (code === 1 || code === 2) { return isNight ? "partly-cloudy-night" : "partly-cloudy"; }
     if (code === 3) { return "cloudy"; }
     if (code === 45 || code === 48) { return "fog"; }
     if (code === 71 || code === 73 || code === 75 || code === 77 || code === 85 || code === 86) { return "snow"; }
@@ -2825,6 +2856,30 @@
       '<g stroke="#ffb020" stroke-width="1.6" stroke-linecap="round">' +
       '<line x1="12" y1="0.5" x2="12" y2="2.3"></line><line x1="4.7" y1="4.7" x2="6" y2="6"></line>' +
       '<line x1="19.3" y1="4.7" x2="18" y2="6"></line></g></g>' +
+      '<path class="wxCloud" fill="#9aa8b8" d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>' +
+      '</svg>',
+
+    // Night variants of "clear"/"partly-cloudy" (added 9 Sept 2026) —
+    // real WMO codes 0/1/2 don't encode time of day at all, only actual
+    // sky condition, so the per-prayer hourly hint (unlike the daily
+    // strip) needs Open-Meteo's separate `is_day` field to pick between
+    // these and their daytime counterparts above — see the comment on
+    // weatherCategoryForCode(). Same crescent-moon glyph already used
+    // for the Prayer Times tile on the home screen, filled in (that
+    // one's a monochrome nav icon, stroke-only) rather than a new shape.
+    "clear-night":
+      '<svg viewBox="0 0 24 24">' +
+      '<g class="wxMoon">' +
+      '<path fill="#c9d3e0" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>' +
+      '<circle cx="19.5" cy="5" r="1" fill="#e7ecf3"></circle>' +
+      '<circle cx="16" cy="2.5" r="0.7" fill="#e7ecf3"></circle>' +
+      '</g></svg>',
+
+    "partly-cloudy-night":
+      '<svg viewBox="0 0 24 24">' +
+      '<g class="wxMoon" transform="translate(8.4,-0.6) scale(0.55)">' +
+      '<path fill="#c9d3e0" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>' +
+      '</g>' +
       '<path class="wxCloud" fill="#9aa8b8" d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>' +
       '</svg>',
 
@@ -2890,7 +2945,12 @@
     var idx = hourly.time.indexOf(targetTimeStr);
     if (idx === -1) { return null; }
     return {
-      category: weatherCategoryForCode(hourly.weathercode[idx]),
+      // hourly.is_day may not exist yet on a response cached in
+      // localStorage from before 9 Sept 2026 (the field didn't used to
+      // be requested) — guarded rather than assumed present, so a stale
+      // cache degrades to the old day-only icon instead of throwing on
+      // `undefined[idx]` and breaking the whole table's render.
+      category: weatherCategoryForCode(hourly.weathercode[idx], hourly.is_day ? hourly.is_day[idx] : undefined),
       rain: hourly.precipitation_probability[idx],
       temp: Math.round(hourly.temperature_2m[idx]),
       wind: Math.round(hourly.wind_speed_10m[idx])
@@ -2978,6 +3038,7 @@
     var daily = weatherData.daily;
     var count = Math.min(5, daily.time.length);
     var html = "";
+    var isDark = document.body.classList.contains("theme-dark");
     var i, d, dayLabel, category, rain, hi, lo;
     for (i = 0; i < count; i++) {
       // daily.time entries are "YYYY-MM-DD" in the location's own local
@@ -2991,15 +3052,28 @@
         parseInt(daily.time[i].substr(8, 2), 10)
       );
       dayLabel = (i === 0) ? "Today" : DAY_NAMES[d.getDay()].substr(0, 3);
+      // No isDay here — a whole day has no single time-of-day, so this
+      // always renders the daytime sun/partly-cloudy icon regardless of
+      // when it's actually being looked at, same as before 9 Sept 2026's
+      // day/night split (that split only applies to the per-prayer
+      // hourly hint below, which does know an exact time).
       category = weatherCategoryForCode(daily.weathercode[i]);
       rain = daily.precipitation_probability_max[i];
       hi = Math.round(daily.temperature_2m_max[i]);
       lo = Math.round(daily.temperature_2m_min[i]);
+      // High/low each coloured on the same grey→amber→red spectrum as
+      // the per-prayer hint (added 9 Sept 2026, explicit request: "the
+      // orange/red temp spectrum should be applied to the home display
+      // temperature digits") — coloured independently since a day's
+      // high and low can sit in very different bands.
       html += '<div class="weatherDay">' +
         '<div class="weatherDayLabel">' + dayLabel + '</div>' +
         '<div class="weatherIcon">' + weatherIconHtml(category) + '</div>' +
         '<div class="weatherRain">' + rain + '%</div>' +
-        '<div class="weatherTemp">' + hi + '&deg;/' + lo + '&deg;</div>' +
+        '<div class="weatherTemp">' +
+        '<span style="color:' + tempSpectrumColor(hi, isDark) + '">' + hi + '&deg;</span>/' +
+        '<span style="color:' + tempSpectrumColor(lo, isDark) + '">' + lo + '&deg;</span>' +
+        '</div>' +
         '</div>';
     }
     container.innerHTML = html;
