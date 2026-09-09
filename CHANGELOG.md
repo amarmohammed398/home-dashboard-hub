@@ -40,10 +40,11 @@ overriding — the baseline exists precisely to catch that kind of thing.
   `https://cheadlemasjid.org/wp-json/dpt/v1/prayertime?filter=today`
   every 5 minutes (`REFRESH_MS`). No prayer times are ever hand-entered.
 - Table shows, in order: Fajr, Sunrise, Dhuhr (or **Jumu'ah** on
-  Fridays), Asr, Maghrib, Isha — Begins + Iqamah columns, plus a 4th
-  **Weather** column (added 9 Sept 2026 — see that dated entry and the
-  "Weather strip" section below) showing each row's forecast at its own
-  Begins time: icon, rain probability, temperature, wind speed.
+  Fridays), Asr, Maghrib, Isha — Begins + Iqamah columns. Each row's
+  name also carries a small, low-opacity weather hint inline to its
+  left (added 9 Sept 2026, see the "Weather strip" section below and
+  that date's two dated entries) — icon, rain probability, and
+  temperature at that prayer's own Begins time.
 - On Fridays, the Dhuhr row is replaced by a Jumu'ah row using
   `data.friday.zuhr_jamah` (shown as "1st Khutbah") and
   `data.friday.asr_mithl_1` (shown as "2nd Khutbah") — this exact field
@@ -371,51 +372,53 @@ offset disconnected from that row.
   conditions at once) — all render distinctly and legibly at actual
   size. Checked in both themes and both iPad orientations.
 
-**Per-prayer-time weather (added 9 Sept 2026)** — a 4th "Weather" column
-in the Prayer Times table itself (not the home screen), one cell per
-row: Fajr, Sunrise, Dhuhr/Jumu'ah, Asr, Maghrib, Isha all included, on
-the user's explicit request for symmetry with the existing table even
-though Isha's forecast isn't actionable for daytime tasks like drying
-washing. Lets the user see which part of the day looks driest/warmest
-at a glance, rather than only the day's overall high/low.
-- **Same API call, no new request** — `WEATHER_URL` now asks Open-Meteo
-  for `&hourly=weathercode,temperature_2m,precipitation_probability,
-  wind_speed_10m` alongside the existing `&daily=...` params, confirmed
-  live that both can be combined in one request. `&wind_speed_unit=mph`
-  added for UK-appropriate units.
+**Per-prayer-time weather — settled state: a small, low-opacity inline
+hint to the left of each prayer's name (added 9 Sept 2026, redesigned
+same day — see below).** Not a separate column: `prayerWeatherInlineHtml()`
+prepends `<span class="prayerWeatherInline">` (small icon + `rain% temp°`
+text, `opacity: 0.5`, `font-size: 1vw`) directly into the `.cell.name`
+markup, before the prayer's name text itself, for all 6 rows (Fajr,
+Sunrise, Dhuhr/Jumu'ah, Asr, Maghrib, Isha — user explicitly wanted
+symmetry with the existing table even though Isha's forecast isn't
+actionable for daytime tasks like drying washing). Deliberately
+discreet — a background hint, not something competing with the
+Begins/Iqamah times for attention — per explicit user request. Wind
+speed is not shown in this compact form (kept easy to re-add:
+`hourlyWeatherForMinutes()` still returns it, `prayerWeatherInlineHtml()`
+just doesn't render it).
+- **Same API call as the home-screen strip, no new request** —
+  `WEATHER_URL` asks Open-Meteo for `&hourly=weathercode,temperature_2m,
+  precipitation_probability,wind_speed_10m` alongside the existing
+  `&daily=...` params, confirmed live that both combine in one request.
+  `&wind_speed_unit=mph` added for UK-appropriate units.
 - `hourlyWeatherForMinutes(mins)` rounds a prayer's Begins time (already
   available as minutes-since-midnight via the existing `parseMinutes()`
   helper) to the nearest hour and looks up that exact
   `"YYYY-MM-DDTHH:00"` slot in the hourly response.
-- Each cell shows the same small icon as the home-screen strip
-  (`weatherIconHtml()`, reused as-is) plus rain %, temperature, and
-  **wind speed** — wind added on request as a more useful signal than
-  temperature alone for "is this a good time to put the washing out",
-  and built as an isolated `<span class="prayerWeatherWind">` +
-  matching theme-colour rule specifically so it can be pulled back out
-  on its own later without touching the rain%/temp/icon if it turns out
-  not to look right.
-- **Row height, not just legibility, needed re-checking**: the column
-  is a vertical icon-over-stats stack in portrait (spare vertical room
-  there), but the same stack in landscape pushed Maghrib/Isha below the
-  visible viewport — this display never scrolls (`body`/`html` are
-  `overflow: hidden` by design, being a fixed wall-mounted kiosk), so
-  they'd have been silently unreachable, not just tight. Fixed with a
-  landscape-only `@media (orientation: landscape)` override (matching
-  the pattern already used for the Server Health stat grid) that lays
-  the icon and stats out in one compact horizontal row instead, keeping
-  each prayer row close to its pre-weather-column height. Caught by
-  measuring real row `getBoundingClientRect()` values against the
-  viewport height, not by eyeballing a screenshot.
-- First pass also shipped a legibility miss the other way: `1vw`
-  stats text measured at 8.34px via `getComputedStyle` — too small for
-  primary table content read at a glance on a wall display (unlike the
-  home-screen strip's similarly small text, which is a corner
-  accessory). Raised to `1.5vw` (portrait) / `1.05vw` (landscape
-  compact row).
-- Verified against real live Open-Meteo data (distinct icon/rain%/temp/
-  wind per row, matching each prayer's actual hour) in both themes and
-  both iPad orientations; no console errors introduced.
+- Verified against real live Open-Meteo data (distinct icon/rain%/temp
+  per row, matching each prayer's actual hour), both themes, both iPad
+  orientations; no console errors introduced.
+
+**First version (same day, replaced before the day was out): a
+separate 4th "Weather" column.** Built first as its own column (own
+header cell, icon-over-stats stack sized `1.5vw`/`2.6vw`) showing icon,
+rain%, temp, *and* wind speed. Two real bugs were found and fixed while
+testing that version — worth remembering since the same row-height
+constraint still applies to the current inline design, just with far
+smaller stakes now that nothing sits in its own tall stack: (1) first
+pass's `1vw` stats text measured 8.34px via `getComputedStyle`, too
+small to read at a glance; (2) the vertical icon-over-stats layout that
+fixed that overflowed off the bottom of the screen in **landscape**
+specifically — this display's `body`/`html` are `overflow: hidden` by
+design (a fixed wall-mounted kiosk, never scrolls) and row height here
+is purely content-driven, so Maghrib/Isha were silently pushed
+entirely below the visible viewport, not just tight. Both fixes shipped
+and verified, then the whole column approach itself was replaced within
+the same session at the user's explicit request — *"I don't want a
+separate column. I want something really compact and discreet. Very
+transparent and to the left of the different prayers"* — for the inline
+design described above, which sidesteps the row-height problem entirely
+since it adds no new vertical space to the row at all.
 
 ### Appearance
 - **"Liquid Glass" look** (matching iOS 26's own material design): every
@@ -2513,3 +2516,39 @@ themes, both iPad orientations, no console errors introduced by this
 change. Wind speed is deliberately isolated (its own `<span>` + theme
 colour rule) so it can be removed on its own later without touching
 rain%/temp/icon, per the user's own stated "might remove it" caveat.
+
+### 2026-09-09 — Per-prayer-time weather, redesigned: column → inline hint
+Same day the 4th "Weather" column above shipped, user asked for a
+different treatment entirely: *"I don't want a separate column. I want
+something really compact and discreet. Very transparent and to the
+left of the different prayers eg. Fajr, sunrise, dhuhur."* Asked one
+quick clarifying question on how much information to keep at that
+smaller scale (icon+temp only / icon-only / icon+rain%+temp with wind
+kept separate) — user chose **icon + rain% + temp, wind kept out but
+easy to add back**, matching the removable-wind-speed caveat already
+built into the column version.
+
+Replaced the column entirely rather than layering the two: removed the
+4th `.cell.weather`/header cell and `prayerWeatherCellHtml()`, and
+added `prayerWeatherInlineHtml()`, which prepends a small
+`<span class="prayerWeatherInline">` (icon + `"rain% temp°"` text) onto
+`nameHtml` in `renderRows()`, right before the prayer's own name text —
+so it renders as part of the existing `.cell.name` (already a flex
+container) rather than a cell of its own. Kept deliberately subtle:
+`opacity: 0.5`, `font-size: 1vw`, `14px`-scale icon — a background hint
+next to the name, not a fourth thing competing with Begins/Iqamah for
+attention. This also fully sidesteps the previous version's landscape
+row-height problem: since nothing sits in a tall stack any more, both
+the earlier `@media (orientation: landscape)` override and the
+portrait/landscape font-size split it needed are gone — one CSS rule
+now covers both orientations, verified with the same real
+`getBoundingClientRect()` row-height check as before (all 6 rows sit
+comfortably inside 834px in landscape, well under the previous
+column's already-fixed bound).
+
+Verified against real live Open-Meteo data, both themes, both iPad
+orientations, no console errors. See the rewritten "Weather strip"
+section above (now split into "settled state" and "first version,
+replaced" parts) for full before/after detail — the column version's
+code no longer exists in `index.html`, kept here and there only as
+documented history.

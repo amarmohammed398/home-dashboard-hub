@@ -230,74 +230,35 @@
     text-align: center;
     font-variant-numeric: tabular-nums;
   }
-  /* Per-prayer weather (added 9 Sept 2026) — a 4th column, deliberately
-     much smaller than the Begins/Iqamah text next to it (this is
-     supplementary context, not the main thing being read at a glance).
-     A narrower flex share than the other three columns since it only
-     ever holds a small icon and a couple of short numbers, not a full
-     time string. */
-  .cell.weather {
-    -webkit-box-flex: 0.9;
-    -webkit-flex: 0.9;
-    flex: 0.9;
-    display: -webkit-box;
-    display: -webkit-flex;
-    display: flex;
-    -webkit-box-orient: vertical;
-    -webkit-flex-direction: column;
-    flex-direction: column;
+  /* Per-prayer weather (added 9 Sept 2026, revised same day from a
+     separate 4th column into this compact inline version per explicit
+     request — "I don't want a separate column... really compact and
+     discreet, very transparent, to the left of the different prayers").
+     Sits inline before the prayer name itself, inside .cell.name (which
+     is already flex/align-items so it just takes its place as another
+     row item before the name text) — low opacity and small type on
+     purpose, a background hint rather than something competing with the
+     name/time text for attention. Icon reuses weatherIconHtml(), same
+     as the home-screen strip. Wind speed is deliberately left out of
+     this compact version (kept easy to re-add: hourlyWeatherForMinutes()
+     still returns it, prayerWeatherInlineHtml() just doesn't render it)
+     per the user's own "might remove it" caveat from the column version. */
+  .prayerWeatherInline {
+    display: -webkit-inline-box;
+    display: -webkit-inline-flex;
+    display: inline-flex;
     -webkit-box-align: center;
     -webkit-align-items: center;
     align-items: center;
-    -webkit-box-pack: center;
-    -webkit-justify-content: center;
-    justify-content: center;
-  }
-  .row.head .cell.weather {
-    display: block;
-    text-align: center;
-  }
-  .prayerWeatherIcon svg { width: 2.6vw; height: 2.6vw; min-width: 24px; min-height: 24px; }
-  .prayerWeatherStats {
-    display: -webkit-box;
-    display: -webkit-flex;
-    display: flex;
-    -webkit-flex-direction: column;
-    flex-direction: column;
-    -webkit-box-align: center;
-    -webkit-align-items: center;
-    align-items: center;
-    gap: 0.1vh 0;
-    margin-top: 0.3vh;
-    font-size: 1.5vw;
-    font-weight: 700;
+    gap: 0 0.25vw;
+    margin-right: 0.7vw;
+    opacity: 0.5;
+    font-size: 1vw;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
-    line-height: 1.25;
+    white-space: nowrap;
   }
-  /* Landscape has far less vertical room per row than portrait (a wider
-     but shorter viewport), and the table's row height is driven purely
-     by content (no fixed/flex-shared row height) — so the tall vertical
-     icon-over-stats layout above, sized for portrait's spare height,
-     pushed Maghrib/Isha below the visible viewport here (this display
-     never scrolls; body/html are overflow: hidden by design). Landscape
-     instead lays the icon and stats out in one compact row, keeping
-     each prayer row close to its pre-weather-column height. */
-  @media (orientation: landscape) {
-    .cell.weather {
-      -webkit-box-orient: horizontal;
-      -webkit-flex-direction: row;
-      flex-direction: row;
-      gap: 0 0.5vw;
-    }
-    .prayerWeatherIcon svg { width: 1.6vw; height: 1.6vw; min-width: 18px; min-height: 18px; }
-    .prayerWeatherStats {
-      -webkit-flex-direction: row;
-      flex-direction: row;
-      gap: 0 0.4vw;
-      margin-top: 0;
-      font-size: 1.05vw;
-    }
-  }
+  .prayerWeatherInline svg { width: 1.3vw; height: 1.3vw; min-width: 14px; min-height: 14px; }
   /* Small "adhan armed" indicator next to a prayer's name — a proper
      icon rather than an emoji, coloured with the app's accent so it
      reads as "this one's on" (same colour as an active toggle switch).
@@ -1223,9 +1184,7 @@
   body.theme-light .row.active .cell.name:before { background-color: #0e8f6b; }
   body.theme-light .cell.name { color: #1f2937; }
   body.theme-light .cell.time { color: #1f2937; }
-  body.theme-light .prayerWeatherRain { color: #0a84ff; }
-  body.theme-light .prayerWeatherTemp { color: #1f2937; }
-  body.theme-light .prayerWeatherWind { color: #6b7280; }
+  body.theme-light .prayerWeatherInlineText { color: #1f2937; }
   body.theme-light .sub { color: #b45309; }
   body.theme-light #footer { color: #4b5563; }
   body.theme-light #footer.offline { color: #b45309; }
@@ -1330,9 +1289,7 @@
   body.theme-dark .row.active .cell.name:before { background-color: #2fd39a; }
   body.theme-dark .cell.name { color: #f3f4f6; }
   body.theme-dark .cell.time { color: #f3f4f6; }
-  body.theme-dark .prayerWeatherRain { color: #409cff; }
-  body.theme-dark .prayerWeatherTemp { color: #f3f4f6; }
-  body.theme-dark .prayerWeatherWind { color: #9aa1ac; }
+  body.theme-dark .prayerWeatherInlineText { color: #f3f4f6; }
   body.theme-dark .sub { color: #f2b84b; }
   body.theme-dark #footer { color: #9aa1ac; }
   body.theme-dark #footer.offline { color: #f2b84b; }
@@ -1451,7 +1408,6 @@
       <div class="cell name">Prayer</div>
       <div class="cell time">Begins</div>
       <div class="cell time">Iqamah</div>
-      <div class="cell weather">Weather</div>
     </div>
     <div id="rows"></div>
   </div>
@@ -2910,22 +2866,23 @@
     };
   }
 
-  function prayerWeatherCellHtml(begins) {
+  // Compact inline weather hint rendered just before a prayer's name
+  // (not a separate column — see the CSS comment above
+  // .prayerWeatherInline for why this moved). Icon + rain% + temp only;
+  // wind speed is deliberately left out of this compact form (still
+  // available from hourlyWeatherForMinutes() if it's ever wanted back).
+  function prayerWeatherInlineHtml(begins) {
     var wx = hourlyWeatherForMinutes(parseMinutes(begins));
     if (!wx) { return ""; }
-    return '<div class="prayerWeatherIcon">' + weatherIconHtml(wx.category) + '</div>' +
-      '<div class="prayerWeatherStats">' +
-      '<span class="prayerWeatherRain">' + wx.rain + '%</span>' +
-      '<span class="prayerWeatherTemp">' + wx.temp + '&deg;</span>' +
-      '<span class="prayerWeatherWind">' + wx.wind + 'mph</span>' +
-      '</div>';
+    return '<span class="prayerWeatherInline">' + weatherIconHtml(wx.category) +
+      '<span class="prayerWeatherInlineText">' + wx.rain + '% ' + wx.temp + '&deg;</span></span> ';
   }
 
-  // Re-paints the Prayer Times table's weather column against
+  // Re-paints the Prayer Times table's per-row weather hints against
   // whatever's currently in `weatherData`, without touching the
   // countdown/highlight logic at all — reuses the same rows and
   // whichever key was already highlighted, since only the weather
-  // portion of each cell needs to change. Needed because weather and
+  // portion of each row needs to change. Needed because weather and
   // prayer-time data are fetched entirely independently (weather every
   // 30 min, prayer times every 5 min) — the table would otherwise only
   // pick up newly-arrived weather data whenever the *prayer* side next
@@ -3112,14 +3069,22 @@
     var container = document.getElementById("rows");
     container.innerHTML = "";
     var adhanSettings = getAdhanSettings();
-    var i, r, rowEl, nameCell, beginsCell, iqamahCell, weatherCell, adhanKey, nameHtml;
+    var i, r, rowEl, nameCell, beginsCell, iqamahCell, adhanKey, nameHtml;
     for (i = 0; i < rows.length; i++) {
       r = rows[i];
       rowEl = el("div", "row" + (r.key === activeKey ? " active" : ""));
 
       // Both "dhuhr" and Friday's "jumuah" row reflect the same Zuhr adhan toggle.
       adhanKey = r.key === "jumuah" ? "dhuhr" : r.key;
-      nameHtml = r.name;
+      // Compact weather hint (icon + rain% + temp) at this row's own
+      // Begins time goes first, inline, to the left of the prayer name
+      // itself — see hourlyWeatherForMinutes()'s comment for why it's
+      // looked up per-row, and the CSS comment on .prayerWeatherInline
+      // for why this isn't a separate column. Left blank (not a
+      // placeholder dash) until the weather fetch actually succeeds at
+      // least once, same "don't show anything actively wrong" instinct
+      // as everywhere else weather appears.
+      nameHtml = prayerWeatherInlineHtml(r.begins) + r.name;
       if (adhanSettings[adhanKey]) {
         nameHtml += ' <span class="adhanArmedIcon" title="Adhan will be played">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
@@ -3136,15 +3101,6 @@
 
       iqamahCell = el("div", "cell time", r.iqamah ? (formatHms(r.iqamah) + (r.iqamahSub ? "<span class=\"sub\">" + r.iqamahSub + "</span>" : "")) : "&mdash;");
       rowEl.appendChild(iqamahCell);
-
-      // Weather at this row's own Begins time — see
-      // hourlyWeatherForMinutes()'s own comment for why this is looked
-      // up per-row rather than once for the whole table. Left blank
-      // (not a placeholder dash) until the weather fetch actually
-      // succeeds at least once, same "don't show anything actively
-      // wrong" instinct as everywhere else weather appears.
-      weatherCell = el("div", "cell weather", prayerWeatherCellHtml(r.begins));
-      rowEl.appendChild(weatherCell);
 
       container.appendChild(rowEl);
     }
